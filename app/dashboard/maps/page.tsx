@@ -4,7 +4,8 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState, useMemo } from "react";
 import type { Gapoktan } from "@/lib/types";
 import dynamic from "next/dynamic";
-import { MapPin, Wheat, Factory } from "lucide-react";
+import { MapPin, Wheat, Factory, Edit, Trash2, Plus, Loader2 } from "lucide-react";
+import { GapoktanForm } from "@/components/dashboard/gapoktan-form";
 
 // Dynamically import map to avoid SSR issues with Leaflet
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
@@ -18,6 +19,15 @@ export default function MapsPage() {
   const [selected, setSelected] = useState<Gapoktan | null>(null);
   const [leafletReady, setLeafletReady] = useState(false);
   const [customIcon, setCustomIcon] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingGapoktan, setEditingGapoktan] = useState<Gapoktan | null>(null);
+
+  const reload = () => {
+    setLoading(true);
+    fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()).then(data => {
+      setGapoktan(Array.isArray(data) ? data.filter(g => g.latitude && g.longitude) : []);
+    }).finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     fetch('/api/gapoktan').then(r => r.json()).then(data => {
@@ -51,6 +61,15 @@ export default function MapsPage() {
     }
   }, []);
 
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Hapus Gapoktan "${name}"? Semua data dryer dan produksi terkait juga akan terpengaruh.`)) return;
+    try {
+      const res = await fetch(`/api/gapoktan/${id}`, { method: 'DELETE' });
+      if (res.ok) reload();
+      else { const err = await res.json(); alert(err.error); }
+    } catch (e: any) { alert(e.message); }
+  };
+
   // Center of West Java
   const center: [number, number] = [-7.0, 107.4];
 
@@ -59,10 +78,23 @@ export default function MapsPage() {
       <Sidebar />
       <main className="flex-1 overflow-y-auto bg-muted/20">
         <div className="p-8 space-y-6">
-          <header>
-            <h1 className="text-3xl font-bold tracking-tight">Peta GIS Gapoktan</h1>
-            <p className="text-muted-foreground">Lokasi seluruh gapoktan dan unit dryer pada peta</p>
+          <header className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Peta GIS Gapoktan</h1>
+              <p className="text-muted-foreground">Lokasi seluruh gapoktan dan unit dryer pada peta</p>
+            </div>
+            <button onClick={() => { setEditingGapoktan(null); setShowForm(!showForm); }} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+              <Plus className="h-4 w-4" /> Tambah Gapoktan
+            </button>
           </header>
+
+          {(showForm || editingGapoktan) && (
+            <GapoktanForm 
+              initialData={editingGapoktan} 
+              onSaved={() => { reload(); setShowForm(false); setEditingGapoktan(null); }} 
+              onCancel={() => { setShowForm(false); setEditingGapoktan(null); }} 
+            />
+          )}
 
           <div className="grid gap-6 lg:grid-cols-4">
             {/* Map */}
@@ -103,6 +135,21 @@ export default function MapsPage() {
                           </p>
                           {g.ketua && <p className="text-xs mt-1">Ketua: {g.ketua}</p>}
                           {g.dryer_units && <p className="text-xs">Dryer: {g.dryer_units.length} unit</p>}
+                          
+                          <div className="flex gap-2 mt-3 pt-2 border-t">
+                            <button 
+                              onClick={() => setEditingGapoktan(g)}
+                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-bold hover:bg-primary hover:text-white transition-all"
+                            >
+                              <Edit className="h-3 w-3" /> Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(g.id, g.name)}
+                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[10px] font-bold hover:bg-destructive hover:text-white transition-all"
+                            >
+                              <Trash2 className="h-3 w-3" /> Hapus
+                            </button>
+                          </div>
                         </div>
                       </Popup>
                     </Marker>
@@ -118,11 +165,25 @@ export default function MapsPage() {
                 <div
                   key={g.id}
                   onClick={() => setSelected(g)}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
+                  className={`relative group p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
                     selected?.id === g.id ? 'border-primary bg-primary/5' : 'bg-card/60 hover:border-primary/30'
                   }`}
                 >
-                  <h4 className="font-semibold text-sm">{g.name}</h4>
+                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setEditingGapoktan(g); }}
+                      className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDelete(g.id, g.name); }}
+                      className="h-7 w-7 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <h4 className="font-semibold text-sm pr-14">{g.name}</h4>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                     <MapPin className="h-3 w-3" />
                     {g.desa?.name}
