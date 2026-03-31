@@ -63,6 +63,7 @@ export default function PublicDashboard() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // Filtered productions
   const filtered = useMemo(() => {
     return productions.filter(p => {
       if (filterGapoktan && p.gapoktan_id !== filterGapoktan) return false;
@@ -76,6 +77,7 @@ export default function PublicDashboard() {
     });
   }, [productions, filterGapoktan, filterKomoditas, filterDate, filterLokasi]);
 
+  // Production totals per komoditas
   const perKomoditas = useMemo(() => {
     const map: Record<string, { name: string; total: number; totalToday: number }> = {};
     productions.forEach(p => {
@@ -89,7 +91,12 @@ export default function PublicDashboard() {
 
   const gapoktanWithCoords = useMemo(() => gapoktanList.filter(g => g.latitude && g.longitude), [gapoktanList]);
 
-  const clearFilters = () => { setFilterGapoktan(''); setFilterKomoditas(''); setFilterDate(''); setFilterLokasi(''); };
+  const clearFilters = () => {
+    setFilterGapoktan('');
+    setFilterKomoditas('');
+    setFilterDate('');
+    setFilterLokasi('');
+  };
   const hasFilters = !!(filterGapoktan || filterKomoditas || filterDate || filterLokasi);
 
   if (loading) return (
@@ -103,6 +110,7 @@ export default function PublicDashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -121,6 +129,8 @@ export default function PublicDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+        {/* KPI Row */}
         {stats && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KPI icon={Users} color="text-blue-500" title="Total Gapoktan" value={stats.totalGapoktan} />
@@ -130,22 +140,31 @@ export default function PublicDashboard() {
           </div>
         )}
 
+        {/* Production Per Komoditas */}
         <section>
           <h2 className="text-lg font-bold mb-4">Produksi Per Komoditas</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {perKomoditas.map(k => (
               <div key={k.name} className="rounded-2xl border bg-card/60 p-4 hover:shadow-lg hover:border-primary/20 transition-all">
-                <div className="flex items-center gap-2 mb-2"><Wheat className="h-4 w-4 text-primary" /><span className="text-sm font-bold">{k.name}</span></div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Wheat className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold">{k.name}</span>
+                </div>
                 <p className="text-2xl font-bold">{k.total.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">kg</span></p>
-                <p className="text-xs text-muted-foreground mt-1">Hari ini: <span className="text-foreground font-semibold">{k.totalToday.toLocaleString()} kg</span></p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Hari ini: <span className="text-foreground font-semibold">{k.totalToday.toLocaleString()} kg</span>
+                </p>
               </div>
             ))}
+            {perKomoditas.length === 0 && <p className="text-sm text-muted-foreground col-span-full">Belum ada data produksi</p>}
           </div>
         </section>
 
+        {/* Filters */}
         <section>
           <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 text-sm font-medium mb-3 hover:text-primary transition-colors">
-            <Filter className="h-4 w-4" /> Filter Data
+            <Filter className="h-4 w-4" />
+            Filter Data
             {showFilters ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             {hasFilters && <span className="h-2 w-2 rounded-full bg-primary" />}
           </button>
@@ -153,31 +172,40 @@ export default function PublicDashboard() {
             <div className="rounded-2xl border bg-card/60 p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Lokasi</label>
-                <input type="text" placeholder="Cari kab/kec/desa..." value={filterLokasi} onChange={e => setFilterLokasi(e.target.value)} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
+                <input type="text" placeholder="Cari kab/kec/desa..." value={filterLokasi} onChange={e => setFilterLokasi(e.target.value)}
+                  className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Gapoktan</label>
-                <select value={filterGapoktan} onChange={e => setFilterGapoktan(e.target.value)} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
+                <select value={filterGapoktan} onChange={e => setFilterGapoktan(e.target.value)}
+                  className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
                   <option value="">Semua</option>
                   {gapoktanList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Komoditas</label>
-                <select value={filterKomoditas} onChange={e => setFilterKomoditas(e.target.value)} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
+                <select value={filterKomoditas} onChange={e => setFilterKomoditas(e.target.value)}
+                  className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
                   <option value="">Semua</option>
                   {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Tanggal Produksi</label>
-                <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
+                <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
+                  className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
               </div>
-              {hasFilters && <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-600 col-span-full"><X className="h-3 w-3" /> Reset Filter</button>}
+              {hasFilters && (
+                <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-600 col-span-full">
+                  <X className="h-3 w-3" /> Reset Filter
+                </button>
+              )}
             </div>
           )}
         </section>
 
+        {/* GIS Map */}
         <section>
           <h2 className="text-lg font-bold mb-4">Peta Lokasi Gapoktan</h2>
           <div className="rounded-2xl border bg-card/60 overflow-hidden" style={{ height: '450px' }}>
@@ -195,7 +223,9 @@ export default function PublicDashboard() {
                         {g.ketua && <p className="text-xs"><b>Ketua:</b> {g.ketua}</p>}
                         {g.phone && <p className="text-xs"><b>Telp:</b> {g.phone}</p>}
                         {g.dryer_units && <p className="text-xs"><b>Dryer:</b> {g.dryer_units.length} unit</p>}
-                        {g.komoditas && g.komoditas.length > 0 && <p className="text-xs"><b>Komoditas:</b> {g.komoditas.map(k => k.name).join(', ')}</p>}
+                        {g.komoditas && g.komoditas.length > 0 && (
+                          <p className="text-xs"><b>Komoditas:</b> {g.komoditas.map(k => k.name).join(', ')}</p>
+                        )}
                       </div>
                     </Popup>
                   </Marker>
@@ -205,6 +235,7 @@ export default function PublicDashboard() {
           </div>
         </section>
 
+        {/* Production Detail Table */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold">Detail Produksi</h2>
@@ -230,7 +261,9 @@ export default function PublicDashboard() {
                 </thead>
                 <tbody className="divide-y">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">{hasFilters ? 'Tidak ada data sesuai filter' : 'Belum ada data'}</td></tr>
+                    <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">
+                      {hasFilters ? 'Tidak ada data sesuai filter' : 'Belum ada data produksi'}
+                    </td></tr>
                   ) : filtered.map(p => (
                     <tr key={p.id} className="text-sm hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">{p.production_date}</td>
@@ -242,8 +275,12 @@ export default function PublicDashboard() {
                       <td className="px-4 py-3 text-right font-mono">Rp {Number(p.price_before).toLocaleString()}</td>
                       <td className="px-4 py-3 text-right font-mono">{Number(p.qty_after).toLocaleString()}</td>
                       <td className="px-4 py-3 text-right font-mono">Rp {Number(p.price_after).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.qty_diff_pct) < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{p.qty_diff_pct}%</span></td>
-                      <td className="px-4 py-3 text-right"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.price_diff_pct) >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>+{p.price_diff_pct}%</span></td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.qty_diff_pct) < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{p.qty_diff_pct}%</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.price_diff_pct) >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>+{p.price_diff_pct}%</span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -252,7 +289,10 @@ export default function PublicDashboard() {
           </div>
         </section>
 
-        <footer className="text-center text-xs text-muted-foreground py-8 border-t">© 2026 AgroDryer — Sistem Monitoring Pengeringan Komoditas Pertanian</footer>
+        {/* Footer */}
+        <footer className="text-center text-xs text-muted-foreground py-8 border-t">
+          © 2026 AgroDryer — Sistem Monitoring Pengeringan Komoditas Pertanian
+        </footer>
       </main>
     </div>
   );
@@ -260,10 +300,15 @@ export default function PublicDashboard() {
 
 function KPI({ icon: Icon, color, title, value }: { icon: any; color: string; title: string; value: string | number }) {
   return (
-    <div className="rounded-2xl border bg-card/60 p-5 hover:shadow-xl hover:border-primary/20 transition-all">
+    <div className="rounded-2xl border bg-card/60 p-5 hover:shadow-xl hover:border-primary/20 transition-all group">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center"><Icon className={`h-5 w-5 ${color}`} /></div>
-        <div><p className="text-xs text-muted-foreground">{title}</p><p className="text-2xl font-bold tracking-tight">{value}</p></div>
+        <div className={`h-10 w-10 rounded-xl bg-muted flex items-center justify-center`}>
+          <Icon className={`h-5 w-5 ${color}`} />
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold tracking-tight">{value}</p>
+        </div>
       </div>
     </div>
   );
