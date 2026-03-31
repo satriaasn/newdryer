@@ -1,146 +1,125 @@
+"use client";
+
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { KPICardsSection } from "@/components/dashboard/kpi-cards";
-import { ProductionChart } from "@/components/dashboard/production-chart";
+import { useEffect, useState } from "react";
+import type { DashboardStats, Production } from "@/lib/types";
 import { 
-  Bell, 
-  Search, 
-  Calendar,
-  Filter,
-  Download,
-  Plus
+  Factory, Users, Package, TrendingUp, TrendingDown,
+  ArrowUpRight, BarChart3
 } from "lucide-react";
 
 export default function Dashboard() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [productions, setProductions] = useState<Production[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/dashboard').then(r => r.json()),
+      fetch('/api/production').then(r => r.json()),
+    ]).then(([s, p]) => {
+      setStats(s);
+      setProductions(Array.isArray(p) ? p.slice(0, 5) : []);
+    }).finally(() => setLoading(false));
+  }, []);
+
   return (
-    <div className="flex min-h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar />
-      
       <main className="flex-1 overflow-y-auto bg-muted/20">
-        {/* Topbar */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/50 px-8 backdrop-blur-xl">
-          <div className="flex items-center gap-4 w-96">
-            <div className="relative w-full group">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <input 
-                type="text" 
-                placeholder="Cari unit pengering, batch, atau log..."
-                className="w-full rounded-xl border bg-muted/40 py-2 pl-10 pr-4 text-sm outline-none transition-all focus:bg-background focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border bg-background hover:bg-muted transition-all duration-300">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-background animate-pulse" />
-            </button>
-            <div className="h-4 w-px bg-border" />
-            <button className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-              <Plus className="h-4 w-4" />
-              Batch Baru
-            </button>
-          </div>
-        </header>
-
-        {/* Dashboard Content */}
         <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <header className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Ikhtisar Pemantauan</h1>
-                <p className="text-muted-foreground">Selamat datang kembali. Semua sistem beroperasi dalam parameter normal.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 rounded-xl border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-all">
-                  <Calendar className="h-4 w-4" />
-                  Hari Ini
-                </button>
-                <button className="flex items-center gap-2 rounded-xl border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-all">
-                  <Filter className="h-4 w-4" />
-                  Filter
-                </button>
-                <button className="flex items-center gap-2 rounded-xl bg-foreground text-background px-4 py-2 text-sm font-medium hover:opacity-90 transition-all">
-                  <Download className="h-4 w-4" />
-                  Ekspor Data
-                </button>
-              </div>
-            </div>
+          <header>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Ikhtisar sistem pengeringan komoditas pertanian</p>
           </header>
 
-          <KPICardsSection />
-
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <ProductionChart />
+          {loading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-32 rounded-2xl border bg-card/60 animate-pulse" />
+              ))}
             </div>
-            
-            {/* Live Status Table Mini-version or Sidebar Widget */}
-            <div className="rounded-2xl border bg-card/60 p-6 backdrop-blur-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold">Unit Aktif</h3>
-                <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">4 Online</span>
+          ) : stats && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <KPICard title="Total Gapoktan" value={stats.totalGapoktan} icon={Users} color="text-blue-500" />
+                <KPICard title="Unit Dryer" value={stats.totalDryers} icon={Factory} color="text-emerald-500" />
+                <KPICard title="Total Produksi" value={stats.totalProductions} icon={Package} color="text-orange-500" />
+                <KPICard 
+                  title="Avg Kenaikan Harga" 
+                  value={`${stats.avgPriceDiffPct > 0 ? '+' : ''}${stats.avgPriceDiffPct}%`} 
+                  icon={stats.avgPriceDiffPct >= 0 ? TrendingUp : TrendingDown} 
+                  color={stats.avgPriceDiffPct >= 0 ? "text-emerald-500" : "text-rose-500"} 
+                />
               </div>
-              <div className="space-y-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                      <div>
-                        <p className="text-sm font-semibold">Dryer Unit 0{i}</p>
-                        <p className="text-xs text-muted-foreground">Batch #B-2024-00{i}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold">68.2°C</p>
-                      <p className="text-xs text-muted-foreground">12.4% MC</p>
-                    </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="rounded-2xl border bg-card/60 p-6">
+                  <h3 className="text-lg font-bold mb-4">Ringkasan Produksi</h3>
+                  <div className="space-y-4">
+                    <StatBar label="Total Qty Sebelum" value={`${stats.totalQtyBefore.toLocaleString()} kg`} />
+                    <StatBar label="Total Qty Sesudah" value={`${stats.totalQtyAfter.toLocaleString()} kg`} />
+                    <StatBar 
+                      label="Avg Selisih Qty" 
+                      value={`${stats.avgQtyDiffPct}%`} 
+                      negative={stats.avgQtyDiffPct < 0}
+                    />
+                    <StatBar 
+                      label="Avg Kenaikan Harga" 
+                      value={`+${stats.avgPriceDiffPct}%`} 
+                      positive 
+                    />
                   </div>
-                ))}
-              </div>
-              <button className="mt-6 w-full rounded-xl border border-dashed py-2 text-xs font-medium text-muted-foreground hover:bg-muted transition-all">
-                Lihat Semua Unit
-              </button>
-            </div>
-          </div>
+                </div>
 
-          {/* Alert Table / History Section */}
-          <div className="rounded-2xl border bg-card/60 overflow-hidden">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-bold">Log Produksi Terbaru</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    <th className="px-6 py-4">Waktu</th>
-                    <th className="px-6 py-4">Unit</th>
-                    <th className="px-6 py-4">Batch</th>
-                    <th className="px-6 py-4">Suhu</th>
-                    <th className="px-6 py-4">Kelembaban</th>
-                    <th className="px-6 py-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <tr key={i} className="text-sm hover:bg-muted/30 transition-colors">
-                      <td className="px-6 py-4 text-muted-foreground">2024-03-30 14:{40-i}:00</td>
-                      <td className="px-6 py-4 font-medium">Pengering 01</td>
-                      <td className="px-6 py-4 text-primary">#B-2024-001</td>
-                      <td className="px-6 py-4 font-mono font-medium">72.{i}°C</td>
-                      <td className="px-6 py-4 font-mono font-medium">14.2%</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-500">
-                          Normal
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                <div className="rounded-2xl border bg-card/60 p-6">
+                  <h3 className="text-lg font-bold mb-4">Produksi Terbaru</h3>
+                  <div className="space-y-3">
+                    {productions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Belum ada data produksi</p>
+                    ) : productions.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all">
+                        <div>
+                          <p className="text-sm font-semibold">{p.gapoktan?.name || '-'}</p>
+                          <p className="text-xs text-muted-foreground">{p.komoditas?.name} • {p.production_date}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold">{p.qty_before}→{p.qty_after} kg</p>
+                          <p className="text-xs text-emerald-500 font-medium">+{p.price_diff_pct}% harga</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function KPICard({ title, value, icon: Icon, color }: { title: string; value: string | number; icon: any; color: string }) {
+  return (
+    <div className="relative group overflow-hidden rounded-2xl border bg-card/60 p-6 transition-all duration-300 hover:shadow-xl hover:border-primary/20">
+      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+        <Icon className={`h-16 w-16 ${color}`} />
+      </div>
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      <h3 className="text-3xl font-bold tracking-tight mt-1">{value}</h3>
+      <div className="absolute bottom-4 right-4 h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center translate-y-8 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100">
+        <ArrowUpRight className="h-4 w-4" />
+      </div>
+    </div>
+  );
+}
+
+function StatBar({ label, value, positive, negative }: { label: string; value: string; positive?: boolean; negative?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className={`text-sm font-bold ${positive ? 'text-emerald-500' : negative ? 'text-rose-500' : ''}`}>{value}</span>
     </div>
   );
 }

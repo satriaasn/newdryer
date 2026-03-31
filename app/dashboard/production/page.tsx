@@ -1,0 +1,253 @@
+"use client";
+
+import { Sidebar } from "@/components/dashboard/sidebar";
+import { useEffect, useState } from "react";
+import type { Production, Gapoktan, Komoditas, DryerUnit } from "@/lib/types";
+import { Plus, Loader2 } from "lucide-react";
+
+export default function ProductionPage() {
+  const [productions, setProductions] = useState<Production[]>([]);
+  const [gapoktan, setGapoktan] = useState<Gapoktan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/production').then(r => r.json()),
+      fetch('/api/gapoktan').then(r => r.json()),
+    ]).then(([p, g]) => {
+      setProductions(Array.isArray(p) ? p : []);
+      setGapoktan(Array.isArray(g) ? g : []);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const handleCreated = (newProd: Production) => {
+    setProductions(prev => [newProd, ...prev]);
+    setShowForm(false);
+    // Reload to get full joins
+    fetch('/api/production').then(r => r.json()).then(p => {
+      if (Array.isArray(p)) setProductions(p);
+    });
+  };
+
+  return (
+    <div className="flex min-h-screen bg-background text-foreground">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto bg-muted/20">
+        <div className="p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Produksi</h1>
+              <p className="text-muted-foreground">Input dan riwayat data produksi pengeringan</p>
+            </div>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+            >
+              <Plus className="h-4 w-4" />
+              Input Produksi
+            </button>
+          </div>
+
+          {showForm && (
+            <ProductionForm gapoktan={gapoktan} onCreated={handleCreated} onCancel={() => setShowForm(false)} />
+          )}
+
+          <div className="rounded-2xl border bg-card/60 overflow-hidden">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-bold">Riwayat Produksi</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3">Tanggal</th>
+                    <th className="px-4 py-3">Gapoktan</th>
+                    <th className="px-4 py-3">Komoditas</th>
+                    <th className="px-4 py-3">Dryer</th>
+                    <th className="px-4 py-3 text-right">Qty Sebelum</th>
+                    <th className="px-4 py-3 text-right">Harga Sebelum</th>
+                    <th className="px-4 py-3 text-right">Qty Sesudah</th>
+                    <th className="px-4 py-3 text-right">Harga Sesudah</th>
+                    <th className="px-4 py-3 text-right">Δ Qty</th>
+                    <th className="px-4 py-3 text-right">Δ Harga</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {loading ? (
+                    <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">Memuat...</td></tr>
+                  ) : productions.length === 0 ? (
+                    <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">Belum ada data</td></tr>
+                  ) : productions.map(p => (
+                    <tr key={p.id} className="text-sm hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3">{p.production_date}</td>
+                      <td className="px-4 py-3 font-medium">{p.gapoktan?.name || '-'}</td>
+                      <td className="px-4 py-3">{p.komoditas?.name || '-'}</td>
+                      <td className="px-4 py-3">{p.dryer_units?.name || '-'}</td>
+                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_before).toLocaleString()} kg</td>
+                      <td className="px-4 py-3 text-right font-mono">Rp {Number(p.price_before).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_after).toLocaleString()} kg</td>
+                      <td className="px-4 py-3 text-right font-mono">Rp {Number(p.price_after).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.qty_diff_pct) < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                          {p.qty_diff_pct}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.price_diff_pct) >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                          +{p.price_diff_pct}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function ProductionForm({ gapoktan, onCreated, onCancel }: { gapoktan: Gapoktan[]; onCreated: (p: Production) => void; onCancel: () => void }) {
+  const [selectedGapoktan, setSelectedGapoktan] = useState('');
+  const [komoditasList, setKomoditasList] = useState<Komoditas[]>([]);
+  const [dryerList, setDryerList] = useState<DryerUnit[]>([]);
+  const [form, setForm] = useState({
+    komoditas_id: '', dryer_id: '', qty_before: '', price_before: '',
+    qty_after: '', price_after: '', production_date: new Date().toISOString().split('T')[0], notes: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!selectedGapoktan) return;
+    Promise.all([
+      fetch(`/api/komoditas?gapoktan_id=${selectedGapoktan}`).then(r => r.json()),
+      fetch(`/api/dryer?gapoktan_id=${selectedGapoktan}`).then(r => r.json()),
+    ]).then(([k, d]) => {
+      setKomoditasList(Array.isArray(k) ? k : []);
+      setDryerList(Array.isArray(d) ? d : []);
+    });
+  }, [selectedGapoktan]);
+
+  const qtyDiffPct = Number(form.qty_before) > 0
+    ? (((Number(form.qty_after) - Number(form.qty_before)) / Number(form.qty_before)) * 100).toFixed(2)
+    : '0';
+  const priceDiffPct = Number(form.price_before) > 0
+    ? (((Number(form.price_after) - Number(form.price_before)) / Number(form.price_before)) * 100).toFixed(2)
+    : '0';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/production', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gapoktan_id: selectedGapoktan,
+          komoditas_id: form.komoditas_id,
+          dryer_id: form.dryer_id,
+          qty_before: Number(form.qty_before),
+          price_before: Number(form.price_before),
+          qty_after: Number(form.qty_after),
+          price_after: Number(form.price_after),
+          production_date: form.production_date,
+          notes: form.notes || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) onCreated(data);
+      else alert(data.error);
+    } finally { setSubmitting(false); }
+  };
+
+  const selectedG = gapoktan.find(g => g.id === selectedGapoktan);
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-2xl border bg-card/60 p-6 space-y-4">
+      <h3 className="text-lg font-bold">Form Input Produksi</h3>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Gapoktan</label>
+          <select value={selectedGapoktan} onChange={e => setSelectedGapoktan(e.target.value)} required
+            className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
+            <option value="">Pilih Gapoktan...</option>
+            {gapoktan.map(g => (
+              <option key={g.id} value={g.id}>{g.name} — {g.desa?.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Komoditas</label>
+          <select value={form.komoditas_id} onChange={e => setForm({...form, komoditas_id: e.target.value})} required disabled={!selectedGapoktan}
+            className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm disabled:opacity-50">
+            <option value="">Pilih Komoditas...</option>
+            {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Dryer Unit</label>
+          <select value={form.dryer_id} onChange={e => setForm({...form, dryer_id: e.target.value})} required disabled={!selectedGapoktan}
+            className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm disabled:opacity-50">
+            <option value="">Pilih Dryer...</option>
+            {dryerList.map(d => <option key={d.id} value={d.id}>{d.name} ({d.capacity_kg} kg)</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Jumlah Sebelum (kg)</label>
+          <input type="number" value={form.qty_before} onChange={e => setForm({...form, qty_before: e.target.value})} required
+            className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="0" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Harga Sebelum (Rp/kg)</label>
+          <input type="number" value={form.price_before} onChange={e => setForm({...form, price_before: e.target.value})} required
+            className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="0" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Tanggal Produksi</label>
+          <input type="date" value={form.production_date} onChange={e => setForm({...form, production_date: e.target.value})} required
+            className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Jumlah Sesudah (kg)</label>
+          <input type="number" value={form.qty_after} onChange={e => setForm({...form, qty_after: e.target.value})} required
+            className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="0" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Harga Sesudah (Rp/kg)</label>
+          <input type="number" value={form.price_after} onChange={e => setForm({...form, price_after: e.target.value})} required
+            className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="0" />
+        </div>
+        <div className="space-y-2">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Selisih Qty</label>
+            <div className={`mt-1 rounded-xl border px-3 py-2 text-sm font-bold ${Number(qtyDiffPct) < 0 ? 'text-rose-500 bg-rose-50' : 'text-emerald-500 bg-emerald-50'}`}>
+              {qtyDiffPct}%
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Selisih Harga</label>
+            <div className={`mt-1 rounded-xl border px-3 py-2 text-sm font-bold ${Number(priceDiffPct) >= 0 ? 'text-emerald-500 bg-emerald-50' : 'text-rose-500 bg-rose-50'}`}>
+              +{priceDiffPct}%
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground">Catatan</label>
+        <input type="text" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
+          className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="Opsional..." />
+      </div>
+      <div className="flex gap-3 justify-end">
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded-xl border hover:bg-muted transition-all">Batal</button>
+        <button type="submit" disabled={submitting}
+          className="flex items-center gap-2 px-6 py-2 text-sm font-semibold rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
+          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          Simpan
+        </button>
+      </div>
+    </form>
+  );
+}
