@@ -4,10 +4,18 @@
 -- ============================================
 
 -- Drop old tables if they exist
+DROP TABLE IF EXISTS productions CASCADE;
+DROP TABLE IF EXISTS gapoktan_komoditas CASCADE;
+DROP TABLE IF EXISTS dryer_units CASCADE;
+DROP TABLE IF EXISTS gapoktan CASCADE;
+DROP TABLE IF EXISTS komoditas CASCADE;
+DROP TABLE IF EXISTS desa CASCADE;
+DROP TABLE IF EXISTS kecamatan CASCADE;
+DROP TABLE IF EXISTS kabupaten CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS production_logs CASCADE;
 DROP TABLE IF EXISTS batches CASCADE;
-DROP TABLE IF EXISTS dryer_units CASCADE;
 DROP TABLE IF EXISTS profiles CASCADE;
 
 -- ============================================
@@ -44,7 +52,7 @@ CREATE TABLE desa (
 );
 
 -- ============================================
--- 3. GAPOKTAN
+-- 3. GAPOKTAN (with GIS coordinates)
 -- ============================================
 CREATE TABLE gapoktan (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -53,6 +61,8 @@ CREATE TABLE gapoktan (
   ketua TEXT,
   phone TEXT,
   user_id UUID REFERENCES users(id),
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -165,13 +175,13 @@ INSERT INTO users (id, email, full_name, role) VALUES
   ('u1000000-0000-0000-0000-000000000004', 'gapoktan2@dryer.app', 'Pak Dedi', 'gapoktan'),
   ('u1000000-0000-0000-0000-000000000005', 'gapoktan3@dryer.app', 'Ibu Wati', 'gapoktan');
 
--- Gapoktan
-INSERT INTO gapoktan (id, name, desa_id, ketua, phone, user_id) VALUES
-  ('g1000000-0000-0000-0000-000000000001', 'Gapoktan Maju Tani', 'c1000000-0000-0000-0000-000000000001', 'Haji Ahmad', '081234567890', 'u1000000-0000-0000-0000-000000000003'),
-  ('g1000000-0000-0000-0000-000000000002', 'Gapoktan Sejahtera', 'c1000000-0000-0000-0000-000000000004', 'Pak Dedi', '081234567891', 'u1000000-0000-0000-0000-000000000004'),
-  ('g1000000-0000-0000-0000-000000000003', 'Gapoktan Harapan Baru', 'c1000000-0000-0000-0000-000000000007', 'Ibu Wati', '081234567892', 'u1000000-0000-0000-0000-000000000005'),
-  ('g1000000-0000-0000-0000-000000000004', 'Gapoktan Mekar Jaya', 'c1000000-0000-0000-0000-000000000003', 'Pak Asep', '081234567893', NULL),
-  ('g1000000-0000-0000-0000-000000000005', 'Gapoktan Sumber Rezeki', 'c1000000-0000-0000-0000-000000000009', 'Pak Udin', '081234567894', NULL);
+-- Gapoktan (with real West Java coordinates for GIS)
+INSERT INTO gapoktan (id, name, desa_id, ketua, phone, user_id, latitude, longitude) VALUES
+  ('g1000000-0000-0000-0000-000000000001', 'Gapoktan Maju Tani',     'c1000000-0000-0000-0000-000000000001', 'Haji Ahmad', '081234567890', 'u1000000-0000-0000-0000-000000000003', -7.2080, 107.5850),
+  ('g1000000-0000-0000-0000-000000000002', 'Gapoktan Sejahtera',     'c1000000-0000-0000-0000-000000000004', 'Pak Dedi',   '081234567891', 'u1000000-0000-0000-0000-000000000004', -7.2870, 107.9970),
+  ('g1000000-0000-0000-0000-000000000003', 'Gapoktan Harapan Baru',  'c1000000-0000-0000-0000-000000000007', 'Ibu Wati',   '081234567892', 'u1000000-0000-0000-0000-000000000005', -6.7510, 107.0540),
+  ('g1000000-0000-0000-0000-000000000004', 'Gapoktan Mekar Jaya',    'c1000000-0000-0000-0000-000000000003', 'Pak Asep',   '081234567893', NULL,                                   -7.1290, 107.4220),
+  ('g1000000-0000-0000-0000-000000000005', 'Gapoktan Sumber Rezeki', 'c1000000-0000-0000-0000-000000000009', 'Pak Udin',   '081234567894', NULL,                                   -6.7610, 107.1050);
 
 -- Komoditas
 INSERT INTO komoditas (id, name) VALUES
@@ -221,7 +231,9 @@ INSERT INTO productions (dryer_id, gapoktan_id, komoditas_id, qty_before, price_
   ('d1000000-0000-0000-0000-000000000008', 'g1000000-0000-0000-0000-000000000005', 'k1000000-0000-0000-0000-000000000001', 1100, 5200, 935, 7600, '2026-03-28', 'Padi Ciherang'),
   ('d1000000-0000-0000-0000-000000000008', 'g1000000-0000-0000-0000-000000000005', 'k1000000-0000-0000-0000-000000000005', 350, 26000, 300, 42000, '2026-03-30', 'Kakao grade A');
 
--- Enable RLS but allow all for now (public access)
+-- ============================================
+-- ROW LEVEL SECURITY (public access for MVP)
+-- ============================================
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kabupaten ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kecamatan ENABLE ROW LEVEL SECURITY;
@@ -232,7 +244,6 @@ ALTER TABLE komoditas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gapoktan_komoditas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE productions ENABLE ROW LEVEL SECURITY;
 
--- Public read/write policies (simplified for MVP)
 CREATE POLICY "public_all" ON users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "public_all" ON kabupaten FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "public_all" ON kecamatan FOR ALL USING (true) WITH CHECK (true);

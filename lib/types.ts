@@ -36,6 +36,8 @@ export interface Gapoktan {
   ketua: string | null;
   phone: string | null;
   user_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
   updated_at: string;
   desa?: Desa;

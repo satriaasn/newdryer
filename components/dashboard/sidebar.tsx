@@ -9,6 +9,7 @@ import {
   Users,
   Package,
   ClipboardList,
+  Map,
 } from "lucide-react";
 
 const navigation = [
@@ -16,6 +17,7 @@ const navigation = [
   { name: "Produksi", href: "/dashboard/production", icon: ClipboardList },
   { name: "Gapoktan", href: "/dashboard/gapoktan", icon: Users },
   { name: "Unit Dryer", href: "/dashboard/dryer", icon: Factory },
+  { name: "Peta GIS", href: "/dashboard/maps", icon: Map },
 ];
 
 export function Sidebar() {
