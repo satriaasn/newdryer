@@ -1,9 +1,10 @@
+export const dynamic = 'force-dynamic';
 "use client";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState } from "react";
 import type { DashboardStats, Production } from "@/lib/types";
-import { Factory, Users, Package, TrendingUp, ArrowUpRight } from "lucide-react";
+import { Factory, Users, Package, TrendingUp, Plus } from "lucide-react";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -12,8 +13,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/dashboard').then(r => r.json()),
-      fetch('/api/production').then(r => r.json()),
+      fetch('/api/dashboard', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
     ]).then(([s, p]) => {
       setStats(s);
       setProductions(Array.isArray(p) ? p.slice(0, 8) : []);
@@ -26,8 +27,20 @@ export default function AdminDashboard() {
       <main className="flex-1 overflow-y-auto bg-muted/20">
         <div className="p-8 space-y-8">
           <header>
-            <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Kelola data gapoktan, dryer, komoditas, dan produksi</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+                <p className="text-muted-foreground">Kelola data gapoktan, dryer, komoditas, dan produksi</p>
+              </div>
+              <div className="flex gap-3">
+                <a href="/dashboard/production" className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+                  <Plus className="h-4 w-4" /> Input Produksi
+                </a>
+                <a href="/dashboard/gapoktan" className="flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted transition-all">
+                  <Plus className="h-4 w-4" /> Data Baru
+                </a>
+              </div>
+            </div>
           </header>
 
           {loading ? (

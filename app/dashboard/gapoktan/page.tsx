@@ -1,26 +1,37 @@
+export const dynamic = 'force-dynamic';
 "use client";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState } from "react";
 import type { Gapoktan, Komoditas, Kabupaten, Kecamatan, Desa } from "@/lib/types";
-import { Users, MapPin, Phone, Wheat, Plus, Loader2, Trash2 } from "lucide-react";
+import { Users, MapPin, Phone, Wheat, Plus, Loader2, Trash2, Edit } from "lucide-react";
 
 export default function GapoktanAdmin() {
   const [gapoktan, setGapoktan] = useState<Gapoktan[]>([]);
   const [allKomoditas, setAllKomoditas] = useState<Komoditas[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingGapoktan, setEditingGapoktan] = useState<Gapoktan | null>(null);
 
   const reload = () => {
     Promise.all([
-      fetch('/api/gapoktan').then(r => r.json()),
-      fetch('/api/komoditas').then(r => r.json()),
+      fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
     ]).then(([g, k]) => {
       setGapoktan(Array.isArray(g) ? g : []);
       setAllKomoditas(Array.isArray(k) ? k : []);
     }).finally(() => setLoading(false));
   };
   useEffect(reload, []);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Hapus Gapoktan "${name}"? Semua data dryer dan produksi terkait juga akan terpengaruh.`)) return;
+    try {
+      const res = await fetch(`/api/gapoktan/${id}`, { method: 'DELETE' });
+      if (res.ok) reload();
+      else { const err = await res.json(); alert(err.error); }
+    } catch (e: any) { alert(e.message); }
+  };
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -32,20 +43,40 @@ export default function GapoktanAdmin() {
               <h1 className="text-3xl font-bold tracking-tight">Kelola Gapoktan</h1>
               <p className="text-muted-foreground">Tambah, edit, dan kelola data gapoktan</p>
             </div>
-            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+            <button onClick={() => { setEditingGapoktan(null); setShowForm(!showForm); }} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
               <Plus className="h-4 w-4" /> Tambah Gapoktan
             </button>
           </div>
 
-          {showForm && <AddGapoktanForm onCreated={() => { reload(); setShowForm(false); }} onCancel={() => setShowForm(false)} />}
+          {(showForm || editingGapoktan) && (
+            <GapoktanForm 
+              initialData={editingGapoktan} 
+              onSaved={() => { reload(); setShowForm(false); setEditingGapoktan(null); }} 
+              onCancel={() => { setShowForm(false); setEditingGapoktan(null); }} 
+            />
+          )}
 
           {loading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[1,2,3].map(i => <div key={i} className="h-48 rounded-2xl border bg-card/60 animate-pulse" />)}</div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {gapoktan.map(g => (
-                <div key={g.id} className="rounded-2xl border bg-card/60 p-6 hover:shadow-xl hover:border-primary/20 transition-all">
-                  <div className="flex items-start justify-between mb-3">
+                <div key={g.id} className="relative group rounded-2xl border bg-card/60 p-6 hover:shadow-xl hover:border-primary/20 transition-all">
+                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <button 
+                      onClick={() => setEditingGapoktan(g)}
+                      className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(g.id, g.name)}
+                      className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="flex items-start justify-between mb-3 mr-16">
                     <div>
                       <h3 className="text-lg font-bold">{g.name}</h3>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
@@ -53,7 +84,7 @@ export default function GapoktanAdmin() {
                         {g.desa?.name}, {g.desa?.kecamatan?.name}, {g.desa?.kecamatan?.kabupaten?.name}
                       </div>
                     </div>
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Users className="h-5 w-5 text-primary" /></div>
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><Users className="h-5 w-5 text-primary" /></div>
                   </div>
                   {g.ketua && <p className="text-sm mb-1"><span className="text-muted-foreground">Ketua:</span> <span className="font-medium">{g.ketua}</span></p>}
                   {g.phone && <div className="flex items-center gap-2 text-sm mb-2"><Phone className="h-3 w-3 text-muted-foreground" />{g.phone}</div>}
@@ -82,13 +113,20 @@ export default function GapoktanAdmin() {
   );
 }
 
-function AddGapoktanForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: () => void }) {
-  const [form, setForm] = useState({ name: '', ketua: '', phone: '', desa_id: '', latitude: '', longitude: '' });
+function GapoktanForm({ initialData, onSaved, onCancel }: { initialData?: Gapoktan | null; onSaved: () => void; onCancel: () => void }) {
+  const [form, setForm] = useState({ 
+    name: initialData?.name || '', 
+    ketua: initialData?.ketua || '', 
+    phone: initialData?.phone || '', 
+    desa_id: initialData?.desa_id || '', 
+    latitude: initialData?.latitude?.toString() || '', 
+    longitude: initialData?.longitude?.toString() || '' 
+  });
   const [kabList, setKabList] = useState<Kabupaten[]>([]);
   const [kecList, setKecList] = useState<Kecamatan[]>([]);
   const [desaList, setDesaList] = useState<Desa[]>([]);
-  const [selKab, setSelKab] = useState('');
-  const [selKec, setSelKec] = useState('');
+  const [selKab, setSelKab] = useState(initialData?.desa?.kecamatan?.kabupaten_id || '');
+  const [selKec, setSelKec] = useState(initialData?.desa?.kecamatan_id || '');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => { fetch('/api/address?type=kabupaten').then(r => r.json()).then(d => setKabList(d)); }, []);
@@ -102,15 +140,19 @@ function AddGapoktanForm({ onCreated, onCancel }: { onCreated: () => void; onCan
       const body: any = { name: form.name, desa_id: form.desa_id, ketua: form.ketua || null, phone: form.phone || null };
       if (form.latitude) body.latitude = Number(form.latitude);
       if (form.longitude) body.longitude = Number(form.longitude);
-      const res = await fetch('/api/gapoktan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (res.ok) onCreated();
+      
+      const url = initialData ? `/api/gapoktan/${initialData.id}` : '/api/gapoktan';
+      const method = initialData ? 'PATCH' : 'POST';
+      
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (res.ok) onSaved();
       else { const err = await res.json(); alert(err.error); }
     } finally { setSubmitting(false); }
   };
 
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl border bg-card/60 p-6 space-y-4">
-      <h3 className="text-lg font-bold">Tambah Gapoktan Baru</h3>
+      <h3 className="text-lg font-bold">{initialData ? 'Edit Gapoktan' : 'Tambah Gapoktan Baru'}</h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div>
           <label className="text-xs font-medium text-muted-foreground">Nama Gapoktan *</label>
@@ -157,7 +199,7 @@ function AddGapoktanForm({ onCreated, onCancel }: { onCreated: () => void; onCan
       <div className="flex gap-3 justify-end">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded-xl border hover:bg-muted transition-all">Batal</button>
         <button type="submit" disabled={submitting} className="flex items-center gap-2 px-6 py-2 text-sm font-semibold rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
-          {submitting && <Loader2 className="h-4 w-4 animate-spin" />} Simpan
+          {submitting && <Loader2 className="h-4 w-4 animate-spin" />} {initialData ? 'Simpan Perubahan' : 'Simpan'}
         </button>
       </div>
     </form>

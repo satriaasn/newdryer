@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { gapoktanService } from "@/services/gapoktan.service";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const data = await gapoktanService.getAll();

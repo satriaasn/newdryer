@@ -41,4 +41,9 @@ export const dryerService = {
     if (error) throw new Error(error.message);
     return data as DryerUnit;
   },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from('dryer_units').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
 };

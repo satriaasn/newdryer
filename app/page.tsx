@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -19,8 +20,24 @@ export default function PublicDashboard() {
   const [gapoktanList, setGapoktanList] = useState<Gapoktan[]>([]);
   const [komoditasList, setKomoditasList] = useState<Komoditas[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string>(new Date().toLocaleTimeString());
   const [leafletReady, setLeafletReady] = useState(false);
   const [customIcon, setCustomIcon] = useState<any>(null);
+
+  const reloadAll = () => {
+    Promise.all([
+      fetch('/api/dashboard', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
+    ]).then(([s, p, g, k]) => {
+      setStats(s);
+      setProductions(Array.isArray(p) ? p : []);
+      setGapoktanList(Array.isArray(g) ? g : []);
+      setKomoditasList(Array.isArray(k) ? k : []);
+      setLastUpdated(new Date().toLocaleTimeString());
+    }).finally(() => setLoading(false));
+  };
 
   // Filters
   const [filterGapoktan, setFilterGapoktan] = useState('');
@@ -30,17 +47,8 @@ export default function PublicDashboard() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/dashboard').then(r => r.json()),
-      fetch('/api/production').then(r => r.json()),
-      fetch('/api/gapoktan').then(r => r.json()),
-      fetch('/api/komoditas').then(r => r.json()),
-    ]).then(([s, p, g, k]) => {
-      setStats(s);
-      setProductions(Array.isArray(p) ? p : []);
-      setGapoktanList(Array.isArray(g) ? g : []);
-      setKomoditasList(Array.isArray(k) ? k : []);
-    }).finally(() => setLoading(false));
+    reloadAll();
+    const interval = setInterval(reloadAll, 60000);
 
     if (typeof window !== 'undefined') {
       import('leaflet').then(L => {
@@ -59,6 +67,7 @@ export default function PublicDashboard() {
         document.head.appendChild(link);
       }
     }
+    return () => clearInterval(interval);
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
@@ -114,9 +123,16 @@ export default function PublicDashboard() {
               <p className="text-xs text-muted-foreground">Sistem Monitoring Pengeringan Komoditas</p>
             </div>
           </div>
-          <a href="/dashboard" className="text-sm font-medium px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all">
-            Admin Panel →
-          </a>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-wider">Live</span>
+              <span className="text-[10px] opacity-70 ml-1">Update: {lastUpdated}</span>
+            </div>
+            <a href="/dashboard" className="text-sm font-medium px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all">
+              Admin Panel →
+            </a>
+          </div>
         </div>
       </header>
 
@@ -252,7 +268,10 @@ export default function PublicDashboard() {
           </div>
         </section>
 
-        <footer className="text-center text-xs text-muted-foreground py-8 border-t">© 2026 AgroDryer — Sistem Monitoring Pengeringan Komoditas Pertanian</footer>
+        <footer className="text-center text-xs text-muted-foreground py-8 border-t flex flex-col items-center gap-2">
+          <p>© 2026 AgroDryer — Sistem Monitoring Pengeringan Komoditas Pertanian</p>
+          <a href="/signin" className="hover:text-primary transition-colors">Panel Admin</a>
+        </footer>
       </main>
     </div>
   );

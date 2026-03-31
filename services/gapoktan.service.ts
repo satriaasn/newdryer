@@ -37,6 +37,17 @@ export const gapoktanService = {
     return data as Gapoktan;
   },
 
+  async update(id: string, updates: any): Promise<Gapoktan> {
+    const { data, error } = await supabase
+      .from('gapoktan')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as Gapoktan;
+  },
+
   async addKomoditas(gapoktanId: string, komoditasId: string): Promise<void> {
     const { error } = await supabase
       .from('gapoktan_komoditas')
@@ -69,5 +80,27 @@ export const gapoktanService = {
       .eq('gapoktan_id', gapoktanId);
     if (error) throw new Error(error.message);
     return (data || []).map((gk: any) => gk.komoditas) as Komoditas[];
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from('gapoktan').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  async createKomoditas(name: string): Promise<Komoditas> {
+    const { data, error } = await supabase.from('komoditas').insert({ name }).select().single();
+    if (error) throw new Error(error.message);
+    return data as Komoditas;
+  },
+
+  async updateKomoditas(id: string, name: string): Promise<Komoditas> {
+    const { data, error } = await supabase.from('komoditas').update({ name }).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return data as Komoditas;
+  },
+
+  async deleteKomoditas(id: string): Promise<void> {
+    const { error } = await supabase.from('komoditas').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   },
 };

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -12,7 +13,10 @@ import {
   Map,
   Wheat,
   Home,
+  LogOut,
 } from "lucide-react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { userService, type Profile } from "@/services/user.service";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -25,6 +29,19 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    userService.getCurrentProfile().then(setProfile);
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-card/50 backdrop-blur-xl sticky top-0">
@@ -65,14 +82,23 @@ export function Sidebar() {
         })}
       </div>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t space-y-4">
         <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-muted/30">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-blue-400" />
+          <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white font-bold text-xs">
+            {profile?.full_name?.charAt(0) || 'A'}
+          </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium truncate">Admin</p>
-            <p className="text-xs text-muted-foreground truncate">Administrator</p>
+            <p className="text-sm font-medium truncate">{profile?.full_name || "Admin"}</p>
+            <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter">{profile?.role || "Administrator"}</p>
           </div>
         </div>
+        <button 
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-500/10 transition-all group"
+        >
+          <LogOut className="h-5 w-5 transition-transform group-hover:scale-110" />
+          Keluar
+        </button>
       </div>
     </div>
   );

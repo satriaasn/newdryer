@@ -1,33 +1,47 @@
+export const dynamic = 'force-dynamic';
 "use client";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState } from "react";
 import type { Production, Gapoktan, Komoditas, DryerUnit } from "@/lib/types";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Trash2, Edit } from "lucide-react";
 
 export default function ProductionPage() {
   const [productions, setProductions] = useState<Production[]>([]);
   const [gapoktan, setGapoktan] = useState<Gapoktan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingProduction, setEditingProduction] = useState<Production | null>(null);
 
-  useEffect(() => {
+  const reload = () => {
     Promise.all([
-      fetch('/api/production').then(r => r.json()),
-      fetch('/api/gapoktan').then(r => r.json()),
+      fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
     ]).then(([p, g]) => {
       setProductions(Array.isArray(p) ? p : []);
       setGapoktan(Array.isArray(g) ? g : []);
     }).finally(() => setLoading(false));
-  }, []);
+  };
 
-  const handleCreated = (newProd: Production) => {
-    setProductions(prev => [newProd, ...prev]);
+  useEffect(reload, []);
+
+  const handleSaved = () => {
+    setEditingProduction(null);
     setShowForm(false);
-    // Reload to get full joins
-    fetch('/api/production').then(r => r.json()).then(p => {
-      if (Array.isArray(p)) setProductions(p);
-    });
+    reload();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(`Hapus catatan produksi ini?`)) return;
+    try {
+      const res = await fetch(`/api/production/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setProductions(prev => prev.filter(p => p.id !== id));
+      } else {
+        const err = await res.json();
+        alert(err.error);
+      }
+    } catch (e: any) { alert(e.message); }
   };
 
   return (
@@ -41,7 +55,7 @@ export default function ProductionPage() {
               <p className="text-muted-foreground">Input dan riwayat data produksi pengeringan</p>
             </div>
             <button
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => { setEditingProduction(null); setShowForm(!showForm); }}
               className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
             >
               <Plus className="h-4 w-4" />
@@ -49,8 +63,13 @@ export default function ProductionPage() {
             </button>
           </div>
 
-          {showForm && (
-            <ProductionForm gapoktan={gapoktan} onCreated={handleCreated} onCancel={() => setShowForm(false)} />
+          {(showForm || editingProduction) && (
+            <ProductionForm 
+              gapoktan={gapoktan} 
+              initialData={editingProduction}
+              onSaved={handleSaved} 
+              onCancel={() => { setShowForm(false); setEditingProduction(null); }} 
+            />
           )}
 
           <div className="rounded-2xl border bg-card/60 overflow-hidden">
@@ -71,16 +90,17 @@ export default function ProductionPage() {
                     <th className="px-4 py-3 text-right">Harga Sesudah</th>
                     <th className="px-4 py-3 text-right">Δ Qty</th>
                     <th className="px-4 py-3 text-right">Δ Harga</th>
+                    <th className="px-4 py-3 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {loading ? (
-                    <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">Memuat...</td></tr>
+                    <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Memuat...</td></tr>
                   ) : productions.length === 0 ? (
-                    <tr><td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">Belum ada data</td></tr>
+                    <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Belum ada data</td></tr>
                   ) : productions.map(p => (
                     <tr key={p.id} className="text-sm hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">{p.production_date}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{p.production_date}</td>
                       <td className="px-4 py-3 font-medium">{p.gapoktan?.name || '-'}</td>
                       <td className="px-4 py-3">{p.komoditas?.name || '-'}</td>
                       <td className="px-4 py-3">{p.dryer_units?.name || '-'}</td>
@@ -98,6 +118,20 @@ export default function ProductionPage() {
                           +{p.price_diff_pct}%
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-right flex justify-end gap-2 text-right">
+                        <button 
+                          onClick={() => setEditingProduction(p)}
+                          className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(p.id)}
+                          className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -110,13 +144,19 @@ export default function ProductionPage() {
   );
 }
 
-function ProductionForm({ gapoktan, onCreated, onCancel }: { gapoktan: Gapoktan[]; onCreated: (p: Production) => void; onCancel: () => void }) {
-  const [selectedGapoktan, setSelectedGapoktan] = useState('');
+function ProductionForm({ gapoktan, initialData, onSaved, onCancel }: { gapoktan: Gapoktan[]; initialData?: Production | null; onSaved: () => void; onCancel: () => void }) {
+  const [selectedGapoktan, setSelectedGapoktan] = useState(initialData?.gapoktan_id || '');
   const [komoditasList, setKomoditasList] = useState<Komoditas[]>([]);
   const [dryerList, setDryerList] = useState<DryerUnit[]>([]);
   const [form, setForm] = useState({
-    komoditas_id: '', dryer_id: '', qty_before: '', price_before: '',
-    qty_after: '', price_after: '', production_date: new Date().toISOString().split('T')[0], notes: '',
+    komoditas_id: initialData?.komoditas_id || '', 
+    dryer_id: initialData?.dryer_id || '', 
+    qty_before: initialData?.qty_before?.toString() || '', 
+    price_before: initialData?.price_before?.toString() || '',
+    qty_after: initialData?.qty_after?.toString() || '', 
+    price_after: initialData?.price_after?.toString() || '', 
+    production_date: initialData?.production_date || new Date().toISOString().split('T')[0], 
+    notes: initialData?.notes || '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -142,8 +182,10 @@ function ProductionForm({ gapoktan, onCreated, onCancel }: { gapoktan: Gapoktan[
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch('/api/production', {
-        method: 'POST',
+      const url = initialData ? `/api/production/${initialData.id}` : '/api/production';
+      const method = initialData ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gapoktan_id: selectedGapoktan,
@@ -158,16 +200,14 @@ function ProductionForm({ gapoktan, onCreated, onCancel }: { gapoktan: Gapoktan[
         }),
       });
       const data = await res.json();
-      if (res.ok) onCreated(data);
+      if (res.ok) onSaved();
       else alert(data.error);
     } finally { setSubmitting(false); }
   };
 
-  const selectedG = gapoktan.find(g => g.id === selectedGapoktan);
-
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl border bg-card/60 p-6 space-y-4">
-      <h3 className="text-lg font-bold">Form Input Produksi</h3>
+      <h3 className="text-lg font-bold">{initialData ? 'Edit Data Produksi' : 'Form Input Produksi'}</h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div>
           <label className="text-xs font-medium text-muted-foreground">Gapoktan</label>
@@ -243,9 +283,9 @@ function ProductionForm({ gapoktan, onCreated, onCancel }: { gapoktan: Gapoktan[
       <div className="flex gap-3 justify-end">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded-xl border hover:bg-muted transition-all">Batal</button>
         <button type="submit" disabled={submitting}
-          className="flex items-center gap-2 px-6 py-2 text-sm font-semibold rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
+          className="flex items-center gap-2 px-6 py-2 text-sm font-semibold rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-all disabled:opacity-50">
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          Simpan
+          {initialData ? 'Simpan Perubahan' : 'Simpan'}
         </button>
       </div>
     </form>

@@ -58,4 +58,20 @@ export const productionService = {
       totalQtyAfter,
     };
   },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from('productions').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  async update(id: string, updates: Partial<Production>): Promise<Production> {
+    const { data, error } = await supabase
+      .from('productions')
+      .update(updates)
+      .eq('id', id)
+      .select('*, dryer_units(*), gapoktan(*), komoditas(*)')
+      .single();
+    if (error) throw new Error(error.message);
+    return data as Production;
+  },
 };
