@@ -148,15 +148,15 @@ export default function PublicDashboard() {
         if (filterEndDate && p.production_date > filterEndDate) return false;
         return true;
       });
-      const totalTonnage = prods.reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
-      const activeUnits = units.filter(u => u.dryer_units?.some(d => d.status === 'active')).length;
+      const totalTonnage = prods.reduce((sum: any, p: any) => sum + Number(p.qty_after || 0), 0);
+      const activeUnits = units.filter((u: any) => u.dryer_units?.some((d: any) => d.status === 'active')).length;
       return {
         ...kab,
         unitCount: units.length,
         totalTonnage,
         activeUnits
       };
-    }).sort((a, b) => b.totalTonnage - a.totalTonnage);
+    }).sort((a: any, b: any) => b.totalTonnage - a.totalTonnage);
   }, [allKabupaten, gapoktanList, productions, filterStartDate, filterEndDate]);
 
   const trendData = useMemo(() => {
@@ -311,10 +311,11 @@ export default function PublicDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                <div className="lg:col-span-3 h-[500px] rounded-2xl border overflow-hidden shadow-inner relative">
                   <DynamicMap 
-                    gapoktan={gapoktanList} 
-                    center={[-5.3971, 105.2668]} 
-                    zoom={9} 
-                    onMarkerClick={(g) => setSelectedGapoktan(g)} 
+                    markers={gapoktanList.filter(g => g.latitude && g.longitude).map(g => ({ id: g.id, latitude: g.latitude!, longitude: g.longitude! }))} 
+                    onMarkerClick={(id: string) => {
+                      const found = gapoktanList.find(g => g.id === id);
+                      if (found) setSelectedGapoktan(found);
+                    }} 
                   />
                </div>
                
