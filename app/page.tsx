@@ -215,9 +215,41 @@ export default function PublicDashboard() {
           </div>
         </div>
 
-        {/* SCORECARD KOMODITAS */}
+        {/* SCORECARD KOMODITAS & INFO UTAMA */}
         <div className="space-y-4">
-          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Total Produksi All Time</h2>
+          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Informasi Utama</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <KPICard 
+              title="TOTAL UNIT DRYER" 
+              value={stats?.totalDryers || 0} 
+              unit="Unit"
+              trend="National coverage" 
+              borderLeft="border-l-indigo-500" 
+            />
+            <KPICard 
+              title="TOTAL GAPOKTAN" 
+              value={stats?.totalGapoktan || 0} 
+              unit="Kelompok"
+              trend="Active monitoring" 
+              borderLeft="border-l-amber-500" 
+            />
+            <KPICard 
+              title="TOTAL KAPASITAS" 
+              value={`${(stats?.totalQtyAfter || 0) * 0.8 / 1000}k`} 
+              unit="Ton/Bulan"
+              trend="Operational capacity" 
+              borderLeft="border-l-emerald-500" 
+            />
+            <KPICard 
+              title="LOKASI AKTIF" 
+              value={gapoktanWithCoords.length} 
+              unit="Titik"
+              trend="Mapped location" 
+              borderLeft="border-l-rose-500" 
+            />
+          </div>
+
+          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mt-4">Total Produksi All Time</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {komoditasStats.map(k => (
               <KPICard 

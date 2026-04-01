@@ -124,7 +124,7 @@ export default function AdminDashboard() {
             <KPI title="Total Produksi (Ton)" value={`${stats.totalQtyAfter?.toLocaleString() || 0} T`} icon={Package} color="text-primary" />
             <KPI title="Produksi Hari Ini" value={`${stats.todayQtyAfter?.toLocaleString() || 0} T`} icon={Calendar} color="text-blue-500" />
             <KPI title="Avg Margin Harga" value={`+${stats.avgPriceDiffPct}%`} icon={TrendingUp} color="text-emerald-500" />
-            <KPI title="Total Gapoktan" value={stats.totalGapoktan} icon={Users} color="text-orange-500" />
+            <KPI title="Total Unit Dryer" value={stats.totalDryers || 0} icon={Factory} color="text-indigo-500" />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
