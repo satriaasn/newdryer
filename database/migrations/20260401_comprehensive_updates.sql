@@ -12,12 +12,18 @@ END $$;
 
 COMMENT ON COLUMN public.dryer_units.capacity_ton IS 'Capacity of the dryer unit in Tons';
 
+-- Standardize labels for production quantities
+COMMENT ON COLUMN public.productions.qty_before IS 'Quantity before drying in Tons';
+COMMENT ON COLUMN public.productions.qty_after IS 'Quantity before drying in Tons';
+COMMENT ON COLUMN public.productions.price_before IS 'Price before drying in Rp/Ton';
+COMMENT ON COLUMN public.productions.price_after IS 'Price after drying in Rp/Ton';
+
 -- 2. GAPOKTAN ENHANCEMENTS
 -- Add detailed address column to gapoktan table
 ALTER TABLE public.gapoktan ADD COLUMN IF NOT EXISTS address TEXT;
 COMMENT ON COLUMN public.gapoktan.address IS 'Detailed street address/location of the Gapoktan';
 
--- 3. ADDRESS MASTER TABLES (If not already present)
+-- 3. ADDRESS MASTER TABLES
 CREATE TABLE IF NOT EXISTS public.kabupaten (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
@@ -54,7 +60,7 @@ CREATE POLICY "Public read kecamatan" ON public.kecamatan FOR SELECT USING (true
 DROP POLICY IF EXISTS "Public read desa" ON public.desa;
 CREATE POLICY "Public read desa" ON public.desa FOR SELECT USING (true);
 
--- 6. PROFILES TABLE FIX
+-- 5. PROFILES TABLE FIX
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name TEXT,
@@ -73,5 +79,9 @@ CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- 6. DATA MIGRATION (Optional: if existing data is in KG)
+-- UPDATE public.dryer_units SET capacity_ton = capacity_ton / 1000.0 WHERE capacity_ton > 100;
+-- UPDATE public.productions SET qty_before = qty_before / 1000.0, qty_after = qty_after / 1000.0 WHERE qty_before > 100;
 
 -- Note: Use the "Detail Wilayah" menu in the dashboard to add more Specific Kecamatan and Desa.

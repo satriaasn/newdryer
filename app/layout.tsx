@@ -31,10 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#2563eb" />
-      </head>
+      <head />
       <body className={cn(
         inter.className,
         "min-h-screen bg-background antialiased selection:bg-primary/10 selection:text-primary"
