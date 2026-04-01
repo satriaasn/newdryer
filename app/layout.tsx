@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   title: 'Dryer Monitoring System | Industrial IoT Dashboard',
   description: 'Production-grade dryer monitoring and analytics dashboard powered by Supabase and Next.js.',
   manifest: '/manifest.json',
-  themeColor: '#2563eb',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -20,6 +19,7 @@ export const metadata: Metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#2563eb',
   maximumScale: 1,
   userScalable: false,
 }

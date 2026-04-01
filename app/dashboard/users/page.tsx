@@ -46,15 +46,19 @@ export default function UserManagement() {
   const roles: UserRole[] = ["admin", "operator", "viewer", "gapoktan", "administrator", "superadmin"];
 
   return (
-                <input 
-                  type="text" 
-                  placeholder="Cari nama atau ID user..." 
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border bg-background text-sm focus:ring-2 focus:ring-primary/20 transition-all"
-                />
-              </div>
-            </div>
+    <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Pengaturan User</h1>
+          <p className="text-sm lg:text-base text-muted-foreground">Kelola hak akses dan peran pengguna sistem</p>
+        </div>
+      </header>
+
+      <div className="space-y-6">
+        <div className="rounded-2xl border bg-card/60 p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 
             <div className="rounded-xl border overflow-hidden">
               <table className="w-full text-left">
@@ -123,7 +127,10 @@ export default function UserManagement() {
                 </tbody>
               </table>
             </div>
+            </div>
           </div>
+        </div>
+      </div>
     </div>
   );
 }

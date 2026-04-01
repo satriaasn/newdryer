@@ -90,6 +90,25 @@ export default function AddressManagement() {
   };
 
   return (
+    <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Manajemen Wilayah</h1>
+          <p className="text-sm lg:text-base text-muted-foreground">Kelola data Kabupaten, Kecamatan, dan Desa</p>
+        </div>
+        <button 
+          onClick={() => { setEditingItem(null); setFormName(""); setShowForm(!showForm); }}
+          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+        >
+          <Plus className="h-4 w-4" /> Tambah {activeTab}
+        </button>
+      </header>
+
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row gap-6 items-start justify-between">
+          {/* Tabs */}
+          <div className="flex p-1 bg-muted/50 rounded-2xl w-full md:w-auto overflow-x-auto">
+            {[
               { id: 'kabupaten', label: 'Kabupaten', icon: Building2 },
               { id: 'kecamatan', label: 'Kecamatan', icon: MapIcon },
               { id: 'desa', label: 'Desa', icon: Home }
@@ -175,10 +194,20 @@ export default function AddressManagement() {
                         {activeTab === 'kecamatan' ? item.kabupaten?.name : item.kecamatan?.name}
                       </td>
                     )}
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        <button onClick={() => { setEditingItem(item); setFormName(item.name); setShowForm(true); }} className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all"><Edit className="h-4 w-4" /></button>
-                        <button onClick={() => handleDelete(item.id)} className="p-2 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all"><Trash2 className="h-4 w-4" /></button>
+                        <button 
+                          onClick={() => { setEditingItem(item); setFormName(item.name); setShowForm(true); }}
+                          className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(item.id)}
+                          className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -186,6 +215,8 @@ export default function AddressManagement() {
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
     </div>
   );
 }

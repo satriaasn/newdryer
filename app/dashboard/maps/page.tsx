@@ -69,8 +69,8 @@ export default function MapsPage() {
     } catch (e: any) { alert(e.message); }
   };
 
-  // Center of West Java
-  const center: [number, number] = [-7.0, 107.4];
+  // Center of Lampung Province
+  const center: [number, number] = [-5.3971, 105.2668];
 
   return (
     <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
