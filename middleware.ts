@@ -10,23 +10,35 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Protect dashboard routes
-  if (req.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!session) {
-      return NextResponse.redirect(new URL('/signin', req.url))
-    }
+  // Define public paths that don't require authentication
+  const isAuthPage = req.nextUrl.pathname.startsWith('/signin')
+  const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth')
+  const isStaticAsset = req.nextUrl.pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js)$/)
+
+  if (!session && !isAuthPage && !isApiAuth && !isStaticAsset) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/signin'
+    redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // Redirect authenticated users away from signin/signup
-  if (req.nextUrl.pathname.startsWith('/signin')) {
-    if (session) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
+  // Redirect authenticated users away from signin
+  if (session && isAuthPage) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   return res
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/signin'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 }
