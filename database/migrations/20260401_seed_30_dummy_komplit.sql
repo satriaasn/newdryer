@@ -31,7 +31,7 @@ inserted_gk AS (
 ),
 inserted_d AS (
   -- 3. Insert 30 Unit Dryer untuk Gapoktan yang baru dibuat
-  INSERT INTO public.dryer_units (id, name, gapoktan_id, capacity_kg, status)
+  INSERT INTO public.dryer_units (id, name, gapoktan_id, capacity_ton, status)
   SELECT 
     gen_random_uuid(), 
     'Dryer Padi Unit ' || row_number() over(), 

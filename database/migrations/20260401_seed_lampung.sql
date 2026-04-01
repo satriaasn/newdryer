@@ -192,7 +192,7 @@ ON CONFLICT DO NOTHING;
 
 
 -- 6. Insert Dryer Units (with predefined UUIDs for Productions references)
-INSERT INTO public.dryer_units (id, name, gapoktan_id, capacity_kg, status) VALUES 
+INSERT INTO public.dryer_units (id, name, gapoktan_id, capacity_ton, status) VALUES 
 ('b0000000-0000-0000-0000-000000000001', 'Dryer Padi Kemiling', 'a0000000-0000-0000-0000-000000000001', 4000, 'active'),
 (gen_random_uuid(), 'Dryer Jagung Natar', 'a0000000-0000-0000-0000-000000000002', 5000, 'active'),
 ('b0000000-0000-0000-0000-000000000002', 'Dryer Padi Poncowati', 'a0000000-0000-0000-0000-000000000003', 8000, 'active'),
