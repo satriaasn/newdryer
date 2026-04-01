@@ -10,6 +10,11 @@ import {
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
+import { 
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  BarChart, Bar, Cell
+} from "recharts";
+
 const MapContainer = nextDynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
 const TileLayer = nextDynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
 const Marker = nextDynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
@@ -87,7 +92,7 @@ export default function PublicDashboard() {
       if (filterKomoditas && p.komoditas_id !== filterKomoditas) return false;
       if (filterDate && p.production_date !== filterDate) return false;
       if (filterLokasi) {
-        const loc = `${p.gapoktan?.desa?.name} ${p.gapoktan?.desa?.kecamatan?.name} ${p.gapoktan?.desa?.kecamatan?.kabupaten?.name}`.toLowerCase();
+        const loc = `${p.gapoktan?.name} ${p.gapoktan?.desa?.name} ${p.gapoktan?.desa?.kecamatan?.name} ${p.gapoktan?.desa?.kecamatan?.kabupaten?.name}`.toLowerCase();
         if (!loc.includes(filterLokasi.toLowerCase())) return false;
       }
       return true;
@@ -104,6 +109,18 @@ export default function PublicDashboard() {
     });
     return Object.values(map);
   }, [productions, today]);
+
+  const trendData = useMemo(() => {
+    const map: Record<string, number> = {};
+    productions.forEach(p => {
+      const d = p.production_date;
+      map[d] = (map[d] || 0) + Number(p.qty_after);
+    });
+    return Object.entries(map)
+      .map(([date, ton]) => ({ date, ton }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-15);
+  }, [productions]);
 
   const gapoktanWithCoords = useMemo(() => gapoktanList.filter(g => g.latitude && g.longitude), [gapoktanList]);
 
@@ -153,87 +170,113 @@ export default function PublicDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        {stats && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KPI icon={Users} color="text-blue-500" title="Total Gapoktan" value={stats.totalGapoktan} />
-            <KPI icon={Factory} color="text-emerald-500" title="Unit Dryer" value={stats.totalDryers} />
-            <KPI icon={Package} color="text-orange-500" title="Total Produksi" value={stats.totalProductions} />
-            <KPI icon={TrendingUp} color="text-primary" title="Avg Kenaikan Harga" value={`+${stats.avgPriceDiffPct}%`} />
+        
+        {/* FILTERS AT TOP */}
+        <section className="bg-card/40 p-1 rounded-2xl border border-dashed border-primary/20">
+          <div className="p-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <input type="text" placeholder="Cari Lokasi..." value={filterLokasi} onChange={e => setFilterLokasi(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-background/50 text-sm focus:ring-2 ring-primary/20 outline-none transition-all" />
+            </div>
+            <select value={filterGapoktan} onChange={e => setFilterGapoktan(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border bg-background/50 text-sm outline-none focus:ring-2 ring-primary/20">
+              <option value="">Semua Gapoktan</option>
+              {gapoktanList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+            <select value={filterKomoditas} onChange={e => setFilterKomoditas(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border bg-background/50 text-sm outline-none focus:ring-2 ring-primary/20">
+              <option value="">Semua Komoditas</option>
+              {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+            </select>
+            <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border bg-background/50 text-sm outline-none focus:ring-2 ring-primary/20" />
           </div>
-        )}
-
-        <section>
-          <h2 className="text-lg font-bold mb-4">Produksi Per Komoditas</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            {perKomoditas.map(k => (
-              <div key={k.name} className="rounded-2xl border bg-card/60 p-4 hover:shadow-lg hover:border-primary/20 transition-all">
-                <div className="flex items-center gap-2 mb-2"><Wheat className="h-4 w-4 text-primary" /><span className="text-sm font-bold">{k.name}</span></div>
-                <p className="text-2xl font-bold">{k.total.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">Ton</span></p>
-                <p className="text-xs text-muted-foreground mt-1">Hari ini: <span className="text-foreground font-semibold">{k.totalToday.toLocaleString()} Ton</span></p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 text-sm font-medium mb-3 hover:text-primary transition-colors">
-            <Filter className="h-4 w-4" /> Filter Data
-            {showFilters ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            {hasFilters && <span className="h-2 w-2 rounded-full bg-primary" />}
-          </button>
-          {showFilters && (
-            <div className="rounded-2xl border bg-card/60 p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Lokasi</label>
-                <input type="text" placeholder="Cari kab/kec/desa..." value={filterLokasi} onChange={e => setFilterLokasi(e.target.value)} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Gapoktan</label>
-                <select value={filterGapoktan} onChange={e => setFilterGapoktan(e.target.value)} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
-                  <option value="">Semua</option>
-                  {gapoktanList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Komoditas</label>
-                <select value={filterKomoditas} onChange={e => setFilterKomoditas(e.target.value)} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
-                  <option value="">Semua</option>
-                  {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Tanggal Produksi</label>
-                <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
-              </div>
-              {hasFilters && <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-600 col-span-full"><X className="h-3 w-3" /> Reset Filter</button>}
+          {hasFilters && (
+            <div className="px-4 pb-4 flex justify-end">
+              <button onClick={clearFilters} className="text-xs font-bold text-rose-500 hover:text-rose-600 flex items-center gap-1"><X className="h-3 w-3" /> Reset Filter</button>
             </div>
           )}
         </section>
 
-        <section>
-          <h2 className="text-lg font-bold mb-4">Peta Lokasi Gapoktan</h2>
-          <div className="rounded-2xl border bg-card/60 overflow-hidden" style={{ height: '450px' }}>
-            {!leafletReady ? (
-              <div className="h-full flex items-center justify-center text-muted-foreground"><MapPin className="h-6 w-6 animate-pulse" /></div>
-            ) : (
-              <MapContainer center={[-7.0, 107.4]} zoom={9} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
-                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                {gapoktanWithCoords.map(g => (
-                  <Marker key={g.id} position={[g.latitude!, g.longitude!]} icon={customIcon}>
-                    <Popup>
-                      <div className="min-w-[220px] space-y-1">
-                        <h3 className="font-bold text-sm">{g.name}</h3>
-                        <p className="text-xs text-gray-500">{g.desa?.name}, {g.desa?.kecamatan?.name}, {g.desa?.kecamatan?.kabupaten?.name}</p>
-                        {g.ketua && <p className="text-xs"><b>Ketua:</b> {g.ketua}</p>}
-                        {g.phone && <p className="text-xs"><b>Telp:</b> {g.phone}</p>}
-                        {g.dryer_units && <p className="text-xs"><b>Dryer:</b> {g.dryer_units.length} unit</p>}
-                        {g.komoditas && g.komoditas.length > 0 && <p className="text-xs"><b>Komoditas:</b> {g.komoditas.map(k => k.name).join(', ')}</p>}
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-            )}
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Statistik Produksi (Ton)</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KPI icon={Package} color="text-primary" title="Total Produksi" value={`${stats?.totalQtyAfter?.toLocaleString() || 0} T`} subtitle={`${stats?.totalProductions || 0} Transaksi`} />
+            <KPI icon={Calendar} color="text-blue-500" title="Produksi Hari Ini" value={`${stats?.todayQtyAfter?.toLocaleString() || 0} T`} subtitle={`${stats?.todayProductions || 0} Update`} />
+            <KPI icon={TrendingUp} color="text-amber-500" title="Total Margin" value={`+${stats?.avgPriceDiffPct || 0}%`} subtitle="Sepanjang Waktu" />
+            <KPI icon={Users} color="text-emerald-500" title="Gapoktan Aktif" value={stats?.totalGapoktan || 0} subtitle="Terdaftar" />
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2"><Factory className="h-5 w-5 text-primary" /> Penggunaan Alat</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <KPI icon={Factory} color="text-primary" title="Unit Dryer" value={stats?.totalDryers || 0} subtitle="Total Armada" />
+              <KPI icon={Wheat} color="text-emerald-500" title="Jenis Komoditas" value={komoditasList.length} subtitle="Variabel Monitoring" />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+             <h2 className="text-xl font-bold flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Tren Produksi (15 Hari)</h2>
+             <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trendData}>
+                    <defs>
+                      <linearGradient id="colorTon" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                    <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+                    <Area type="monotone" dataKey="ton" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorTon)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+             </div>
+          </div>
+        </div>
+
+        <section className="grid md:grid-cols-2 gap-8">
+          <div>
+            <h2 className="text-lg font-bold mb-4">Produksi Per Komoditas</h2>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
+              {perKomoditas.map(k => (
+                <div key={k.name} className="rounded-2xl border bg-card/60 p-4 hover:shadow-lg hover:border-primary/20 transition-all border-l-4 border-l-primary">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{k.name}</p>
+                  <p className="text-xl font-black">{k.total.toLocaleString()} <span className="text-[10px] font-normal text-muted-foreground">Ton</span></p>
+                  <div className="mt-2 w-full bg-muted rounded-full h-1 overflow-hidden">
+                    <div className="bg-primary h-full rounded-full" style={{ width: `${Math.min(100, (k.total / (stats?.totalQtyAfter || 1)) * 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold">Peta Lokasi Gapoktan</h2>
+            <div className="rounded-3xl border bg-card/60 overflow-hidden shadow-xl" style={{ height: '350px' }}>
+              {!leafletReady ? (
+                <div className="h-full flex items-center justify-center text-muted-foreground"><MapPin className="h-6 w-6 animate-pulse" /></div>
+              ) : (
+                <MapContainer center={[-5.3971, 105.2668]} zoom={9} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
+                  <TileLayer attribution='&copy; OSM' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  {gapoktanWithCoords.map(g => (
+                    <Marker key={g.id} position={[g.latitude!, g.longitude!]} icon={customIcon}>
+                      <Popup>
+                        <div className="min-w-[220px] space-y-2 p-1">
+                          <h3 className="font-bold text-sm text-primary">{g.name}</h3>
+                          <p className="text-[10px] text-gray-500"><MapPin className="h-2 w-2 inline mr-1" />{g.desa?.name}, {g.desa?.kecamatan?.name}</p>
+                          <div className="grid grid-cols-2 gap-2 text-[10px] border-t pt-2 mt-2">
+                             <div><p className="text-gray-400">Ketua</p><p className="font-bold">{g.ketua || '-'}</p></div>
+                             <div><p className="text-gray-400">Dryer</p><p className="font-bold">{g.dryer_units?.length || 0} Unit</p></div>
+                          </div>
+                          <a href={`/dashboard/gapoktan/${g.id}`} className="mt-2 block w-full py-2 bg-primary text-white text-center text-[10px] font-bold rounded-lg hover:bg-primary/90 transition-all">Lihat Detail & Transaksi →</a>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              )}
+            </div>
           </div>
         </section>
 
@@ -293,12 +336,16 @@ export default function PublicDashboard() {
   );
 }
 
-function KPI({ icon: Icon, color, title, value }: { icon: any; color: string; title: string; value: string | number }) {
+function KPI({ icon: Icon, color, title, value, subtitle }: { icon: any; color: string; title: string; value: string | number; subtitle?: string }) {
   return (
     <div className="rounded-2xl border bg-card/60 p-5 hover:shadow-xl hover:border-primary/20 transition-all">
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center"><Icon className={`h-5 w-5 ${color}`} /></div>
-        <div><p className="text-xs text-muted-foreground">{title}</p><p className="text-2xl font-bold tracking-tight">{value}</p></div>
+        <div>
+          <p className="text-xs text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold tracking-tight">{value}</p>
+          {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
       </div>
     </div>
   );

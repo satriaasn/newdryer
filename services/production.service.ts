@@ -11,6 +11,16 @@ export const productionService = {
     return data as Production[];
   },
 
+  async getByGapoktan(gapoktanId: string): Promise<Production[]> {
+    const { data, error } = await supabase
+      .from('productions')
+      .select('*, dryer_units(*), gapoktan(*, desa(*, kecamatan(*, kabupaten(*)))), komoditas(*)')
+      .eq('gapoktan_id', gapoktanId)
+      .order('production_date', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data as Production[];
+  },
+
   async create(production: {
     dryer_id: string;
     gapoktan_id: string;
@@ -32,15 +42,21 @@ export const productionService = {
   },
 
   async getDashboardStats(): Promise<DashboardStats> {
-    const [gapoktanRes, dryerRes, prodRes] = await Promise.all([
+    const today = new Date().toISOString().split('T')[0];
+    const [gapoktanRes, dryerRes, prodRes, todayRes] = await Promise.all([
       supabase.from('gapoktan').select('id', { count: 'exact', head: true }),
       supabase.from('dryer_units').select('id', { count: 'exact', head: true }),
       supabase.from('productions').select('qty_before, qty_after, qty_diff_pct, price_diff_pct'),
+      supabase.from('productions').select('qty_after').eq('production_date', today),
     ]);
 
     const productions = prodRes.data || [];
+    const todayProductions = todayRes.data || [];
+    
     const totalQtyBefore = productions.reduce((s, p) => s + Number(p.qty_before), 0);
     const totalQtyAfter = productions.reduce((s, p) => s + Number(p.qty_after), 0);
+    const todayQtyAfter = todayProductions.reduce((s, p) => s + Number(p.qty_after), 0);
+    
     const avgQtyDiff = productions.length > 0
       ? productions.reduce((s, p) => s + Number(p.qty_diff_pct), 0) / productions.length
       : 0;
@@ -52,10 +68,12 @@ export const productionService = {
       totalGapoktan: gapoktanRes.count || 0,
       totalDryers: dryerRes.count || 0,
       totalProductions: productions.length,
+      todayProductions: todayProductions.length,
       avgQtyDiffPct: Math.round(avgQtyDiff * 100) / 100,
       avgPriceDiffPct: Math.round(avgPriceDiff * 100) / 100,
       totalQtyBefore,
       totalQtyAfter,
+      todayQtyAfter,
     };
   },
 

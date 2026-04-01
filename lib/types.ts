@@ -93,8 +93,10 @@ export interface DashboardStats {
   totalGapoktan: number;
   totalDryers: number;
   totalProductions: number;
+  todayProductions?: number;
   avgQtyDiffPct: number;
   avgPriceDiffPct: number;
   totalQtyBefore: number;
   totalQtyAfter: number;
+  todayQtyAfter?: number;
 }

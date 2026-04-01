@@ -18,11 +18,13 @@ export function GapoktanForm({ initialData, onSaved, onCancel }: GapoktanFormPro
     desa_id: initialData?.desa_id || '', 
     latitude: initialData?.latitude?.toString() || '', 
     longitude: initialData?.longitude?.toString() || '',
-    address: initialData?.address || '' 
+    address: initialData?.address || '',
+    komoditas_ids: (initialData as any)?.komoditas?.map((k: any) => k.id) || []
   });
   const [kabList, setKabList] = useState<Kabupaten[]>([]);
   const [kecList, setKecList] = useState<Kecamatan[]>([]);
   const [desaList, setDesaList] = useState<Desa[]>([]);
+  const [allKomoditas, setAllKomoditas] = useState<any[]>([]);
   const [selKab, setSelKab] = useState(initialData?.desa?.kecamatan?.kabupaten_id || '');
   const [selKec, setSelKec] = useState(initialData?.desa?.kecamatan_id || '');
   const [submitting, setSubmitting] = useState(false);
@@ -41,14 +43,12 @@ export function GapoktanForm({ initialData, onSaved, onCancel }: GapoktanFormPro
 
   const handleParseMapsUrl = () => {
     if (!mapsUrl) return;
-    // Regex for @lat,long
     const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
     const match = mapsUrl.match(regex);
     if (match) {
       setForm(prev => ({ ...prev, latitude: match[1], longitude: match[2] }));
       setMapsUrl("");
     } else {
-      // Try search query format q=lat,long
       const qRegex = /q=(-?\d+\.\d+)%2C(-?\d+\.\d+)/;
       const qMatch = mapsUrl.match(qRegex);
       if (qMatch) {
@@ -60,7 +60,19 @@ export function GapoktanForm({ initialData, onSaved, onCancel }: GapoktanFormPro
     }
   };
 
-  useEffect(() => { fetch('/api/address?type=kabupaten').then(r => r.json()).then(d => setKabList(d)); }, []);
+  const toggleKomoditas = (id: string) => {
+    setForm(prev => {
+      const ids = prev.komoditas_ids.includes(id) 
+        ? prev.komoditas_ids.filter(i => i !== id)
+        : [...prev.komoditas_ids, id];
+      return { ...prev, komoditas_ids: ids };
+    });
+  };
+
+  useEffect(() => { 
+    fetch('/api/address?type=kabupaten').then(r => r.json()).then(d => setKabList(d)); 
+    fetch('/api/komoditas').then(r => r.json()).then(d => setAllKomoditas(d));
+  }, []);
   useEffect(() => { if (selKab) fetch(`/api/address?type=kecamatan&kabupaten_id=${selKab}`).then(r => r.json()).then(d => setKecList(d)); }, [selKab]);
   useEffect(() => { if (selKec) fetch(`/api/address?type=desa&kecamatan_id=${selKec}`).then(r => r.json()).then(d => setDesaList(d)); }, [selKec]);
 
@@ -68,7 +80,14 @@ export function GapoktanForm({ initialData, onSaved, onCancel }: GapoktanFormPro
     e.preventDefault();
     setSubmitting(true);
     try {
-      const body: any = { name: form.name, desa_id: form.desa_id, ketua: form.ketua || null, phone: form.phone || null, address: form.address || null };
+      const body: any = { 
+        name: form.name, 
+        desa_id: form.desa_id, 
+        ketua: form.ketua || null, 
+        phone: form.phone || null, 
+        address: form.address || null,
+        komoditas_ids: form.komoditas_ids
+      };
       if (form.latitude) body.latitude = Number(form.latitude);
       if (form.longitude) body.longitude = Number(form.longitude);
       
@@ -125,6 +144,25 @@ export function GapoktanForm({ initialData, onSaved, onCancel }: GapoktanFormPro
         <div>
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Longitude</label>
           <input type="number" step="any" value={form.longitude} onChange={e => setForm({...form, longitude: e.target.value})} className="w-full mt-1.5 rounded-xl border bg-background px-4 py-2.5 text-sm transition-all focus:ring-2 focus:ring-primary/20 outline-none" placeholder="107.xxxx" />
+        </div>
+        <div className="lg:col-span-1">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Komoditas yang Ditangani</label>
+          <div className="mt-2 flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-xl bg-background/50">
+            {allKomoditas.map(k => (
+              <button
+                key={k.id}
+                type="button"
+                onClick={() => toggleKomoditas(k.id)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                  form.komoditas_ids.includes(k.id)
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                {form.komoditas_ids.includes(k.id) ? '✓ ' : ''}{k.name}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="lg:col-span-3">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Alamat Lengkap</label>

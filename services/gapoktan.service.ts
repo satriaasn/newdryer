@@ -27,24 +27,48 @@ export const gapoktanService = {
     } as Gapoktan;
   },
 
-  async create(gapoktan: { name: string; desa_id: string; ketua?: string; phone?: string }): Promise<Gapoktan> {
+  async create(gapoktan: any): Promise<Gapoktan> {
+    const { komoditas_ids, ...rest } = gapoktan;
     const { data, error } = await supabase
       .from('gapoktan')
-      .insert(gapoktan)
+      .insert(rest)
       .select()
       .single();
     if (error) throw new Error(error.message);
+    
+    if (komoditas_ids && Array.isArray(komoditas_ids) && komoditas_ids.length > 0) {
+      const links = komoditas_ids.map((kid: string) => ({ 
+        gapoktan_id: data.id, 
+        komoditas_id: kid 
+      }));
+      await supabase.from('gapoktan_komoditas').insert(links);
+    }
+    
     return data as Gapoktan;
   },
 
   async update(id: string, updates: any): Promise<Gapoktan> {
+    const { komoditas_ids, ...rest } = updates;
     const { data, error } = await supabase
       .from('gapoktan')
-      .update(updates)
+      .update(rest)
       .eq('id', id)
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    if (komoditas_ids !== undefined && Array.isArray(komoditas_ids)) {
+      // Sync komoditas: first remove then add
+      await supabase.from('gapoktan_komoditas').delete().eq('gapoktan_id', id);
+      if (komoditas_ids.length > 0) {
+        const links = komoditas_ids.map((kid: string) => ({ 
+          gapoktan_id: id, 
+          komoditas_id: kid 
+        }));
+        await supabase.from('gapoktan_komoditas').insert(links);
+      }
+    }
+
     return data as Gapoktan;
   },
 
