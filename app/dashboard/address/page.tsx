@@ -5,9 +5,9 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useMemo } from "react";
 import type { Kabupaten, Kecamatan, Desa } from "@/lib/types";
 import { 
-  MapPin, Plus, Trash2, Edit, Building2, Map as MapIcon, Home, 
-  Search, X, Save, AlertCircle, RefreshCw 
+  Search, X, Save, AlertCircle, RefreshCw, Download
 } from "lucide-react";
+import { ImportModal } from "@/components/dashboard/import-modal";
 
 type AddressType = 'kabupaten' | 'kecamatan' | 'desa';
 
@@ -24,6 +24,7 @@ export default function AddressManagement() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const [formName, setFormName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -109,16 +110,26 @@ export default function AddressManagement() {
           <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight">Manajemen Wilayah</h1>
           <p className="text-muted-foreground max-w-xl">Kelola struktur administratif dari level Kabupaten, Kecamatan, hingga Desa untuk mendukung akurasi pemetaan dan produksi.</p>
         </div>
-        <button 
-          onClick={() => { setEditingItem(null); setFormName(""); setShowForm(true); }}
-          className="group flex flex-1 md:flex-none items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-        >
-          <div className="p-1 rounded-full bg-white/20 group-hover:bg-white/30 transition-colors">
-            <Plus className="h-4 w-4" />
-          </div>
-          <span>Tambah {activeTab}</span>
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
+          <button 
+            onClick={() => setShowImport(true)} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-2xl bg-white border border-gray-200 px-6 py-3.5 text-sm font-bold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+          >
+            <Download className="h-4 w-4 rotate-180" /> Import Data
+          </button>
+          <button 
+            onClick={() => { setEditingItem(null); setFormName(""); setShowForm(true); }}
+            className="group flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <div className="p-1 rounded-full bg-white/20 group-hover:bg-white/30 transition-colors">
+              <Plus className="h-4 w-4" />
+            </div>
+            <span>Tambah {activeTab}</span>
+          </button>
+        </div>
       </header>
+
+      <ImportModal title={`Import Data ${activeTab}`} isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={loadData} />
 
       {/* TABS & FILTERS */}
       <section className="bg-card/40 backdrop-blur-md rounded-3xl p-2 lg:p-4 border shadow-sm flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">

@@ -5,13 +5,15 @@ export const dynamic = 'force-dynamic';
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState } from "react";
 import type { Production, Gapoktan, Komoditas, DryerUnit } from "@/lib/types";
-import { Plus, Loader2, Trash2, Edit } from "lucide-react";
+import { Plus, Loader2, Trash2, Edit, Download } from "lucide-react";
+import { ImportModal } from "@/components/dashboard/import-modal";
 
 export default function ProductionPage() {
   const [productions, setProductions] = useState<Production[]>([]);
   const [gapoktan, setGapoktan] = useState<Gapoktan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingProduction, setEditingProduction] = useState<Production | null>(null);
 
   const reload = () => {
@@ -52,14 +54,24 @@ export default function ProductionPage() {
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Produksi</h1>
           <p className="text-sm lg:text-base text-muted-foreground">Input dan riwayat data produksi pengeringan</p>
         </div>
-        <button
-          onClick={() => { setEditingProduction(null); setShowForm(!showForm); }}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-        >
-          <Plus className="h-4 w-4" />
-          Input Produksi
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setShowImport(true)} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-2 text-sm font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+          >
+            <Download className="h-4 w-4 rotate-180" /> Import Data
+          </button>
+          <button
+            onClick={() => { setEditingProduction(null); setShowForm(!showForm); }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            Input Produksi
+          </button>
+        </div>
       </header>
+
+      <ImportModal title="Import Data Produksi" isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={reload} />
 
           {(showForm || editingProduction) && (
             <ProductionForm 

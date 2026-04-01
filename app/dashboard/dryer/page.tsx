@@ -4,13 +4,15 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from "react";
 import type { DryerUnit, Gapoktan } from "@/lib/types";
-import { Factory, Plus, Loader2, Trash2, Edit } from "lucide-react";
+import { Factory, Plus, Loader2, Trash2, Edit, Download } from "lucide-react";
+import { ImportModal } from "@/components/dashboard/import-modal";
 
 export default function DryerAdmin() {
   const [dryers, setDryers] = useState<DryerUnit[]>([]);
   const [gapoktanList, setGapoktanList] = useState<Gapoktan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const [editingDryer, setEditingDryer] = useState<DryerUnit | null>(null);
 
@@ -44,13 +46,23 @@ export default function DryerAdmin() {
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Unit Dryer</h1>
           <p className="text-sm lg:text-base text-muted-foreground">Kelola unit pengeringan untuk setiap gapoktan</p>
         </div>
-        <button 
-          onClick={() => { setEditingDryer(null); setShowForm(!showForm); }} 
-          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-        >
-          <Plus className="h-4 w-4" /> Tambah Unit
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setShowImport(true)} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-2 text-sm font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+          >
+            <Download className="h-4 w-4 rotate-180" /> Import Data
+          </button>
+          <button 
+            onClick={() => { setEditingDryer(null); setShowForm(!showForm); }} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <Plus className="h-4 w-4" /> Tambah Unit
+          </button>
+        </div>
       </header>
+
+      <ImportModal title="Import Data Unit Dryer" isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={reload} />
 
           {(showForm || editingDryer) && (
             <DryerForm 

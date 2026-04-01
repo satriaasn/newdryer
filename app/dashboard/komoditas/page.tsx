@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { Komoditas } from "@/lib/types";
-import { Plus, Loader2, Wheat, Edit, Trash2, X } from "lucide-react";
+import { Plus, Loader2, Wheat, Edit, Trash2, X, Download } from "lucide-react";
+import { ImportModal } from "@/components/dashboard/import-modal";
 
 export default function KomoditasAdmin() {
   const [komoditas, setKomoditas] = useState<Komoditas[]>([]);
@@ -10,6 +11,7 @@ export default function KomoditasAdmin() {
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const reload = () => {
@@ -60,13 +62,23 @@ export default function KomoditasAdmin() {
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Komoditas</h1>
           <p className="text-sm lg:text-base text-muted-foreground">Master data komoditas pertanian</p>
         </div>
-        <button 
-          onClick={() => { setEditingId(null); setNewName(''); setShowForm(!showForm); }}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-        >
-          <Plus className="h-4 w-4" /> Tambah Komoditas
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setShowImport(true)} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-2 text-sm font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+          >
+            <Download className="h-4 w-4 rotate-180" /> Import Data
+          </button>
+          <button 
+            onClick={() => { setEditingId(null); setNewName(''); setShowForm(!showForm); }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <Plus className="h-4 w-4" /> Tambah Komoditas
+          </button>
+        </div>
       </header>
+
+      <ImportModal title="Import Data Komoditas" isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={reload} />
 
           {(showForm || editingId) && (
             <form onSubmit={handleSubmit} className="flex items-end gap-3 bg-card/40 p-4 rounded-2xl border animate-in fade-in slide-in-from-top-4 duration-300">

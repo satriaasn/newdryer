@@ -4,13 +4,15 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from "react";
 import { userService, type Profile, type UserRole } from "@/services/user.service";
-import { ShieldCheck, UserPlus, Search, Shield, Save, X } from "lucide-react";
+import { ShieldCheck, UserPlus, Search, Shield, Save, X, Download } from "lucide-react";
+import { ImportModal } from "@/components/dashboard/import-modal";
 
 export default function UserManagement() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const [editRole, setEditRole] = useState<UserRole>("viewer");
 
   useEffect(() => {
@@ -52,7 +54,15 @@ export default function UserManagement() {
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Pengaturan User</h1>
           <p className="text-sm lg:text-base text-muted-foreground">Kelola hak akses dan peran pengguna sistem</p>
         </div>
+        <button 
+          onClick={() => setShowImport(true)} 
+          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-2 text-sm font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+        >
+          <Download className="h-4 w-4 rotate-180" /> Import User
+        </button>
       </header>
+
+      <ImportModal title="Import Data User" isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={loadProfiles} />
 
       <div className="space-y-6">
         <div className="rounded-2xl border bg-card/60 p-6 shadow-sm">
