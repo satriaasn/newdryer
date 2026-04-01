@@ -1,6 +1,5 @@
 "use client";
 
-import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState, useMemo } from "react";
 import type { Gapoktan } from "@/lib/types";
 import dynamic from "next/dynamic";
@@ -74,146 +73,141 @@ export default function MapsPage() {
   const center: [number, number] = [-7.0, 107.4];
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-muted/20">
-        <div className="p-8 space-y-6">
-          <header className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Peta GIS Gapoktan</h1>
-              <p className="text-muted-foreground">Lokasi seluruh gapoktan dan unit dryer pada peta</p>
-            </div>
-            <button onClick={() => { setEditingGapoktan(null); setShowForm(!showForm); }} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
-              <Plus className="h-4 w-4" /> Tambah Gapoktan
-            </button>
-          </header>
-
-          {(showForm || editingGapoktan) && (
-            <GapoktanForm 
-              initialData={editingGapoktan} 
-              onSaved={() => { reload(); setShowForm(false); setEditingGapoktan(null); }} 
-              onCancel={() => { setShowForm(false); setEditingGapoktan(null); }} 
-            />
-          )}
-
-          <div className="grid gap-6 lg:grid-cols-4">
-            {/* Map */}
-            <div className="lg:col-span-3 rounded-2xl border bg-card/60 overflow-hidden" style={{ height: '600px' }}>
-              {loading || !leafletReady ? (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  <div className="text-center space-y-2">
-                    <MapPin className="h-8 w-8 mx-auto animate-pulse" />
-                    <p>Memuat peta...</p>
-                  </div>
-                </div>
-              ) : (
-                <MapContainer
-                  center={center}
-                  zoom={9}
-                  style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
-                  scrollWheelZoom={true}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  {gapoktan.map(g => (
-                    <Marker
-                      key={g.id}
-                      position={[g.latitude!, g.longitude!]}
-                      icon={customIcon}
-                      eventHandlers={{ click: () => setSelected(g) }}
-                    >
-                      <Popup>
-                        <div className="min-w-[200px]">
-                          <h3 className="font-bold text-sm">{g.name}</h3>
-                          <p className="text-xs text-gray-500">
-                            {g.desa?.name}, {g.desa?.kecamatan?.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {g.desa?.kecamatan?.kabupaten?.name}
-                          </p>
-                          {g.ketua && <p className="text-xs mt-1">Ketua: {g.ketua}</p>}
-                          {g.dryer_units && <p className="text-xs">Dryer: {g.dryer_units.length} unit</p>}
-                          
-                          <div className="flex gap-2 mt-3 pt-2 border-t">
-                            <button 
-                              onClick={() => setEditingGapoktan(g)}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-bold hover:bg-primary hover:text-white transition-all"
-                            >
-                              <Edit className="h-3 w-3" /> Edit
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(g.id, g.name)}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[10px] font-bold hover:bg-destructive hover:text-white transition-all"
-                            >
-                              <Trash2 className="h-3 w-3" /> Hapus
-                            </button>
-                          </div>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              )}
-            </div>
-
-            {/* Sidebar list */}
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              <p className="text-sm font-medium text-muted-foreground">{gapoktan.length} Lokasi Gapoktan</p>
-              {gapoktan.map(g => (
-                <div
-                  key={g.id}
-                  onClick={() => setSelected(g)}
-                  className={`relative group p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
-                    selected?.id === g.id ? 'border-primary bg-primary/5' : 'bg-card/60 hover:border-primary/30'
-                  }`}
-                >
-                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setEditingGapoktan(g); }}
-                      className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDelete(g.id, g.name); }}
-                      className="h-7 w-7 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <h4 className="font-semibold text-sm pr-14">{g.name}</h4>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                    <MapPin className="h-3 w-3" />
-                    {g.desa?.name}
-                  </div>
-                  {g.ketua && (
-                    <p className="text-xs text-muted-foreground mt-1">Ketua: {g.ketua}</p>
-                  )}
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {g.komoditas?.map(k => (
-                      <span key={k.id} className="flex items-center gap-0.5 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                        <Wheat className="h-2.5 w-2.5" />
-                        {k.name}
-                      </span>
-                    ))}
-                  </div>
-                  {g.dryer_units && g.dryer_units.length > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                      <Factory className="h-3 w-3" />
-                      {g.dryer_units.length} unit dryer
-                    </div>
-                  )}
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {g.latitude?.toFixed(4)}, {g.longitude?.toFixed(4)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+    <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Peta GIS Gapoktan</h1>
+          <p className="text-sm lg:text-base text-muted-foreground">Lokasi seluruh gapoktan dan unit dryer pada peta</p>
         </div>
-      </main>
+        <button onClick={() => { setEditingGapoktan(null); setShowForm(!showForm); }} className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+          <Plus className="h-4 w-4" /> Tambah Gapoktan
+        </button>
+      </header>
+
+      {(showForm || editingGapoktan) && (
+        <GapoktanForm 
+          initialData={editingGapoktan} 
+          onSaved={() => { reload(); setShowForm(false); setEditingGapoktan(null); }} 
+          onCancel={() => { setShowForm(false); setEditingGapoktan(null); }} 
+        />
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-4">
+        {/* Map */}
+        <div className="lg:col-span-3 rounded-2xl border bg-card/60 overflow-hidden" style={{ height: '500px' }}>
+          {loading || !leafletReady ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <div className="text-center space-y-2">
+                <MapPin className="h-8 w-8 mx-auto animate-pulse" />
+                <p>Memuat peta...</p>
+              </div>
+            </div>
+          ) : (
+            <MapContainer
+              center={center}
+              zoom={9}
+              style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
+              scrollWheelZoom={true}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {gapoktan.map(g => (
+                <Marker
+                  key={g.id}
+                  position={[g.latitude!, g.longitude!]}
+                  icon={customIcon}
+                  eventHandlers={{ click: () => setSelected(g) }}
+                >
+                  <Popup>
+                    <div className="min-w-[200px]">
+                      <h3 className="font-bold text-sm">{g.name}</h3>
+                      <p className="text-xs text-gray-500">
+                        {g.desa?.name}, {g.desa?.kecamatan?.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {g.desa?.kecamatan?.kabupaten?.name}
+                      </p>
+                      {g.ketua && <p className="text-xs mt-1">Ketua: {g.ketua}</p>}
+                      {g.dryer_units && <p className="text-xs">Dryer: {g.dryer_units.length} unit</p>}
+                      
+                      <div className="flex gap-2 mt-3 pt-2 border-t">
+                        <button 
+                          onClick={() => setEditingGapoktan(g)}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-bold hover:bg-primary hover:text-white transition-all"
+                        >
+                          <Edit className="h-3 w-3" /> Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(g.id, g.name)}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[10px] font-bold hover:bg-destructive hover:text-white transition-all"
+                        >
+                          <Trash2 className="h-3 w-3" /> Hapus
+                        </button>
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          )}
+        </div>
+
+        {/* Sidebar list */}
+        <div className="space-y-3 max-h-[500px] overflow-y-auto">
+          <p className="text-sm font-medium text-muted-foreground">{gapoktan.length} Lokasi Gapoktan</p>
+          {gapoktan.map(g => (
+            <div
+              key={g.id}
+              onClick={() => setSelected(g)}
+              className={`relative group p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
+                selected?.id === g.id ? 'border-primary bg-primary/5' : 'bg-card/60 hover:border-primary/30'
+              }`}
+            >
+              <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setEditingGapoktan(g); }}
+                  className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDelete(g.id, g.name); }}
+                  className="h-7 w-7 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <h4 className="font-semibold text-sm pr-14">{g.name}</h4>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                <MapPin className="h-3 w-3" />
+                {g.desa?.name}
+              </div>
+              {g.ketua && (
+                <p className="text-xs text-muted-foreground mt-1">Ketua: {g.ketua}</p>
+              )}
+              <div className="flex flex-wrap gap-1 mt-2">
+                {g.komoditas?.map(k => (
+                  <span key={k.id} className="flex items-center gap-0.5 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                    <Wheat className="h-2.5 w-2.5" />
+                    {k.name}
+                  </span>
+                ))}
+              </div>
+              {g.dryer_units && g.dryer_units.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+                  <Factory className="h-3 w-3" />
+                  {g.dryer_units.length} unit dryer
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {g.latitude?.toFixed(4)}, {g.longitude?.toFixed(4)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
