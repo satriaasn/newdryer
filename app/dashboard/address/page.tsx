@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useMemo } from "react";
 import type { Kabupaten, Kecamatan, Desa } from "@/lib/types";
 import { 
-  Search, X, Save, AlertCircle, RefreshCw, Download
+  Search, X, Save, AlertCircle, RefreshCw, Download, MapPin, Plus, Building2, MapIcon, Home, Edit, Trash2
 } from "lucide-react";
 import { ImportModal } from "@/components/dashboard/import-modal";
 
