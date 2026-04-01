@@ -8,6 +8,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  LabelList,
 } from "recharts";
 
 interface TrendChartProps {
@@ -22,7 +23,9 @@ export default function TrendChart({ data }: TrendChartProps) {
         <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dx={-10} />
         <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-        <Line type="monotone" dataKey="ton" stroke="#0F172A" strokeWidth={2.5} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, fill: '#0F172A' }} />
+        <Line type="monotone" dataKey="ton" stroke="#0F172A" strokeWidth={2.5} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, fill: '#0F172A' }}>
+          <LabelList dataKey="ton" position="top" style={{ fontSize: '10px', fontWeight: 'bold', fill: '#0F172A' }} offset={10} />
+        </Line>
       </LineChart>
     </ResponsiveContainer>
   );

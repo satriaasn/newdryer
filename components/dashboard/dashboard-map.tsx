@@ -11,6 +11,7 @@ interface MapMarker {
   longitude: number;
   name?: string;
   address?: string;
+  komoditas?: string;
 }
 
 interface DashboardMapProps {
@@ -61,6 +62,12 @@ export default function DashboardMap({ markers, onMarkerClick }: DashboardMapPro
             <div className="p-1">
               <h3 className="font-bold text-[#0F172A] text-sm">{m.name}</h3>
               <p className="text-[10px] text-muted-foreground mt-1 italic leading-tight">{m.address}</p>
+              {m.komoditas && (
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <span className="text-[9px] font-bold text-emerald-600 uppercase">Komoditas:</span>
+                  <p className="text-[10px] font-medium text-[#0F172A]">{m.komoditas}</p>
+                </div>
+              )}
             </div>
           </Popup>
         </Marker>

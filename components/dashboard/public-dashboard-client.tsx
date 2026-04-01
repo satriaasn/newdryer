@@ -40,7 +40,7 @@ export default function PublicDashboardClient() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const [selectedGapoktan, setSelectedGapoktan] = useState<Gapoktan | null>(null);
 
@@ -404,7 +404,8 @@ export default function PublicDashboardClient() {
                       latitude: g.latitude!, 
                       longitude: g.longitude!,
                       name: g.name,
-                      address: `${g.desa?.name || ''}, ${g.desa?.kecamatan?.name || ''}`
+                      address: `${g.desa?.name || ''}, ${g.desa?.kecamatan?.name || ''}`,
+                      komoditas: g.komoditas?.map(k => k.name).join(', ')
                     }))} 
                     onMarkerClick={(id: string) => {
                       const found = gapoktanList.find(g => g.id === id);
@@ -502,6 +503,18 @@ export default function PublicDashboardClient() {
                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Total log pengeringan unit monitoring</p>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-medium">Tampilkan:</span>
+                <select 
+                  value={itemsPerPage} 
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="text-xs font-bold border rounded-lg px-2 py-1 outline-none bg-white focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value={25}>25 Baris</option>
+                  <option value={50}>50 Baris</option>
+                  <option value={100}>100 Baris</option>
+                </select>
+              </div>
            </div>
 
            <div className="overflow-x-auto rounded-xl border scrollbar-hide">
@@ -517,7 +530,7 @@ export default function PublicDashboardClient() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filteredProductions.slice(0, 20).map((p: any) => {
+                  {filteredProductions.slice(0, itemsPerPage).map((p: any) => {
                      const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
                      const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
                      const statusName = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');

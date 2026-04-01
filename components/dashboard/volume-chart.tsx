@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   Cell,
+  LabelList,
 } from "recharts";
 
 interface VolumeBarChartProps {
@@ -54,6 +55,7 @@ export default function VolumeBarChart({ data }: VolumeBarChartProps) {
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
+          <LabelList dataKey="ton" position="right" style={{ fontSize: '10px', fontWeight: 'bold', fill: '#64748B' }} offset={10} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
