@@ -20,7 +20,6 @@ import {
 export default function PublicDashboard() {
   const router = useRouter();
   const supabase = createClientComponentClient();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [productions, setProductions] = useState<Production[]>([]);
   const [gapoktanList, setGapoktanList] = useState<Gapoktan[]>([]);
   const [komoditasList, setKomoditasList] = useState<Komoditas[]>([]);
@@ -59,17 +58,16 @@ export default function PublicDashboard() {
 
   const reloadAll = () => {
     Promise.all([
-      fetch('/api/dashboard', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
-      fetch('/api/address?type=kabupaten', { cache: 'no-store' }).then(r => r.json()),
-    ]).then(([s, p, g, k, kabs]) => {
-      setStats(s);
-      setProductions(Array.isArray(p) ? p : []);
-      setGapoktanList(Array.isArray(g) ? g : []);
-      setKomoditasList(Array.isArray(k) ? k : []);
-      setAllKabupaten(Array.isArray(kabs) ? kabs : []);
+      supabase.from('kabupaten').select('*')
+    ]).then(([prodData, gapoktanData, komoditasData, kabRes]) => {
+      setProductions(prodData);
+      setGapoktanList(gapoktanData);
+      setKomoditasList(komoditasData);
+      setAllKabupaten(kabRes.data || []);
+      setLoading(false);
     }).catch(err => console.error(err)).finally(() => setLoading(false));
   };
 
@@ -110,15 +108,18 @@ export default function PublicDashboard() {
     return Array.from(desas.values());
   }, [gapoktanList, filterKabupaten, filterKecamatan]);
 
-  const gapoktanWithCoords = useMemo(() => {
-    return gapoktanList.filter(g => g.latitude && g.longitude).filter(g => {
+  const filteredGapoktan = useMemo(() => {
+    return gapoktanList.filter(g => {
       if (filterKomoditas && !g.komoditas?.some(k => k.id === filterKomoditas)) return false;
       if (filterKabupaten && g.desa?.kecamatan?.kabupaten_id !== filterKabupaten) return false;
       if (filterKecamatan && g.desa?.kecamatan_id !== filterKecamatan) return false;
       if (filterDesa && g.desa_id !== filterDesa) return false;
+      if (filterSearch) {
+        if (!g.name.toLowerCase().includes(filterSearch.toLowerCase())) return false;
+      }
       return true;
     });
-  }, [gapoktanList, filterKomoditas, filterStatus, filterKabupaten, filterKecamatan, filterDesa]);
+  }, [gapoktanList, filterKomoditas, filterKabupaten, filterKecamatan, filterDesa, filterSearch]);
 
   const filteredProductions = useMemo(() => {
     return productions.filter(p => {
@@ -135,6 +136,36 @@ export default function PublicDashboard() {
       return true;
     });
   }, [productions, filterSearch, filterKomoditas, filterKabupaten, filterKecamatan, filterDesa, filterStartDate, filterEndDate]);
+
+  const stats = useMemo<DashboardStats>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const totalQtyAfter = filteredProductions.reduce((sum: any, p: any) => sum + Number(p.qty_after || 0), 0);
+    const todayQtyAfter = filteredProductions.filter((p: any) => p.production_date.startsWith(today)).reduce((sum: any, p: any) => sum + Number(p.qty_after || 0), 0);
+    const totalGapoktan = filteredGapoktan.length;
+    const totalDryers = filteredGapoktan.reduce((sum: any, g: any) => sum + (g.dryer_units?.length || 0), 0);
+    const coverageKabSet = new Set();
+    filteredGapoktan.forEach((g: any) => {
+      const kabId = g.desa?.kecamatan?.kabupaten_id;
+      if (kabId) coverageKabSet.add(kabId);
+    });
+
+    return {
+      totalGapoktan,
+      totalDryers: totalDryers || 0,
+      totalProductions: filteredProductions.length,
+      todayProductions: filteredProductions.filter((p: any) => p.production_date.startsWith(today)).length,
+      avgQtyDiffPct: 0,
+      avgPriceDiffPct: 0,
+      totalQtyBefore: 0,
+      totalQtyAfter,
+      todayQtyAfter,
+      coverageKabupaten: coverageKabSet.size
+    };
+  }, [filteredProductions, filteredGapoktan]);
+
+  const gapoktanWithCoords = useMemo(() => {
+    return filteredGapoktan.filter(g => g.latitude && g.longitude);
+  }, [filteredGapoktan]);
 
   const komoditasStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -379,9 +410,9 @@ export default function PublicDashboard() {
                </div>
                
                <div className="lg:col-span-1 space-y-3 overflow-hidden flex flex-col h-[500px]">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{gapoktanList.length} Lokasi Terdaftar</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{filteredGapoktan.length} Lokasi Terdaftar</p>
                   <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hide flex-grow pb-4">
-                    {gapoktanList.map((g: any) => (
+                    {filteredGapoktan.map((g: any) => (
                       <div
                         key={g.id}
                         onClick={() => setSelectedGapoktan(g)}

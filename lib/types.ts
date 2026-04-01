@@ -99,4 +99,5 @@ export interface DashboardStats {
   totalQtyBefore: number;
   totalQtyAfter: number;
   todayQtyAfter?: number;
+  coverageKabupaten?: number;
 }

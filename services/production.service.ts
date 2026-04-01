@@ -52,28 +52,36 @@ export const productionService = {
   async getDashboardStats(): Promise<DashboardStats> {
     const today = new Date().toISOString().split('T')[0];
     const [gapoktanRes, dryerRes, prodRes, todayRes] = await Promise.all([
-      supabase.from('gapoktan').select('id', { count: 'exact', head: true }),
+      supabase.from('gapoktan').select('id, desa(kecamatan(kabupaten_id))'),
       supabase.from('dryer_units').select('id', { count: 'exact', head: true }),
       supabase.from('productions').select('qty_before, qty_after, qty_diff_pct, price_diff_pct'),
       supabase.from('productions').select('qty_after').eq('production_date', today),
     ]);
 
+    const gapoktans = gapoktanRes.data || [];
     const productions = prodRes.data || [];
     const todayProductions = todayRes.data || [];
     
-    const totalQtyBefore = productions.reduce((s, p) => s + Number(p.qty_before), 0);
-    const totalQtyAfter = productions.reduce((s, p) => s + Number(p.qty_after), 0);
-    const todayQtyAfter = todayProductions.reduce((s, p) => s + Number(p.qty_after), 0);
+    // Calculate coverage Kabupaten
+    const coverageKabSet = new Set();
+    gapoktans.forEach((g: any) => {
+      const kabId = g.desa?.kecamatan?.kabupaten_id;
+      if (kabId) coverageKabSet.add(kabId);
+    });
+
+    const totalQtyBefore = productions.reduce((s: any, p: any) => s + Number(p.qty_before), 0);
+    const totalQtyAfter = productions.reduce((s: any, p: any) => s + Number(p.qty_after), 0);
+    const todayQtyAfter = todayProductions.reduce((s: any, p: any) => s + Number(p.qty_after), 0);
     
     const avgQtyDiff = productions.length > 0
-      ? productions.reduce((s, p) => s + Number(p.qty_diff_pct), 0) / productions.length
+      ? productions.reduce((s: any, p: any) => s + Number(p.qty_diff_pct), 0) / productions.length
       : 0;
     const avgPriceDiff = productions.length > 0
-      ? productions.reduce((s, p) => s + Number(p.price_diff_pct), 0) / productions.length
+      ? productions.reduce((s: any, p: any) => s + Number(p.price_diff_pct), 0) / productions.length
       : 0;
 
     return {
-      totalGapoktan: gapoktanRes.count || 0,
+      totalGapoktan: gapoktans.length,
       totalDryers: dryerRes.count || 0,
       totalProductions: productions.length,
       todayProductions: todayProductions.length,
@@ -82,6 +90,7 @@ export const productionService = {
       totalQtyBefore,
       totalQtyAfter,
       todayQtyAfter,
+      coverageKabupaten: coverageKabSet.size,
     };
   },
 

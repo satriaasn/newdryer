@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 interface VolumeBarChartProps {
-  data: { name: string; allTime: number }[];
+  data: { name: string; ton: number }[];
 }
 
 const COLORS = ['#0F172A', '#0284C7', '#059669', '#7C3AED', '#EA580C'];
@@ -20,20 +20,25 @@ const COLORS = ['#0F172A', '#0284C7', '#059669', '#7C3AED', '#EA580C'];
 export default function VolumeBarChart({ data }: VolumeBarChartProps) {
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+      <BarChart 
+        data={data} 
+        layout="vertical"
+        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
         <XAxis 
+          type="number"
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 10, fill: '#64748B' }} 
+        />
+        <YAxis 
+          type="category"
           dataKey="name" 
           axisLine={false} 
           tickLine={false} 
           tick={{ fontSize: 10, fill: '#64748B' }} 
-          dy={10} 
-        />
-        <YAxis 
-          axisLine={false} 
-          tickLine={false} 
-          tick={{ fontSize: 10, fill: '#64748B' }} 
-          dx={-10} 
+          width={80}
         />
         <Tooltip 
           cursor={{ fill: '#F1F5F9' }}
@@ -45,7 +50,7 @@ export default function VolumeBarChart({ data }: VolumeBarChartProps) {
             fontWeight: 'bold'
           }} 
         />
-        <Bar dataKey="allTime" name="Volume (Ton)" radius={[6, 6, 0, 0]}>
+        <Bar dataKey="ton" name="Volume (Ton)" radius={[0, 6, 6, 0]} barSize={20}>
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
