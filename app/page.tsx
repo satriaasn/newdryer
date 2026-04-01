@@ -383,11 +383,11 @@ export default function PublicDashboard() {
                         <td className="px-4 py-4">
                            <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-[#E0F2FE] text-[#0284C7]">{p.komoditas?.name || '-'}</span>
                         </td>
-                        <td className="px-4 py-4 text-xs font-medium">{p.gapoktan?.dryer_units?.[0]?.capacity_ton || 10} Ton</td>
+                        <td className="px-4 py-4 text-xs font-medium">{Number(p.gapoktan?.dryer_units?.[0]?.capacity_ton || 10).toFixed(1)} Ton</td>
                         <td className="px-4 py-4">
                            <div className="flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} /><span className={`text-[10px] font-bold ${statusColor.split(' ')[0]}`}>{statusName}</span></div>
                         </td>
-                        <td className="px-4 py-4 text-right font-bold text-[#0F172A]">{Number(p.qty_after).toLocaleString()} T</td>
+                        <td className="px-4 py-4 text-right font-bold text-[#0F172A]">{Number(p.qty_after || 0).toFixed(1)} T</td>
                       </tr>
                     );
                  })}
