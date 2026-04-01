@@ -21,6 +21,7 @@ export default function PublicDashboard() {
   const [productions, setProductions] = useState<Production[]>([]);
   const [gapoktanList, setGapoktanList] = useState<Gapoktan[]>([]);
   const [komoditasList, setKomoditasList] = useState<Komoditas[]>([]);
+  const [allKabupaten, setAllKabupaten] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -45,11 +46,13 @@ export default function PublicDashboard() {
       fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
-    ]).then(([s, p, g, k]) => {
+      fetch('/api/address?type=kabupaten', { cache: 'no-store' }).then(r => r.json()),
+    ]).then(([s, p, g, k, kabs]) => {
       setStats(s);
       setProductions(Array.isArray(p) ? p : []);
       setGapoktanList(Array.isArray(g) ? g : []);
       setKomoditasList(Array.isArray(k) ? k : []);
+      setAllKabupaten(Array.isArray(kabs) ? kabs : []);
     }).catch(err => console.error(err)).finally(() => setLoading(false));
   };
 
@@ -119,13 +122,38 @@ export default function PublicDashboard() {
   const komoditasStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     const stats = komoditasList.map(k => {
-      const prods = productions.filter(p => p.komoditas_id === k.id);
+      const prods = productions.filter(p => {
+        if (p.komoditas_id !== k.id) return false;
+        if (filterStartDate && p.production_date < filterStartDate) return false;
+        if (filterEndDate && p.production_date > filterEndDate) return false;
+        return true;
+      });
       const allTime = prods.reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
       const todayTotal = prods.filter(p => p.production_date.startsWith(today)).reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
       return { ...k, allTime, todayTotal };
     });
     return stats;
-  }, [productions, komoditasList]);
+  }, [productions, komoditasList, filterStartDate, filterEndDate]);
+
+  const kabupatenSummary = useMemo(() => {
+    return allKabupaten.map(kab => {
+      const units = gapoktanList.filter(g => g.desa?.kecamatan?.kabupaten_id === kab.id);
+      const prods = productions.filter(p => {
+        if (p.gapoktan?.desa?.kecamatan?.kabupaten_id !== kab.id) return false;
+        if (filterStartDate && p.production_date < filterStartDate) return false;
+        if (filterEndDate && p.production_date > filterEndDate) return false;
+        return true;
+      });
+      const totalTonnage = prods.reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
+      const activeUnits = units.filter(u => u.dryer_units?.some(d => d.status === 'active')).length;
+      return {
+        ...kab,
+        unitCount: units.length,
+        totalTonnage,
+        activeUnits
+      };
+    }).sort((a, b) => b.totalTonnage - a.totalTonnage);
+  }, [allKabupaten, gapoktanList, productions, filterStartDate, filterEndDate]);
 
   const trendData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -334,86 +362,112 @@ export default function PublicDashboard() {
            </div>
         </div>
 
-        {/* DATA TABLE */}
-        <div className="bg-white rounded-2xl border p-6 shadow-sm">
-           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <h2 className="text-lg font-bold text-[#0F172A]">Daftar Unit Monitoring</h2>
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input type="text" placeholder="Cari unit atau kelompok tani..." value={filterSearch} onChange={e => setFilterSearch(e.target.value)} className="w-full pl-9 pr-8 py-2 text-xs border bg-[#F8FAFC] rounded-lg outline-none focus:ring-2 focus:ring-primary/20" />
-                <Filter className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-           </div>
+        {/* DATA TABLES SECTION - TWO COLUMNS */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
+            {/* LEFT: DETAIL PRODUKSI (RIWAYAT) */}
+            <div className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow">
+               <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-[#0F172A]">Detail Produksi</h2>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Log pengeringan terbaru</p>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <input 
+                      type="text" 
+                      placeholder="Cari..." 
+                      className="pl-8 pr-3 py-1.5 text-xs border rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none w-32 sm:w-40"
+                    />
+                  </div>
+               </div>
 
-           <div className="overflow-x-auto">
-             <table className="w-full text-left">
-               <thead>
-                 <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-gray-100">
-                   <th className="px-4 py-3">No Unit</th>
-                   <th className="px-4 py-3">Nama Kelompok Tani</th>
-                   <th className="px-4 py-3">Lokasi</th>
-                   <th className="px-4 py-3">Komoditas</th>
-                   <th className="px-4 py-3">Kapasitas</th>
-                   <th className="px-4 py-3">Status</th>
-                   <th className="px-4 py-3 text-right">Produksi Hari Ini</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-gray-50">
-                 {paginatedProductions.length === 0 ? (
-                   <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">Belum ada data unit</td></tr>
-                 ) : paginatedProductions.map(p => {
-                    // Logic for status formatting based on real or simulated data
-                    const isMaintenance = p.gapoktan?.dryer_units?.some(d => d.status === 'maintenance');
-                    const isIdle = p.gapoktan?.dryer_units?.every(d => d.status === 'inactive');
-                    const statusName = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
-                    const statusColor = isMaintenance ? 'text-rose-500 bg-rose-500/10' : (isIdle ? 'text-gray-500 bg-gray-500/10' : 'text-emerald-500 bg-emerald-500/10');
-                    const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-gray-400' : 'bg-emerald-500');
+               <div className="overflow-x-auto flex-grow">
+                 <table className="w-full text-left">
+                   <thead>
+                     <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-gray-100">
+                       <th className="px-3 py-3">Tanggal</th>
+                       <th className="px-3 py-3">Gapoktan</th>
+                       <th className="px-3 py-3 text-right">Qty</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-50">
+                     {filteredProductions.slice(0, 10).map(p => (
+                       <tr key={p.id} className="text-xs hover:bg-neutral-50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
+                         <td className="px-3 py-4 text-muted-foreground font-medium">{new Date(p.production_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</td>
+                         <td className="px-3 py-4">
+                            <p className="font-bold text-[#0F172A] mb-0.5">{p.gapoktan?.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN', 'Kab.')}</p>
+                         </td>
+                         <td className="px-3 py-4 text-right">
+                            <span className="font-black text-primary">{Number(p.qty_after || 0).toFixed(1)}</span>
+                            <span className="text-[10px] ml-1 text-muted-foreground font-bold">T</span>
+                         </td>
+                       </tr>
+                     ))}
+                     {filteredProductions.length === 0 && (
+                       <tr><td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground italic">Tidak ada data produksi</td></tr>
+                     )}
+                   </tbody>
+                 </table>
+               </div>
+               <button className="mt-4 w-full py-2.5 text-xs font-bold text-gray-500 hover:text-primary transition-colors border-t border-dashed">
+                 LIHAT SEMUA RIWAYAT →
+               </button>
+            </div>
 
-                    return (
-                      <tr key={p.id} className="text-sm hover:bg-neutral-50 transition-colors group cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
-                        <td className="px-4 py-4 font-mono text-xs font-medium text-gray-500">DRY {p.gapoktan_id.substring(0,6).toUpperCase()}</td>
-                        <td className="px-4 py-4">
-                           <p className="font-bold text-[#0F172A]">{p.gapoktan?.name}</p>
-                           <p className="text-[10px] text-muted-foreground">Kecamatan {p.gapoktan?.desa?.kecamatan?.name}</p>
-                        </td>
-                        <td className="px-4 py-4">
-                           <p className="font-medium">{p.gapoktan?.desa?.kecamatan?.kabupaten?.name?.replace('KABUPATEN', 'Kab.')}</p>
-                           <p className="text-[10px] text-muted-foreground">{p.gapoktan?.desa?.name}</p>
-                        </td>
-                        <td className="px-4 py-4">
-                           <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-[#E0F2FE] text-[#0284C7]">{p.komoditas?.name || '-'}</span>
-                        </td>
-                        <td className="px-4 py-4 text-xs font-medium">{Number(p.gapoktan?.dryer_units?.[0]?.capacity_ton || 10).toFixed(1)} Ton</td>
-                        <td className="px-4 py-4">
-                           <div className="flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} /><span className={`text-[10px] font-bold ${statusColor.split(' ')[0]}`}>{statusName}</span></div>
-                        </td>
-                        <td className="px-4 py-4 text-right font-bold text-[#0F172A]">{Number(p.qty_after || 0).toFixed(1)} T</td>
-                      </tr>
-                    );
-                 })}
-               </tbody>
-             </table>
-           </div>
+            {/* RIGHT: DATA GAPOKTAN (REKAP WILAYAH) */}
+            <div className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow">
+               <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-[#0F172A]">Data Gapoktan</h2>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Rekapitulasi per kabupaten</p>
+                    </div>
+                  </div>
+                  <Download className="h-4 w-4 text-muted-foreground hover:text-primary cursor-pointer transition-colors" />
+               </div>
 
-           {/* Pagination */}
-           <div className="flex items-center justify-between border-t pt-4 mt-2">
-             <p className="text-xs text-muted-foreground">Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredProductions.length)} of {filteredProductions.length} units</p>
-             <div className="flex items-center gap-1">
-                <button 
-                  disabled={currentPage === 1} 
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  className="px-2 py-1 text-xs font-medium border rounded bg-white hover:bg-gray-50 disabled:opacity-50"
-                >&lt;</button>
-                <button className="px-3 py-1 text-xs font-bold border rounded bg-[#0F172A] text-white">1</button>
-                <span className="px-2 py-1 text-xs text-muted-foreground">...</span>
-                <button 
-                  disabled={currentPage * itemsPerPage >= filteredProductions.length} 
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  className="px-2 py-1 text-xs font-medium border rounded bg-white hover:bg-gray-50 disabled:opacity-50"
-                >&gt;</button>
-             </div>
-           </div>
-        </div>
+               <div className="overflow-x-auto flex-grow">
+                 <table className="w-full text-left">
+                   <thead>
+                     <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-gray-100">
+                       <th className="px-3 py-3">Kabupaten</th>
+                       <th className="px-3 py-3 text-center">Unit</th>
+                       <th className="px-3 py-3 text-right">Tonnage</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-50">
+                     {kabupatenSummary.map(k => (
+                       <tr key={k.id} className="text-xs hover:bg-neutral-50 transition-colors">
+                         <td className="px-3 py-4 font-bold text-[#0F172A]">{k.name.replace('KABUPATEN ', '')}</td>
+                         <td className="px-3 py-4 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${k.unitCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                              {k.unitCount}
+                            </span>
+                         </td>
+                         <td className="px-3 py-4 text-right">
+                            <span className="font-bold text-gray-900">{Number(k.totalTonnage || 0).toFixed(1)}</span>
+                            <span className="text-[10px] ml-1 text-muted-foreground font-bold">TON</span>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+               <div className="mt-4 pt-4 border-t border-dashed flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  <span>Total Kabupaten</span>
+                  <span className="text-[#0F172A]">{kabupatenSummary.length} Wilayah</span>
+               </div>
+            </div>
+         </div>
 
       </main>
     </div>
