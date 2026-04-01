@@ -5,14 +5,14 @@ export const revalidate = 0;
 
 import { useEffect, useState, useMemo } from "react";
 import type { Production, Gapoktan, Komoditas, DashboardStats } from "@/lib/types";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cn } from "@/lib/utils";
 
-const DynamicMap = dynamic(() => import("@/components/dashboard/dashboard-map"), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div> });
-const TrendChart = dynamic(() => import("@/components/dashboard/trend-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
-const VolumeBarChart = dynamic(() => import("@/components/dashboard/volume-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const DynamicMap = nextDynamic(() => import("@/components/dashboard/dashboard-map"), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div> });
+const TrendChart = nextDynamic(() => import("@/components/dashboard/trend-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const VolumeBarChart = nextDynamic(() => import("@/components/dashboard/volume-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
