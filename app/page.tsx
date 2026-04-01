@@ -1,9 +1,8 @@
-export const dynamic = 'force-dynamic';
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
 import type { Production, Gapoktan, Komoditas, DashboardStats } from "@/lib/types";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { 
   Users, Package, Factory, TrendingUp, Wheat, MapPin, 
   Search, Calendar, Filter, ChevronDown, ChevronUp, X, LogOut
@@ -11,10 +10,10 @@ import {
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
-const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
-const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
+const MapContainer = nextDynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
+const TileLayer = nextDynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
+const Marker = nextDynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
+const Popup = nextDynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 
 export default function PublicDashboard() {
   const router = useRouter();
