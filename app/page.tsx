@@ -288,10 +288,10 @@ export default function PublicDashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard title="Total Produksi" value={Number(stats.totalQtyAfter || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
-          <KPICard title="Produksi Hari Ini" value={Number(stats.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-blue-500" />
-          <KPICard title="Total Dryer" value={stats.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-indigo-500" />
-          <KPICard title="Wilayah Terjangkau" value={stats.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-orange-500" />
+          <KPICard title="Total Produksi" value={Number(stats?.totalQtyAfter || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
+          <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-blue-500" />
+          <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-indigo-500" />
+          <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-orange-500" />
         </div>
 
         <div className="grid grid-cols-1 gap-6">
