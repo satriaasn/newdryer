@@ -170,10 +170,8 @@ export default function PublicDashboard() {
   const komoditasStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     const stats = komoditasList.map(k => {
-      const prods = productions.filter(p => {
+      const prods = filteredProductions.filter(p => {
         if (p.komoditas_id !== k.id) return false;
-        if (filterStartDate && p.production_date < filterStartDate) return false;
-        if (filterEndDate && p.production_date > filterEndDate) return false;
         return true;
       });
       const allTime = prods.reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
@@ -181,7 +179,7 @@ export default function PublicDashboard() {
       return { ...k, allTime, todayTotal };
     });
     return stats;
-  }, [productions, komoditasList, filterStartDate, filterEndDate]);
+  }, [filteredProductions, komoditasList]);
 
   const kabupatenSummary = useMemo(() => {
     return allKabupaten.map(kab => {
