@@ -132,7 +132,13 @@ export default function MapsPage() {
                       {g.ketua && <p className="text-xs mt-1">Ketua: {g.ketua}</p>}
                       {g.dryer_units && <p className="text-xs">Dryer: {g.dryer_units.length} unit</p>}
                       
-                      <div className="flex gap-2 mt-3 pt-2 border-t">
+                      <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t">
+                        <a 
+                          href={`/dashboard/gapoktan/${g.id}`}
+                          className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 text-[10px] font-bold hover:bg-emerald-500 hover:text-white transition-all"
+                        >
+                          Lihat Detail & Riwayat →
+                        </a>
                         <button 
                           onClick={() => setEditingGapoktan(g)}
                           className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-bold hover:bg-primary hover:text-white transition-all"

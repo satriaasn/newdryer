@@ -4,7 +4,8 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from "react";
 import type { DashboardStats, Production } from "@/lib/types";
-import { Factory, Users, Package, TrendingUp, Plus } from "lucide-react";
+import { Factory, Users, Package, TrendingUp, Plus, Search, Calendar, Filter, X } from "lucide-react";
+import { useMemo } from "react";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -15,15 +16,42 @@ export default function AdminDashboard() {
     Promise.all([
       fetch('/api/dashboard', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
-    ]).then(([s, p]) => {
+      fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
+    ]).then(([s, p, g, k]) => {
       setStats(s);
-      setProductions(Array.isArray(p) ? p.slice(0, 8) : []);
+      setProductions(Array.isArray(p) ? p : []);
+      setGapoktanList(Array.isArray(g) ? g : []);
+      setKomoditasList(Array.isArray(k) ? k : []);
     }).finally(() => setLoading(false));
   }, []);
 
+  const [gapoktanList, setGapoktanList] = useState<any[]>([]);
+  const [komoditasList, setKomoditasList] = useState<any[]>([]);
+  const [filterGapoktan, setFilterGapoktan] = useState('');
+  const [filterKomoditas, setFilterKomoditas] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterSearch, setFilterSearch] = useState('');
+
+  const filteredProductions = useMemo(() => {
+    return productions.filter(p => {
+      if (filterGapoktan && p.gapoktan_id !== filterGapoktan) return false;
+      if (filterKomoditas && p.komoditas_id !== filterKomoditas) return false;
+      if (filterDate && p.production_date !== filterDate) return false;
+      if (filterSearch) {
+        const s = `${p.gapoktan?.name} ${p.komoditas?.name}`.toLowerCase();
+        if (!s.includes(filterSearch.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [productions, filterGapoktan, filterKomoditas, filterDate, filterSearch]);
+
+  const clearFilters = () => { setFilterGapoktan(''); setFilterKomoditas(''); setFilterDate(''); setFilterSearch(''); };
+  const hasFilters = !!(filterGapoktan || filterKomoditas || filterDate || filterSearch);
+
   return (
     <div className="p-4 lg:p-8 space-y-8 pb-24 lg:pb-8">
-      <header>
+      <header className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
@@ -36,6 +64,26 @@ export default function AdminDashboard() {
             <a href="/dashboard/gapoktan" className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted transition-all">
               <Plus className="h-4 w-4" /> Data Baru
             </a>
+          </div>
+        </div>
+
+        {/* FILTERS */}
+        <div className="bg-card/40 p-4 rounded-2xl border border-dashed border-primary/20 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input type="text" placeholder="Cari..." value={filterSearch} onChange={e => setFilterSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-xl border bg-background text-sm outline-none focus:ring-2 ring-primary/20" />
+          </div>
+          <select value={filterGapoktan} onChange={e => setFilterGapoktan(e.target.value)} className="w-full px-4 py-2 rounded-xl border bg-background text-sm outline-none focus:ring-2 ring-primary/20">
+            <option value="">Semua Gapoktan</option>
+            {gapoktanList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+          <select value={filterKomoditas} onChange={e => setFilterKomoditas(e.target.value)} className="w-full px-4 py-2 rounded-xl border bg-background text-sm outline-none focus:ring-2 ring-primary/20">
+            <option value="">Semua Komoditas</option>
+            {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+          </select>
+          <div className="flex gap-2">
+            <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="flex-1 px-4 py-2 rounded-xl border bg-background text-sm outline-none focus:ring-2 ring-primary/20" />
+            {hasFilters && <button onClick={clearFilters} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"><X className="h-5 w-5" /></button>}
           </div>
         </div>
       </header>
@@ -59,8 +107,8 @@ export default function AdminDashboard() {
               <a href="/dashboard/production" className="text-sm text-primary hover:underline">Lihat semua →</a>
             </div>
             <div className="space-y-2">
-              {productions.map(p => (
-                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all">
+              {filteredProductions.slice(0, 10).map(p => (
+                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all border border-transparent hover:border-primary/10">
                   <div>
                     <p className="text-sm font-semibold">{p.gapoktan?.name}</p>
                     <p className="text-xs text-muted-foreground">{p.komoditas?.name} • {p.production_date}</p>
@@ -71,6 +119,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ))}
+              {filteredProductions.length === 0 && <p className="text-center py-8 text-muted-foreground text-sm">Tidak ada data sesuai filter</p>}
             </div>
           </div>
         </>
