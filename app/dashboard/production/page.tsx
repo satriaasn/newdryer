@@ -105,9 +105,9 @@ export default function ProductionPage() {
                       <td className="px-4 py-3 font-medium">{p.gapoktan?.name || '-'}</td>
                       <td className="px-4 py-3">{p.komoditas?.name || '-'}</td>
                       <td className="px-4 py-3">{p.dryer_units?.name || '-'}</td>
-                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_before).toLocaleString()} kg</td>
+                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_before).toLocaleString()} Ton</td>
                       <td className="px-4 py-3 text-right font-mono">Rp {Number(p.price_before).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_after).toLocaleString()} kg</td>
+                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_after).toLocaleString()} Ton</td>
                       <td className="px-4 py-3 text-right font-mono">Rp {Number(p.price_after).toLocaleString()}</td>
                       <td className="px-4 py-3 text-right">
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.qty_diff_pct) < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
@@ -233,16 +233,16 @@ function ProductionForm({ gapoktan, initialData, onSaved, onCancel }: { gapoktan
           <select value={form.dryer_id} onChange={e => setForm({...form, dryer_id: e.target.value})} required disabled={!selectedGapoktan}
             className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm disabled:opacity-50">
             <option value="">Pilih Dryer...</option>
-            {dryerList.map(d => <option key={d.id} value={d.id}>{d.name} ({d.capacity_kg} kg)</option>)}
+            {dryerList.map(d => <option key={d.id} value={d.id}>{d.name} ({d.capacity_ton} Ton)</option>)}
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Jumlah Sebelum (kg)</label>
+          <label className="text-xs font-medium text-muted-foreground">Jumlah Sebelum (Ton)</label>
           <input type="number" value={form.qty_before} onChange={e => setForm({...form, qty_before: e.target.value})} required
             className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="0" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Harga Sebelum (Rp/kg)</label>
+          <label className="text-xs font-medium text-muted-foreground">Harga Sebelum (Rp/Ton)</label>
           <input type="number" value={form.price_before} onChange={e => setForm({...form, price_before: e.target.value})} required
             className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="0" />
         </div>
@@ -252,12 +252,12 @@ function ProductionForm({ gapoktan, initialData, onSaved, onCancel }: { gapoktan
             className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Jumlah Sesudah (kg)</label>
+          <label className="text-xs font-medium text-muted-foreground">Jumlah Sesudah (Ton)</label>
           <input type="number" value={form.qty_after} onChange={e => setForm({...form, qty_after: e.target.value})} required
             className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="0" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Harga Sesudah (Rp/kg)</label>
+          <label className="text-xs font-medium text-muted-foreground">Harga Sesudah (Rp/Ton)</label>
           <input type="number" value={form.price_after} onChange={e => setForm({...form, price_after: e.target.value})} required
             className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="0" />
         </div>

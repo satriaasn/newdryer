@@ -68,7 +68,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-muted-foreground">{p.komoditas?.name} • {p.production_date}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold">{p.qty_before}→{p.qty_after} kg</p>
+                        <p className="text-sm font-bold">{p.qty_before}→{p.qty_after} Ton</p>
                         <p className="text-xs text-emerald-500 font-medium">+{p.price_diff_pct}% harga</p>
                       </div>
                     </div>

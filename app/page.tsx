@@ -44,7 +44,7 @@ export default function PublicDashboard() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push("/signin");
+    router.push("/login");
     router.refresh();
   };
 
@@ -168,8 +168,8 @@ export default function PublicDashboard() {
             {perKomoditas.map(k => (
               <div key={k.name} className="rounded-2xl border bg-card/60 p-4 hover:shadow-lg hover:border-primary/20 transition-all">
                 <div className="flex items-center gap-2 mb-2"><Wheat className="h-4 w-4 text-primary" /><span className="text-sm font-bold">{k.name}</span></div>
-                <p className="text-2xl font-bold">{k.total.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">kg</span></p>
-                <p className="text-xs text-muted-foreground mt-1">Hari ini: <span className="text-foreground font-semibold">{k.totalToday.toLocaleString()} kg</span></p>
+                <p className="text-2xl font-bold">{k.total.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">Ton</span></p>
+                <p className="text-xs text-muted-foreground mt-1">Hari ini: <span className="text-foreground font-semibold">{k.totalToday.toLocaleString()} Ton</span></p>
               </div>
             ))}
           </div>
@@ -252,10 +252,10 @@ export default function PublicDashboard() {
                     <th className="px-4 py-3">Lokasi</th>
                     <th className="px-4 py-3">Komoditas</th>
                     <th className="px-4 py-3">Dryer</th>
-                    <th className="px-4 py-3 text-right">Qty Sebelum</th>
-                    <th className="px-4 py-3 text-right">Harga Sebelum</th>
-                    <th className="px-4 py-3 text-right">Qty Sesudah</th>
-                    <th className="px-4 py-3 text-right">Harga Sesudah</th>
+                    <th className="px-4 py-3 text-right">Qty Sebelum (Ton)</th>
+                    <th className="px-4 py-3 text-right">Harga Sebelum (Rp/Ton)</th>
+                    <th className="px-4 py-3 text-right">Qty Sesudah (Ton)</th>
+                    <th className="px-4 py-3 text-right">Harga Sesudah (Rp/Ton)</th>
                     <th className="px-4 py-3 text-right">Δ Qty</th>
                     <th className="px-4 py-3 text-right">Δ Harga</th>
                   </tr>
@@ -270,9 +270,9 @@ export default function PublicDashboard() {
                       <td className="px-4 py-3 text-xs text-muted-foreground">{p.gapoktan?.desa?.name}, {p.gapoktan?.desa?.kecamatan?.name}</td>
                       <td className="px-4 py-3">{p.komoditas?.name || '-'}</td>
                       <td className="px-4 py-3">{p.dryer_units?.name || '-'}</td>
-                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_before).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_before).toLocaleString()} Ton</td>
                       <td className="px-4 py-3 text-right font-mono">Rp {Number(p.price_before).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_after).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-mono">{Number(p.qty_after).toLocaleString()} Ton</td>
                       <td className="px-4 py-3 text-right font-mono">Rp {Number(p.price_after).toLocaleString()}</td>
                       <td className="px-4 py-3 text-right"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.qty_diff_pct) < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{p.qty_diff_pct}%</span></td>
                       <td className="px-4 py-3 text-right"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${Number(p.price_diff_pct) >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>+{p.price_diff_pct}%</span></td>
@@ -286,7 +286,7 @@ export default function PublicDashboard() {
 
         <footer className="text-center text-xs text-muted-foreground py-8 border-t flex flex-col items-center gap-2">
           <p>© 2026 AgroDryer — Sistem Monitoring Pengeringan Komoditas Pertanian</p>
-          <a href="/signin" className="hover:text-primary transition-colors">Panel Admin</a>
+          <a href="/login" className="hover:text-primary transition-colors">Panel Admin</a>
         </footer>
       </main>
     </div>

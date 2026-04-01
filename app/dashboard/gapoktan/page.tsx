@@ -90,7 +90,8 @@ export default function GapoktanAdmin() {
                   </div>
                   {g.ketua && <p className="text-sm mb-1"><span className="text-muted-foreground">Ketua:</span> <span className="font-medium">{g.ketua}</span></p>}
                   {g.phone && <div className="flex items-center gap-2 text-sm mb-2"><Phone className="h-3 w-3 text-muted-foreground" />{g.phone}</div>}
-                  {g.latitude && <p className="text-xs text-muted-foreground">📍 {g.latitude?.toFixed(4)}, {g.longitude?.toFixed(4)}</p>}
+                  {g.address && <p className="text-xs text-muted-foreground mb-2 line-clamp-2 italic">🏠 {g.address}</p>}
+                  {g.latitude && <p className="text-xs text-muted-foreground font-mono">📍 {g.latitude?.toFixed(4)}, {g.longitude?.toFixed(4)}</p>}
 
                   <div className="border-t pt-3 mt-3">
                     <p className="text-xs font-medium text-muted-foreground mb-2">Komoditas:</p>

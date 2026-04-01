@@ -38,6 +38,7 @@ export interface Gapoktan {
   user_id: string | null;
   latitude: number | null;
   longitude: number | null;
+  address: string | null;
   created_at: string;
   updated_at: string;
   desa?: Desa;
@@ -49,7 +50,7 @@ export interface DryerUnit {
   id: string;
   name: string;
   gapoktan_id: string;
-  capacity_kg: number | null;
+  capacity_ton: number | null;
   status: 'active' | 'inactive' | 'maintenance';
   created_at: string;
   updated_at: string;

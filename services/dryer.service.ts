@@ -21,7 +21,7 @@ export const dryerService = {
     return data as DryerUnit[];
   },
 
-  async create(dryer: { name: string; gapoktan_id: string; capacity_kg?: number }): Promise<DryerUnit> {
+  async create(dryer: { name: string; gapoktan_id: string; capacity_ton?: number }): Promise<DryerUnit> {
     const { data, error } = await supabase
       .from('dryer_units')
       .insert(dryer)

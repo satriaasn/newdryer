@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Package, Lock, Mail, Loader2, ArrowRight, Github } from "lucide-react";
+import { Package, Lock, Mail, Loader2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-export default function SignIn({ searchParams }: { searchParams: { redirectedFrom?: string } }) {
+export default function LoginPage({ searchParams }: { searchParams: { redirectedFrom?: string } }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,6 @@ export default function SignIn({ searchParams }: { searchParams: { redirectedFro
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black overflow-hidden relative">
-      {/* Decorative Blur Orbs */}
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-blue-500/10 rounded-full blur-[100px]" />
 
@@ -47,8 +46,8 @@ export default function SignIn({ searchParams }: { searchParams: { redirectedFro
             <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30 mb-4 transition-transform hover:scale-110">
               <Package className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Selamat Datang</h1>
-            <p className="text-slate-400 text-sm text-center">Masuk ke Panel Admin AgroDryer</p>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Operator Login</h1>
+            <p className="text-slate-400 text-sm text-center">Masuk ke Panel Kontrol AgroDryer</p>
           </div>
 
           <form onSubmit={handleSignIn} className="space-y-5">
@@ -62,7 +61,7 @@ export default function SignIn({ searchParams }: { searchParams: { redirectedFro
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="w-full bg-slate-950/50 border border-white/5 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                  placeholder="admin@agrodryer.com"
+                  placeholder="operator@agrodryer.com"
                 />
               </div>
             </div>

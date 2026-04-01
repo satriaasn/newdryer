@@ -82,7 +82,7 @@ export default function DryerAdmin() {
                     <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center"><Factory className="h-4 w-4 text-primary" /></div><span className="font-semibold">{d.name}</span></div></td>
                     <td className="px-6 py-4 font-medium">{d.gapoktan?.name || '-'}</td>
                     <td className="px-6 py-4 text-xs text-muted-foreground">{d.gapoktan?.desa?.name}, {d.gapoktan?.desa?.kecamatan?.name}</td>
-                    <td className="px-6 py-4 text-right font-mono">{d.capacity_kg ? `${Number(d.capacity_kg).toLocaleString()} kg` : '-'}</td>
+                    <td className="px-6 py-4 text-right font-mono">{d.capacity_ton ? `${Number(d.capacity_ton).toLocaleString()} Ton` : '-'}</td>
                     <td className="px-6 py-4"><span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusColor[d.status]}`}>{statusLabel[d.status]}</span></td>
                     <td className="px-6 py-4 text-right flex justify-end gap-2 text-right">
                       <button 
@@ -113,7 +113,7 @@ function DryerForm({ initialData, gapoktanList, onSaved, onCancel }: { initialDa
   const [form, setForm] = useState({ 
     name: initialData?.name || '', 
     gapoktan_id: initialData?.gapoktan_id || '', 
-    capacity_kg: initialData?.capacity_kg?.toString() || '',
+    capacity_ton: initialData?.capacity_ton?.toString() || '',
     status: initialData?.status || 'active'
   });
   const [submitting, setSubmitting] = useState(false);
@@ -129,7 +129,7 @@ function DryerForm({ initialData, gapoktanList, onSaved, onCancel }: { initialDa
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          capacity_kg: form.capacity_kg ? Number(form.capacity_kg) : null
+          capacity_ton: form.capacity_ton ? Number(form.capacity_ton) : null
         })
       });
       if (res.ok) onSaved();
@@ -153,8 +153,8 @@ function DryerForm({ initialData, gapoktanList, onSaved, onCancel }: { initialDa
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Kapasitas (kg)</label>
-          <input type="number" value={form.capacity_kg} onChange={e => setForm({...form, capacity_kg: e.target.value})} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
+          <label className="text-xs font-medium text-muted-foreground">Kapasitas (Ton)</label>
+          <input type="number" value={form.capacity_ton} onChange={e => setForm({...form, capacity_ton: e.target.value})} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground">Status</label>

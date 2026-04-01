@@ -10,19 +10,22 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Define public paths that don't require authentication
-  const isAuthPage = req.nextUrl.pathname.startsWith('/signin')
-  const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth')
-  const isStaticAsset = req.nextUrl.pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js)$/)
+  // 1. Allow public access to /, /dashboard (except /dashboard/users), and static assets
+  const pathname = req.nextUrl.pathname
+  const isPublicDashboard = pathname === '/dashboard' || (pathname.startsWith('/dashboard/') && pathname !== '/dashboard/users')
+  const isLandingPage = pathname === '/'
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signin') // Handle both for now
+  const isApiAuth = pathname.startsWith('/api/auth')
+  const isStaticAsset = pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js)$/)
 
-  if (!session && !isAuthPage && !isApiAuth && !isStaticAsset) {
+  if (!session && !isLandingPage && !isPublicDashboard && !isAuthPage && !isApiAuth && !isStaticAsset) {
     const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/signin'
-    redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
+    redirectUrl.pathname = '/login'
+    redirectUrl.searchParams.set('redirectedFrom', pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Redirect authenticated users away from signin
+  // Redirect authenticated users away from login/signin
   if (session && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
