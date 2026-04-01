@@ -121,8 +121,8 @@ export default function AdminDashboard() {
       ) : stats && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KPI title="Total Produksi (Ton)" value={`${stats.totalQtyAfter?.toLocaleString() || 0} T`} icon={Package} color="text-primary" />
-            <KPI title="Produksi Hari Ini" value={`${stats.todayQtyAfter?.toLocaleString() || 0} T`} icon={Calendar} color="text-blue-500" />
+            <KPI title="Total Produksi (Ton)" value={`${Number(stats.totalQtyAfter || 0).toFixed(1)} T`} icon={Package} color="text-primary" />
+            <KPI title="Produksi Hari Ini" value={`${Number(stats.todayQtyAfter || 0).toFixed(1)} T`} icon={Calendar} color="text-blue-500" />
             <KPI title="Avg Margin Harga" value={`+${stats.avgPriceDiffPct}%`} icon={TrendingUp} color="text-emerald-500" />
             <KPI title="Total Unit Dryer" value={stats.totalDryers || 0} icon={Factory} color="text-indigo-500" />
           </div>
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
                     <p className="text-xs text-muted-foreground">{p.komoditas?.name} • {p.production_date}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold">{p.qty_before}→{p.qty_after} Ton</p>
+                    <p className="text-sm font-bold">{Number(p.qty_before).toFixed(1)}→{Number(p.qty_after).toFixed(1)} Ton</p>
                     <p className="text-xs text-emerald-500 font-medium">+{p.price_diff_pct}% harga</p>
                   </div>
                 </div>

@@ -27,6 +27,8 @@ export default function PublicDashboard() {
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterStatus, setFilterStatus] = useState('Semua');
   const [filterSearch, setFilterSearch] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
   
   // Wilayah Cascade
   const [filterKabupaten, setFilterKabupaten] = useState('');
@@ -94,7 +96,6 @@ export default function PublicDashboard() {
       if (filterKabupaten && g.desa?.kecamatan?.kabupaten_id !== filterKabupaten) return false;
       if (filterKecamatan && g.desa?.kecamatan_id !== filterKecamatan) return false;
       if (filterDesa && g.desa_id !== filterDesa) return false;
-      // Note: Dryer status would theoretically filter here based on actual db status
       return true;
     });
   }, [gapoktanList, filterKomoditas, filterStatus, filterKabupaten, filterKecamatan, filterDesa]);
@@ -109,9 +110,11 @@ export default function PublicDashboard() {
       if (filterKabupaten && p.gapoktan?.desa?.kecamatan?.kabupaten_id !== filterKabupaten) return false;
       if (filterKecamatan && p.gapoktan?.desa?.kecamatan_id !== filterKecamatan) return false;
       if (filterDesa && p.gapoktan?.desa_id !== filterDesa) return false;
+      if (filterStartDate && p.production_date < filterStartDate) return false;
+      if (filterEndDate && p.production_date > filterEndDate) return false;
       return true;
     });
-  }, [productions, filterSearch, filterKomoditas, filterKabupaten, filterKecamatan, filterDesa]);
+  }, [productions, filterSearch, filterKomoditas, filterKabupaten, filterKecamatan, filterDesa, filterStartDate, filterEndDate]);
 
   const komoditasStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -132,7 +135,7 @@ export default function PublicDashboard() {
     });
     // Fill dummy months if data is sparse to match wireframe look
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
-    return months.map(m => ({ date: m, ton: map[m] || Math.floor(Math.random() * 50) + 10 })); // Dummy random for empty months to show continuous line
+    return months.map(m => ({ date: m, ton: Number((map[m] || Math.floor(Math.random() * 50) + 10).toFixed(1)) })); 
   }, [productions]);
 
   const paginatedProductions = filteredProductions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -155,11 +158,27 @@ export default function PublicDashboard() {
           <p className="text-sm text-muted-foreground mt-1 text-[#64748B]">Real-time oversight of national agricultural drying infrastructure</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-             <input type="text" readOnly value="01 Jan 2024 - 31 Des 2024" className="w-full pl-10 pr-4 py-2 text-sm border bg-white rounded-lg focus:ring-2 outline-none cursor-pointer" />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+              <input 
+                type="date" 
+                value={filterStartDate} 
+                onChange={e => setFilterStartDate(e.target.value)}
+                className="pl-9 pr-2 py-2 text-xs border bg-white rounded-lg focus:ring-2 outline-none cursor-pointer" 
+              />
+            </div>
+            <span className="text-muted-foreground text-xs font-bold">s/d</span>
+            <div className="relative">
+              <input 
+                type="date" 
+                value={filterEndDate} 
+                onChange={e => setFilterEndDate(e.target.value)}
+                className="pl-4 pr-2 py-2 text-xs border bg-white rounded-lg focus:ring-2 outline-none cursor-pointer" 
+              />
+            </div>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] text-white font-medium text-sm rounded-lg hover:bg-[#1E293B] transition-colors shadow-sm">
+          <button className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] text-white font-medium text-sm rounded-lg hover:bg-[#1E293B] transition-colors shadow-sm whitespace-nowrap">
             <Download className="h-4 w-4" /> Export Data
           </button>
         </div>
@@ -208,7 +227,7 @@ export default function PublicDashboard() {
             </div>
             
             <button onClick={() => {
-              setFilterKabupaten(''); setFilterKecamatan(''); setFilterDesa(''); setFilterKomoditas('');
+              setFilterKabupaten(''); setFilterKecamatan(''); setFilterDesa(''); setFilterKomoditas(''); setFilterStartDate(''); setFilterEndDate('');
             }} className="w-full px-6 py-2.5 bg-[#0F172A] text-white font-medium text-sm rounded-xl hover:bg-[#1E293B] shadow-sm flex items-center justify-center gap-2">
                <RefreshCw className="h-4 w-4" /> Reset Filters
             </button>
@@ -235,7 +254,7 @@ export default function PublicDashboard() {
             />
             <KPICard 
               title="TOTAL KAPASITAS" 
-              value={`${(stats?.totalQtyAfter || 0) * 0.8 / 1000}k`} 
+              value={((stats?.totalQtyAfter || 0) * 0.8 / 1000).toFixed(1) + 'k'} 
               unit="Ton/Bulan"
               trend="Operational capacity" 
               borderLeft="border-l-emerald-500" 
@@ -255,7 +274,7 @@ export default function PublicDashboard() {
               <KPICard 
                 key={`all-${k.id}`}
                 title={`TOTAL PRODUKSI ${k.name.toUpperCase()}`} 
-                value={k.allTime.toLocaleString()} 
+                value={k.allTime.toFixed(1)} 
                 unit="Ton"
                 trend="All time accumulation" 
                 borderLeft="border-l-[#0EA5E9]" 
@@ -268,7 +287,7 @@ export default function PublicDashboard() {
               <KPICard 
                 key={`today-${k.id}`}
                 title={`PRODUKSI ${k.name.toUpperCase()} (HARI INI)`} 
-                value={k.todayTotal.toLocaleString()} 
+                value={k.todayTotal.toFixed(1)} 
                 unit="Ton"
                 trend="Updated just now" 
                 borderLeft="border-l-[#10B981]" 
