@@ -5,6 +5,7 @@ import type { Production, Gapoktan, Komoditas, DashboardStats } from "@/lib/type
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cn } from "@/lib/utils";
 
 const DynamicMap = dynamic(() => import("@/components/dashboard/dashboard-map"), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div> });
 const TrendChart = dynamic(() => import("@/components/dashboard/trend-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
@@ -12,7 +13,7 @@ const VolumeBarChart = dynamic(() => import("@/components/dashboard/volume-chart
 
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
-  Search, Calendar, Filter, Download, ArrowUpRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
+  Search, Calendar, Filter, Download, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
   Wheat, ClipboardList
 } from "lucide-react";
 
@@ -43,6 +44,18 @@ export default function PublicDashboard() {
   const itemsPerPage = 5;
 
   const [selectedGapoktan, setSelectedGapoktan] = useState<Gapoktan | null>(null);
+
+  const resetFilters = () => {
+    setFilterKabupaten('');
+    setFilterKecamatan('');
+    setFilterDesa('');
+    setFilterSearch('');
+    setFilterStartDate('');
+    setFilterEndDate('');
+    setFilterKomoditas('');
+    setFilterStatus('Semua');
+    setSelectedGapoktan(null);
+  };
 
   const reloadAll = () => {
     Promise.all([
@@ -271,18 +284,27 @@ export default function PublicDashboard() {
                </div>
             </div>
 
-            <div className="md:col-span-3 lg:col-span-3 relative">
-              <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Cari Group</label>
-              <div className="flex items-center gap-2 px-3 py-2.5 border rounded-xl bg-white focus-within:ring-2 ring-primary/20 transition-all">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  value={filterSearch} 
-                  onChange={(e: any) => setFilterSearch(e.target.value)}
-                  placeholder="Nama poktan..." 
-                  className="w-full outline-none text-sm bg-transparent" 
-                />
+            <div className="md:col-span-3 lg:col-span-3 flex items-end gap-2">
+              <div className="relative flex-grow">
+                <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Cari Group</label>
+                <div className="flex items-center gap-2 px-3 py-2.5 border rounded-xl bg-white focus-within:ring-2 ring-primary/20 transition-all">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input 
+                    type="text" 
+                    value={filterSearch} 
+                    onChange={(e: any) => setFilterSearch(e.target.value)}
+                    placeholder="Nama poktan..." 
+                    className="w-full outline-none text-sm bg-transparent" 
+                  />
+                </div>
               </div>
+              <button 
+                onClick={resetFilters}
+                className="p-2.5 bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 hover:text-primary transition-all shadow-sm shrink-0 group"
+                title="Reset Filters"
+              >
+                <RefreshCw className="h-5 w-5 group-active:rotate-180 transition-transform duration-500" />
+              </button>
             </div>
           </div>
         </div>
@@ -292,6 +314,43 @@ export default function PublicDashboard() {
           <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-blue-500" />
           <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-indigo-500" />
           <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-orange-500" />
+        </div>
+
+        {/* SCORECARD KOMODITAS Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Produksi Per Komoditas (All Time)</h2>
+            <div className="h-px flex-grow mx-4 bg-gray-100" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {komoditasStats.map((k: any) => (
+              <KPICard 
+                key={`all-${k.id}`}
+                title={`TOTAL ${k.name.toUpperCase()}`} 
+                value={Number(k.allTime || 0).toFixed(1)} 
+                unit="Ton"
+                trend="All time accumulation" 
+                borderLeft="border-l-blue-500" 
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between mt-6">
+            <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Produksi Per Komoditas (Hari Ini)</h2>
+            <div className="h-px flex-grow mx-4 bg-gray-100" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {komoditasStats.map((k: any) => (
+              <KPICard 
+                key={`today-${k.id}`}
+                title={`${k.name.toUpperCase()} (TODAY)`} 
+                value={Number(k.todayTotal || 0).toFixed(1)} 
+                unit="Ton"
+                trend="Updated just now" 
+                borderLeft="border-l-emerald-500" 
+              />
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6">
@@ -460,23 +519,26 @@ export default function PublicDashboard() {
   );
 }
 
-function KPICard({ title, value, unit, trend, trendUp, borderLeft }: { title: string; value: string | number; unit: string; trend: string; trendUp?: boolean; borderLeft: string }) {
-  return (
-    <div className={`bg-white rounded-2xl border shadow-sm p-5 hover:shadow-md transition-shadow ${borderLeft} border-l-[3px]`}>
-      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">{title}</p>
+const KPICard = ({ title, value, unit, trend, trendUp, borderLeft }: any) => (
+  <div className={cn("bg-white p-4 rounded-2xl border border-gray-100 shadow-sm border-l-4 transition-all hover:shadow-md", borderLeft)}>
+    <div className="flex flex-col">
+      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
       <div className="flex items-baseline gap-1">
-        <h3 className="text-3xl font-black text-[#0F172A] tracking-tight">{value}</h3>
-        <span className="text-xs font-medium text-muted-foreground">{unit}</span>
+        <span className="text-2xl font-black text-[#0F172A] tracking-tight">{value}</span>
+        <span className="text-xs font-bold text-muted-foreground">{unit}</span>
       </div>
-      <div className="flex items-center gap-1.5 mt-3 text-[10px] font-medium">
-         {trendUp !== undefined && (
-            <div className={`bg-${trendUp ? 'emerald' : 'gray'}-500/10 p-0.5 rounded`}>
-              {trendUp ? <TrendingUp className={`h-3 w-3 text-${trendUp ? 'emerald' : 'gray'}-500`} /> : <Clock className="h-3 w-3 text-gray-500" />}
-            </div>
-         )}
-         <span className="text-muted-foreground">{trend}</span>
+      <div className="mt-2 flex items-center gap-1.5">
+        <div className={cn(
+          "px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1",
+          trendUp === true ? "bg-emerald-50 text-emerald-600" : 
+          trendUp === false ? "bg-rose-50 text-rose-600" : "bg-gray-50 text-gray-500"
+        )}>
+          {trendUp === true && <ArrowUpRight className="h-2.5 w-2.5" />}
+          {trendUp === false && <ArrowDownRight className="h-2.5 w-2.5" />}
+          {trend}
+        </div>
       </div>
     </div>
-  );
-}
+  </div>
+);
 
