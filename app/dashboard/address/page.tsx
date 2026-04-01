@@ -2,7 +2,6 @@
 
 export const dynamic = 'force-dynamic';
 
-import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState } from "react";
 import type { Kabupaten, Kecamatan, Desa } from "@/lib/types";
 import { MapPin, Plus, Trash2, Edit, Loader2, ChevronRight, Home, Building2, Map as MapIcon } from "lucide-react";
@@ -91,10 +90,7 @@ export default function AddressManagement() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-muted/20">
-        <div className="p-8 space-y-6">
+    <div className="p-4 lg:p-8 space-y-6">
           <header className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Detail Wilayah</h1>

@@ -48,7 +48,7 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-card/50 backdrop-blur-xl sticky top-0">
+    <div className="hidden lg:flex h-screen w-64 flex-col border-r bg-card/50 backdrop-blur-xl sticky top-0">
       <div className="flex h-16 items-center px-6 border-b">
         <div className="flex items-center gap-2 group cursor-pointer">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-lg shadow-primary/20 transition-transform group-hover:scale-110">

@@ -1,6 +1,5 @@
 "use client";
 
-import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState } from "react";
 import type { Komoditas } from "@/lib/types";
 import { Plus, Loader2, Wheat, Edit, Trash2, X } from "lucide-react";
@@ -55,10 +54,7 @@ export default function KomoditasAdmin() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-muted/20">
-        <div className="p-8 space-y-6">
+    <div className="p-4 lg:p-8 space-y-6">
           <header className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Kelola Komoditas</h1>

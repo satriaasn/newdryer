@@ -23,11 +23,8 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-muted/20">
-        <div className="p-8 space-y-8">
-          <header>
+    <div className="p-4 lg:p-8 space-y-8">
+      <header>
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
