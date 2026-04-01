@@ -6,13 +6,14 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-const DashboardMap = dynamic(() => import("@/components/dashboard/dashboard-map"), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div> });
+const DynamicMap = dynamic(() => import("@/components/dashboard/dashboard-map"), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div> });
 const TrendChart = dynamic(() => import("@/components/dashboard/trend-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 const VolumeBarChart = dynamic(() => import("@/components/dashboard/volume-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
-  Search, Calendar, Filter, Download, ArrowUpRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw
+  Search, Calendar, Filter, Download, ArrowUpRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
+  Wheat, ClipboardList
 } from "lucide-react";
 
 export default function PublicDashboard() {
@@ -40,6 +41,8 @@ export default function PublicDashboard() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const [selectedGapoktan, setSelectedGapoktan] = useState<Gapoktan | null>(null);
 
   const reloadAll = () => {
     Promise.all([
@@ -167,6 +170,34 @@ export default function PublicDashboard() {
     return months.map(m => ({ date: m, ton: Number((map[m] || Math.floor(Math.random() * 50) + 10).toFixed(1)) })); 
   }, [productions]);
 
+  const exportToCSV = () => {
+    const headers = ['No Unit', 'Tanggal', 'Gapoktan', 'Alamat', 'Komoditas', 'Status', 'Produksi (Ton)'];
+    const rows = filteredProductions.map(p => {
+      const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
+      const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
+      const status = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
+      return [
+        `DRY-${p.gapoktan_id.substring(0,4).toUpperCase()}`,
+        p.production_date,
+        p.gapoktan?.name,
+        `"${p.gapoktan?.desa?.name}, ${p.gapoktan?.desa?.kecamatan?.name}, ${p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}"`,
+        p.komoditas?.name,
+        status,
+        Number(p.qty_after || 0).toFixed(2)
+      ];
+    });
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Data_Produksi_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const paginatedProductions = filteredProductions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (loading) return (
@@ -187,27 +218,10 @@ export default function PublicDashboard() {
           <p className="text-sm text-muted-foreground mt-1 text-[#64748B]">Real-time oversight of national agricultural drying infrastructure</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-              <input 
-                type="date" 
-                value={filterStartDate} 
-                onChange={e => setFilterStartDate(e.target.value)}
-                className="pl-9 pr-2 py-2 text-xs border bg-white rounded-lg focus:ring-2 outline-none cursor-pointer" 
-              />
-            </div>
-            <span className="text-muted-foreground text-xs font-bold">s/d</span>
-            <div className="relative">
-              <input 
-                type="date" 
-                value={filterEndDate} 
-                onChange={e => setFilterEndDate(e.target.value)}
-                className="pl-4 pr-2 py-2 text-xs border bg-white rounded-lg focus:ring-2 outline-none cursor-pointer" 
-              />
-            </div>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] text-white font-medium text-sm rounded-lg hover:bg-[#1E293B] transition-colors shadow-sm whitespace-nowrap">
+          <button 
+            onClick={exportToCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] text-white font-medium text-sm rounded-lg hover:bg-[#1E293B] transition-colors shadow-sm whitespace-nowrap"
+          >
             <Download className="h-4 w-4" /> Export Data
           </button>
         </div>
@@ -222,281 +236,223 @@ export default function PublicDashboard() {
             <span>Filter Data & Wilayah</span>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 w-full">
-            <div className="relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-4 w-full">
+            <div className="md:col-span-2 lg:col-span-2 relative">
               <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kabupaten</label>
-              <select value={filterKabupaten} onChange={e => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); setFilterDesa(''); }} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
+              <select value={filterKabupaten} onChange={(e: any) => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); setFilterDesa(''); }} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
                 <option value="">Semua Kabupaten</option>
                 {availableKabupaten.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </div>
             
-            <div className="relative">
+            <div className="md:col-span-2 lg:col-span-2 relative">
               <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kecamatan</label>
-              <select value={filterKecamatan} onChange={e => { setFilterKecamatan(e.target.value); setFilterDesa(''); }} disabled={!filterKabupaten} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
+              <select value={filterKecamatan} onChange={(e: any) => { setFilterKecamatan(e.target.value); setFilterDesa(''); }} disabled={!filterKabupaten} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
                 <option value="">Semua Kecamatan</option>
                 {availableKecamatan.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </div>
 
-            <div className="relative">
+            <div className="md:col-span-2 lg:col-span-2 relative">
               <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Desa</label>
-              <select value={filterDesa} onChange={e => setFilterDesa(e.target.value)} disabled={!filterKecamatan} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
+              <select value={filterDesa} onChange={(e: any) => setFilterDesa(e.target.value)} disabled={!filterKecamatan} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
                 <option value="">Semua Desa</option>
                 {availableDesa.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
 
-            <div className="relative">
-              <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Komoditas</label>
-              <select value={filterKomoditas} onChange={e => setFilterKomoditas(e.target.value)} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
-                <option value="">Semua Komoditas</option>
-                {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
-              </select>
+            <div className="md:col-span-3 lg:col-span-3 relative">
+               <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Rentang Tanggal</label>
+               <div className="flex items-center gap-1 border rounded-xl px-2 py-2.5 bg-white">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <input type="date" value={filterStartDate} onChange={(e: any) => setFilterStartDate(e.target.value)} className="w-full text-xs outline-none bg-transparent" />
+                  <span className="text-muted-foreground text-[10px]">s/d</span>
+                  <input type="date" value={filterEndDate} onChange={(e: any) => setFilterEndDate(e.target.value)} className="w-full text-xs outline-none bg-transparent" />
+               </div>
             </div>
-            
-            <button onClick={() => {
-              setFilterKabupaten(''); setFilterKecamatan(''); setFilterDesa(''); setFilterKomoditas(''); setFilterStartDate(''); setFilterEndDate('');
-            }} className="w-full px-6 py-2.5 bg-[#0F172A] text-white font-medium text-sm rounded-xl hover:bg-[#1E293B] shadow-sm flex items-center justify-center gap-2">
-               <RefreshCw className="h-4 w-4" /> Reset Filters
-            </button>
+
+            <div className="md:col-span-3 lg:col-span-3 relative">
+              <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Cari Group</label>
+              <div className="flex items-center gap-2 px-3 py-2.5 border rounded-xl bg-white focus-within:ring-2 ring-primary/20 transition-all">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input 
+                  type="text" 
+                  value={filterSearch} 
+                  onChange={(e: any) => setFilterSearch(e.target.value)}
+                  placeholder="Nama poktan..." 
+                  className="w-full outline-none text-sm bg-transparent" 
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* SCORECARD KOMODITAS & INFO UTAMA */}
-        <div className="space-y-4">
-          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Informasi Utama</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard 
-              title="TOTAL UNIT DRYER" 
-              value={stats?.totalDryers || 0} 
-              unit="Unit"
-              trend="National coverage" 
-              borderLeft="border-l-indigo-500" 
-            />
-            <KPICard 
-              title="TOTAL GAPOKTAN" 
-              value={stats?.totalGapoktan || 0} 
-              unit="Kelompok"
-              trend="Active monitoring" 
-              borderLeft="border-l-amber-500" 
-            />
-            <KPICard 
-              title="TOTAL KAPASITAS" 
-              value={((stats?.totalQtyAfter || 0) * 0.8 / 1000).toFixed(1) + 'k'} 
-              unit="Ton/Bulan"
-              trend="Operational capacity" 
-              borderLeft="border-l-emerald-500" 
-            />
-            <KPICard 
-              title="LOKASI AKTIF" 
-              value={gapoktanWithCoords.length} 
-              unit="Titik"
-              trend="Mapped location" 
-              borderLeft="border-l-rose-500" 
-            />
-          </div>
-
-          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mt-4">Total Produksi All Time</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {komoditasStats.map(k => (
-              <KPICard 
-                key={`all-${k.id}`}
-                title={`TOTAL PRODUKSI ${k.name.toUpperCase()}`} 
-                value={k.allTime.toFixed(1)} 
-                unit="Ton"
-                trend="All time accumulation" 
-                borderLeft="border-l-[#0EA5E9]" 
-              />
-            ))}
-          </div>
-          <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mt-4">Produksi Hari Ini</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {komoditasStats.map(k => (
-              <KPICard 
-                key={`today-${k.id}`}
-                title={`PRODUKSI ${k.name.toUpperCase()} (HARI INI)`} 
-                value={k.todayTotal.toFixed(1)} 
-                unit="Ton"
-                trend="Updated just now" 
-                borderLeft="border-l-[#10B981]" 
-              />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard title="Total Produksi" value={Number(stats.totalQtyAfter || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
+          <KPICard title="Produksi Hari Ini" value={Number(stats.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-blue-500" />
+          <KPICard title="Total Dryer" value={stats.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-indigo-500" />
+          <KPICard title="Wilayah Terjangkau" value={stats.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-orange-500" />
         </div>
 
-        {/* MAP ROW - FULL WIDTH */}
-        <div className="bg-[#F1F5F9] rounded-2xl border shadow-sm relative overflow-hidden w-full" style={{ height: '500px' }}>
-          <div className="absolute top-4 left-4 z-[400] bg-white/90 backdrop-blur-sm p-4 rounded-xl border shadow-sm pointer-events-none">
-            <h3 className="text-sm font-bold text-[#0F172A]">Sebaran Unit Dryer Nasional</h3>
-            <p className="text-[10px] text-muted-foreground uppercase mt-1">Geographic Distribution</p>
-          </div>
-          
-          {/* Map Legend (Absolute Top Right) */}
-          <div className="absolute top-4 right-4 z-[400] bg-white p-3 rounded-xl border shadow-sm text-[10px] space-y-2 pointer-events-none">
-             <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-500" /><span className="font-medium">Padi</span></div>
-             <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-500" /><span className="font-medium">Jagung</span></div>
-             <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-rose-500" /><span className="font-medium">Maintenance</span></div>
-          </div>
-
-          <DashboardMap
-            markers={gapoktanWithCoords.map(g => ({ id: g.id, latitude: g.latitude!, longitude: g.longitude! }))}
-            onMarkerClick={(id) => router.push(`/dashboard/gapoktan/${id}`)}
-          />
-        </div>
-
-         {/* TREND & VOLUME CHARTS */}
-         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-2xl border p-6 shadow-sm">
-               <div className="flex items-start justify-between mb-8">
-                 <div>
-                   <h2 className="text-lg font-bold text-[#0F172A]">Tren Produksi</h2>
-                   <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-wider italic">Volume pengeringan sepanjang waktu</p>
-                 </div>
-                 <div className="h-8 w-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                    <TrendingUp className="h-4 w-4" />
-                 </div>
-               </div>
-               <div className="h-[250px] w-full">
-                 <TrendChart data={trendData} />
-               </div>
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-white rounded-2xl border p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[#0F172A]">Pemetaan GIS Dryer</h2>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Lokasi unit monitoring secara real-time</p>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl border p-6 shadow-sm">
-               <div className="flex items-start justify-between mb-8">
-                 <div>
-                   <h2 className="text-lg font-bold text-[#0F172A]">Volume per Komoditas</h2>
-                   <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-wider italic">Distribusi volume berdasarkan jenis</p>
-                 </div>
-                 <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <Package className="h-4 w-4" />
-                 </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+               <div className="lg:col-span-3 h-[500px] rounded-2xl border overflow-hidden shadow-inner relative">
+                  <DynamicMap 
+                    gapoktan={gapoktanList} 
+                    center={[-5.3971, 105.2668]} 
+                    zoom={9} 
+                    onMarkerClick={(g) => setSelectedGapoktan(g)} 
+                  />
                </div>
-               <div className="h-[250px] w-full">
-                  <VolumeBarChart data={komoditasStats.map(k => ({ name: k.name, allTime: k.allTime }))} />
-               </div>
-            </div>
-         </div>
-
-         {/* DATA TABLES SECTION - TWO COLUMNS */}
-         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
-            {/* LEFT: DETAIL PRODUKSI (RIWAYAT) */}
-            <div className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow overflow-hidden">
-               <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600">
-                      <Clock className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-[#0F172A]">Detail Produksi</h2>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Semua unit monitoring</p>
-                    </div>
-                  </div>
-               </div>
-
-               <div className="overflow-x-auto flex-grow rounded-xl border scrollbar-hide">
-                 <table className="w-full text-left min-w-[700px]">
-                   <thead>
-                     <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-gray-50 border-b border-gray-100">
-                       <th className="px-3 py-3">No Unit</th>
-                       <th className="px-3 py-3">Kelompok Tani</th>
-                       <th className="px-3 py-3">Lokasi</th>
-                       <th className="px-3 py-3">Komoditas</th>
-                       <th className="px-3 py-3">Kapasitas</th>
-                       <th className="px-3 py-3">Status</th>
-                       <th className="px-3 py-3 text-right">Produksi Harian</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-gray-50">
-                     {filteredProductions.slice(0, 10).map(p => {
-                        const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
-                        const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
-                        const statusName = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
-                        const statusColor = isMaintenance ? 'text-rose-500' : (isIdle ? 'text-gray-500' : 'text-emerald-500');
-                        const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-gray-400' : 'bg-emerald-500');
-
-                        return (
-                          <tr key={p.id} className="text-[11px] hover:bg-neutral-50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
-                            <td className="px-3 py-4 font-mono text-[10px] text-muted-foreground">DRY-{p.gapoktan_id.substring(0,4).toUpperCase()}</td>
-                            <td className="px-3 py-4 font-bold text-[#0F172A]">{p.gapoktan?.name}</td>
-                            <td className="px-3 py-4 text-muted-foreground font-medium">
-                               {p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}
-                            </td>
-                            <td className="px-3 py-4">
-                               <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">{p.komoditas?.name}</span>
-                            </td>
-                            <td className="px-3 py-4 text-muted-foreground font-medium">{Number(p.gapoktan?.dryer_units?.[0]?.capacity_ton || 0).toFixed(1)} T</td>
-                            <td className="px-3 py-4">
-                               <div className="flex items-center gap-1"><span className={`h-1 w-1 rounded-full ${statusDot}`} /><span className={`font-bold ${statusColor}`}>{statusName}</span></div>
-                            </td>
-                            <td className="px-3 py-4 text-right">
-                               <span className="font-black text-primary">{Number(p.qty_after || 0).toFixed(1)}</span>
-                               <span className="text-[10px] ml-1 text-muted-foreground font-bold">Ton</span>
-                            </td>
-                          </tr>
-                        );
-                     })}
-                     {filteredProductions.length === 0 && (
-                       <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground italic">Tidak ada data produksi</td></tr>
-                     )}
-                   </tbody>
-                 </table>
-               </div>
-            </div>
-
-            {/* RIGHT: DATA GAPOKTAN */}
-            <div className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow overflow-hidden">
-               <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-[#0F172A]">Data Gapoktan</h2>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Informasi kelompok tani</p>
-                    </div>
-                  </div>
-               </div>
-
-               <div className="overflow-x-auto flex-grow rounded-xl border scrollbar-hide">
-                 <table className="w-full text-left min-w-[600px]">
-                   <thead>
-                     <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-gray-50 border-b border-gray-100">
-                       <th className="px-3 py-3">Wilayah (Kab/Kec/Des)</th>
-                       <th className="px-3 py-3">Kelompok Tani</th>
-                       <th className="px-3 py-3">Komoditas</th>
-                       <th className="px-3 py-3 text-center">Unit</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-gray-50">
-                     {gapoktanList.map((g: any) => (
-                       <tr key={g.id} className="text-[11px] hover:bg-neutral-50 transition-colors">
-                         <td className="px-3 py-4">
-                            <div className="font-bold text-[#0F172A]">{g.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}</div>
-                            <div className="text-[10px] text-muted-foreground line-clamp-1">{g.desa?.kecamatan?.name}, {g.desa?.name}</div>
-                         </td>
-                         <td className="px-3 py-4 font-bold text-[#0F172A]">{g.name}</td>
-                         <td className="px-3 py-4">
-                            <div className="flex flex-wrap gap-1">
-                              {g.komoditas?.map((k: any) => (
-                                <span key={k.id} className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-100">
-                                  {k.name}
-                                </span>
-                              ))}
-                            </div>
-                         </td>
-                         <td className="px-3 py-4 text-center">
-                            <span className="px-2.5 py-1 rounded-lg bg-primary text-white font-black shadow-sm">
-                              {g.dryer_units?.length || 0}
+               
+               <div className="lg:col-span-1 space-y-3 overflow-hidden flex flex-col h-[500px]">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{gapoktanList.length} Lokasi Terdaftar</p>
+                  <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hide flex-grow pb-4">
+                    {gapoktanList.map((g: any) => (
+                      <div
+                        key={g.id}
+                        onClick={() => setSelectedGapoktan(g)}
+                        className={`group p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
+                          selectedGapoktan?.id === g.id ? 'border-primary bg-primary/5 shadow-sm' : 'bg-white hover:border-primary/20'
+                        }`}
+                      >
+                        <h4 className="font-bold text-sm text-[#0F172A]">{g.name}</h4>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1 font-medium italic">
+                          <MapPin className="h-3 w-3" />
+                          {g.desa?.name}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {g.komoditas?.map((k: any) => (
+                            <span key={k.id} className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded border border-emerald-100 uppercase">
+                              {k.name}
                             </span>
-                         </td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between mt-3">
+                           <div className="flex items-center gap-1 font-bold text-[10px] text-muted-foreground">
+                              <Factory className="h-3 w-3" />
+                              {g.dryer_units?.length || 0} Unit
+                           </div>
+                           <button className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                              Lihat Detail →
+                           </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                </div>
             </div>
-         </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[#0F172A]">Tren Produksi</h2>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Volume pengeringan bulanan</p>
+                  </div>
+                </div>
+                <div className="h-[300px]">
+                  <TrendChart data={trendData} />
+                </div>
+             </div>
+
+             <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                    <Wheat className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[#0F172A]">Volume per Komoditas</h2>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Distribusi tonase hasil panen</p>
+                  </div>
+                </div>
+                <div className="h-[300px]">
+                   <VolumeBarChart data={komoditasStats.map((k: any) => ({ name: k.name, ton: k.allTime }))} />
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+           <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <ClipboardList className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[#0F172A]">Data Riwayat Produksi</h2>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Total log pengeringan unit monitoring</p>
+                </div>
+              </div>
+           </div>
+
+           <div className="overflow-x-auto rounded-xl border scrollbar-hide">
+             <table className="w-full text-left min-w-[1000px]">
+               <thead>
+                 <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                   <th className="px-4 py-3">No Unit / Tgl</th>
+                   <th className="px-4 py-3">Kelompok Tani</th>
+                   <th className="px-4 py-3">Alamat Lengkap</th>
+                   <th className="px-4 py-3">Komoditas</th>
+                   <th className="px-4 py-3">Status</th>
+                   <th className="px-4 py-3 text-right">Produksi (Ton)</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-gray-50">
+                 {filteredProductions.slice(0, 20).map((p: any) => {
+                    const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
+                    const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
+                    const statusName = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
+                    const statusColor = isMaintenance ? 'text-rose-500' : (isIdle ? 'text-gray-500' : 'text-emerald-500');
+                    const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-gray-400' : 'bg-emerald-500');
+
+                    return (
+                      <tr key={p.id} className="text-[11px] hover:bg-neutral-50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
+                        <td className="px-4 py-4">
+                           <div className="font-mono text-[10px] text-muted-foreground">DRY-{p.gapoktan_id.substring(0,4).toUpperCase()}</div>
+                           <div className="font-bold text-[#0F172A]">{p.production_date}</div>
+                        </td>
+                        <td className="px-4 py-4 font-bold text-[#0F172A]">{p.gapoktan?.name}</td>
+                        <td className="px-4 py-4 text-muted-foreground font-medium italic">
+                           {p.gapoktan?.desa?.name}, {p.gapoktan?.desa?.kecamatan?.name}, {p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}
+                        </td>
+                        <td className="px-4 py-4">
+                           <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-100">{p.komoditas?.name}</span>
+                        </td>
+                        <td className="px-4 py-4">
+                           <div className="flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} /><span className={`font-bold ${statusColor}`}>{statusName}</span></div>
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                           <span className="text-lg font-black text-primary">{Number(p.qty_after || 0).toFixed(1)}</span>
+                           <span className="text-[10px] ml-1 text-muted-foreground font-bold">Ton</span>
+                        </td>
+                      </tr>
+                    );
+                 })}
+                 {filteredProductions.length === 0 && (
+                   <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground italic">Tidak ada data sesuai filter</td></tr>
+                 )}
+               </tbody>
+             </table>
+           </div>
+        </div>
 
       </main>
     </div>
