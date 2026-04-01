@@ -1,22 +1,14 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import nextDynamic from "next/dynamic";
+import dynamic from "next/dynamic";
 import type { DashboardStats, Production } from "@/lib/types";
 import { Factory, Users, Package, TrendingUp, Plus, Search, Calendar, Filter, X } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-const ResponsiveContainer = nextDynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false });
-const AreaChart = nextDynamic(() => import("recharts").then(m => m.AreaChart), { ssr: false });
-const Area = nextDynamic(() => import("recharts").then(m => m.Area), { ssr: false });
-const BarChart = nextDynamic(() => import("recharts").then(m => m.BarChart), { ssr: false });
-const Bar = nextDynamic(() => import("recharts").then(m => m.Bar), { ssr: false });
-const XAxis = nextDynamic(() => import("recharts").then(m => m.XAxis), { ssr: false });
-const YAxis = nextDynamic(() => import("recharts").then(m => m.YAxis), { ssr: false });
-const CartesianGrid = nextDynamic(() => import("recharts").then(m => m.CartesianGrid), { ssr: false });
-const Tooltip = nextDynamic(() => import("recharts").then(m => m.Tooltip), { ssr: false });
-const Cell = nextDynamic(() => import("recharts").then(m => m.Cell), { ssr: false });
+const AdminTrendChart = dynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminTrendChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const AdminBarChart = dynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminBarChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -141,40 +133,14 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <h3 className="text-lg font-bold flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Tren Produksi (15 Hari)</h3>
               <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trendData}>
-                    <defs>
-                      <linearGradient id="colorTon" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px', fontSize: '12px', color: '#fff' }} />
-                    <Area type="monotone" dataKey="ton" stroke="#2563eb" fillOpacity={1} fill="url(#colorTon)" strokeWidth={3} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <AdminTrendChart data={trendData} />
               </div>
             </div>
 
             <div className="space-y-4">
               <h3 className="text-lg font-bold flex items-center gap-2"><Package className="h-5 w-5 text-emerald-500" /> Perbandingan Komoditas</h3>
               <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={perKomoditas}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
-                    <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px', fontSize: '12px', color: '#fff' }} />
-                    <Bar dataKey="ton" radius={[6, 6, 0, 0]}>
-                      {perKomoditas.map((_, i) => (
-                        <Cell key={i} fill={['#2563eb', '#10b981', '#f59e0b', '#ef4444'][i % 4]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <AdminBarChart data={perKomoditas} />
               </div>
             </div>
           </div>

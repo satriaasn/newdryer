@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { productionService } from "@/services/production.service";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,7 +15,9 @@ export async function GET(request: Request) {
     } else {
       productions = await productionService.getAll();
     }
-    return NextResponse.json(productions);
+    return NextResponse.json(productions, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
