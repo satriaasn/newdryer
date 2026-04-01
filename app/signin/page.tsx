@@ -28,7 +28,10 @@ export default function SignIn() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      // Get the redirect URL from query params
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectPath = searchParams.get('redirectedFrom') || '/dashboard';
+      router.push(redirectPath);
       router.refresh();
     }
   };

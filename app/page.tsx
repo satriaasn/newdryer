@@ -6,8 +6,10 @@ import type { Production, Gapoktan, Komoditas, DashboardStats } from "@/lib/type
 import dynamic from "next/dynamic";
 import { 
   Users, Package, Factory, TrendingUp, Wheat, MapPin, 
-  Search, Calendar, Filter, ChevronDown, ChevronUp, X
+  Search, Calendar, Filter, ChevronDown, ChevronUp, X, LogOut
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
@@ -15,6 +17,8 @@ const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr:
 const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 
 export default function PublicDashboard() {
+  const router = useRouter();
+  const supabase = createClientComponentClient();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [productions, setProductions] = useState<Production[]>([]);
   const [gapoktanList, setGapoktanList] = useState<Gapoktan[]>([]);
@@ -37,6 +41,12 @@ export default function PublicDashboard() {
       setKomoditasList(Array.isArray(k) ? k : []);
       setLastUpdated(new Date().toLocaleTimeString());
     }).finally(() => setLoading(false));
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/signin");
+    router.refresh();
   };
 
   // Filters
@@ -130,8 +140,15 @@ export default function PublicDashboard() {
               <span className="text-[10px] opacity-70 ml-1">Update: {lastUpdated}</span>
             </div>
             <a href="/dashboard" className="text-sm font-medium px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all">
-              Admin Panel →
+              Admin Panel
             </a>
+            <button 
+              onClick={handleSignOut}
+              className="p-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-lg shadow-rose-500/5 group"
+              title="Keluar"
+            >
+              <LogOut className="h-5 w-5 transition-transform group-hover:scale-110" />
+            </button>
           </div>
         </div>
       </header>
