@@ -1,5 +1,8 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { useEffect, useState, useMemo } from "react";
 import type { Production, Gapoktan, Komoditas, DashboardStats } from "@/lib/types";
 import dynamic from "next/dynamic";

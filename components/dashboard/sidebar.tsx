@@ -85,9 +85,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
         
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
-          <a href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all mb-4">
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all mb-4"
+          >
             <Home className="h-5 w-5" /> Halaman Publik
-          </a>
+          </button>
           <p className="px-3 text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-2">Admin Panel</p>
           {navigation.map((item) => {
             const isActive = pathname === item.href;
