@@ -63,9 +63,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
+      {/* Sidebar container */}
       <div className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 flex-col border-r bg-card/50 backdrop-blur-xl transition-transform lg:translate-x-0 lg:static lg:flex h-screen sticky top-0",
-        isOpen ? "translate-x-0" : "-translate-x-full"
+        isOpen ? "flex translate-x-0" : "hidden lg:flex -translate-x-full"
       )}>
         <div className="flex h-16 items-center px-6 border-b">
           <div className="flex items-center gap-2 group cursor-pointer">
