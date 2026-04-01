@@ -9,7 +9,6 @@ import {
   ArrowLeft, MapPin, Users, Phone, Factory, Wheat, 
   Calendar, Package, TrendingUp, Info
 } from "lucide-react";
-import DashboardLayout from "@/components/layout/dashboard-layout";
 
 export default function GapoktanDetailPage() {
   const { id } = useParams();
@@ -45,7 +44,6 @@ export default function GapoktanDetailPage() {
   );
 
   return (
-    <DashboardLayout>
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="p-2 rounded-xl bg-card border hover:bg-muted transition-all">
@@ -160,6 +158,5 @@ export default function GapoktanDetailPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

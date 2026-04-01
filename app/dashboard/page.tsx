@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import type { DashboardStats, Production } from "@/lib/types";
 import { Factory, Users, Package, TrendingUp, Plus, Search, Calendar, Filter, X } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
-const ResponsiveContainer = dynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false });
-const AreaChart = dynamic(() => import("recharts").then(m => m.AreaChart), { ssr: false });
-const Area = dynamic(() => import("recharts").then(m => m.Area), { ssr: false });
+const ResponsiveContainer = nextDynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false });
+const AreaChart = nextDynamic(() => import("recharts").then(m => m.AreaChart), { ssr: false });
+const Area = nextDynamic(() => import("recharts").then(m => m.Area), { ssr: false });
+const BarChart = nextDynamic(() => import("recharts").then(m => m.BarChart), { ssr: false });
+const Bar = nextDynamic(() => import("recharts").then(m => m.Bar), { ssr: false });
+const XAxis = nextDynamic(() => import("recharts").then(m => m.XAxis), { ssr: false });
+const YAxis = nextDynamic(() => import("recharts").then(m => m.YAxis), { ssr: false });
+const CartesianGrid = nextDynamic(() => import("recharts").then(m => m.CartesianGrid), { ssr: false });
+const Tooltip = nextDynamic(() => import("recharts").then(m => m.Tooltip), { ssr: false });
+const Cell = nextDynamic(() => import("recharts").then(m => m.Cell), { ssr: false });
 const BarChart = dynamic(() => import("recharts").then(m => m.BarChart), { ssr: false });
 const Bar = dynamic(() => import("recharts").then(m => m.Bar), { ssr: false });
 const XAxis = dynamic(() => import("recharts").then(m => m.XAxis), { ssr: false });
