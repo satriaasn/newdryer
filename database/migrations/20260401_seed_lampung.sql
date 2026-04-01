@@ -20,262 +20,196 @@ INSERT INTO public.kabupaten (name) VALUES
 ('Pesisir Barat')
 ON CONFLICT (name) DO NOTHING;
 
--- 2. Insert Sub-districts (Kecamatan)
-DO $$
-DECLARE
-    kb_id UUID;
-BEGIN
-    -- Bandar Lampung
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Kota Bandar Lampung';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Kedaton'), (kb_id, 'Sukabumi'), (kb_id, 'Rajabasa'), (kb_id, 'Tanjung Karang'), (kb_id, 'Way Halim'), (kb_id, 'Teluk Betung'), (kb_id, 'Kemiling'), (kb_id, 'Labuhan Ratu')
-        ON CONFLICT DO NOTHING;
-    END IF;
+-- 2. Insert Sub-districts (Kecamatan) using declarative inserts combining Kabupaten ID
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Kedaton'), ('Sukabumi'), ('Rajabasa'), ('Tanjung Karang'), ('Way Halim'), ('Teluk Betung'), ('Kemiling'), ('Labuhan Ratu')
+) AS t(name) WHERE k.name = 'Kota Bandar Lampung'
+ON CONFLICT DO NOTHING;
 
-    -- Lampung Selatan
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Lampung Selatan';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Kalianda'), (kb_id, 'Natar'), (kb_id, 'Jati Agung'), (kb_id, 'Sidomulyo'), (kb_id, 'Bakauheni'), (kb_id, 'Palas'), (kb_id, 'Zatun')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Kalianda'), ('Natar'), ('Jati Agung'), ('Sidomulyo'), ('Bakauheni'), ('Palas'), ('Zatun')
+) AS t(name) WHERE k.name = 'Lampung Selatan'
+ON CONFLICT DO NOTHING;
 
-    -- Lampung Tengah
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Lampung Tengah';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Gunung Sugih'), (kb_id, 'Terbanggi Besar'), (kb_id, 'Terusan Nunyai'), (kb_id, 'Kalirejo'), (kb_id, 'Padang Ratu'), (kb_id, 'Seputih Banyak')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Gunung Sugih'), ('Terbanggi Besar'), ('Terusan Nunyai'), ('Kalirejo'), ('Padang Ratu'), ('Seputih Banyak')
+) AS t(name) WHERE k.name = 'Lampung Tengah'
+ON CONFLICT DO NOTHING;
 
-    -- Pringsewu
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Pringsewu';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Pringsewu'), (kb_id, 'Pagelaran'), (kb_id, 'Gading Rejo'), (kb_id, 'Sukoharjo'), (kb_id, 'Ambarawa')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Pringsewu'), ('Pagelaran'), ('Gading Rejo'), ('Sukoharjo'), ('Ambarawa')
+) AS t(name) WHERE k.name = 'Pringsewu'
+ON CONFLICT DO NOTHING;
 
-    -- Metro
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Kota Metro';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Metro Pusat'), (kb_id, 'Metro Utara'), (kb_id, 'Metro Timur'), (kb_id, 'Metro Barat'), (kb_id, 'Metro Selatan')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Metro Pusat'), ('Metro Utara'), ('Metro Timur'), ('Metro Barat'), ('Metro Selatan')
+) AS t(name) WHERE k.name = 'Kota Metro'
+ON CONFLICT DO NOTHING;
 
-    -- Tanggamus
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Tanggamus';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Kota Agung'), (kb_id, 'Gisting'), (kb_id, 'Talang Padang'), (kb_id, 'Ulubelu'), (kb_id, 'Pulau Panggung')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Kota Agung'), ('Gisting'), ('Talang Padang'), ('Ulubelu'), ('Pulau Panggung')
+) AS t(name) WHERE k.name = 'Tanggamus'
+ON CONFLICT DO NOTHING;
 
-    -- Lampung Timur
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Lampung Timur';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Sukadana'), (kb_id, 'Way Jepara'), (kb_id, 'Labuhan Maringgai'), (kb_id, 'Pekalongan'), (kb_id, 'Sekampung')
-        ON CONFLICT DO NOTHING;
-    END IF;
-    
-    -- Lampung Utara
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Lampung Utara';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Kotabumi'), (kb_id, 'Bukit Kemuning'), (kb_id, 'Abung Selatan'), (kb_id, 'Sungkai Utara')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Sukadana'), ('Way Jepara'), ('Labuhan Maringgai'), ('Pekalongan'), ('Sekampung')
+) AS t(name) WHERE k.name = 'Lampung Timur'
+ON CONFLICT DO NOTHING;
 
-    -- Pesawaran
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Pesawaran';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Gedong Tataan'), (kb_id, 'Padang Cermin'), (kb_id, 'Kedondong'), (kb_id, 'Negeri Katon')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Kotabumi'), ('Bukit Kemuning'), ('Abung Selatan'), ('Sungkai Utara')
+) AS t(name) WHERE k.name = 'Lampung Utara'
+ON CONFLICT DO NOTHING;
 
-    -- Tulang Bawang
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Tulang Bawang';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Menggala'), (kb_id, 'Banjar Agung'), (kb_id, 'Dente Teladas')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Gedong Tataan'), ('Padang Cermin'), ('Kedondong'), ('Negeri Katon')
+) AS t(name) WHERE k.name = 'Pesawaran'
+ON CONFLICT DO NOTHING;
 
-    -- Tulang Bawang Barat
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Tulang Bawang Barat';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Tulang Bawang Tengah'), (kb_id, 'Tumijajar'), (kb_id, 'Lambu Kibang')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Menggala'), ('Banjar Agung'), ('Dente Teladas')
+) AS t(name) WHERE k.name = 'Tulang Bawang'
+ON CONFLICT DO NOTHING;
 
-    -- Way Kanan
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Way Kanan';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Blambangan Umpu'), (kb_id, 'Baradatu'), (kb_id, 'Kasui'), (kb_id, 'Rebang Tangkas')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Tulang Bawang Tengah'), ('Tumijajar'), ('Lambu Kibang')
+) AS t(name) WHERE k.name = 'Tulang Bawang Barat'
+ON CONFLICT DO NOTHING;
 
-    -- Mesuji
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Mesuji';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Mesuji'), (kb_id, 'Simpang Pematang'), (kb_id, 'Tanjung Raya')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Blambangan Umpu'), ('Baradatu'), ('Kasui'), ('Rebang Tangkas')
+) AS t(name) WHERE k.name = 'Way Kanan'
+ON CONFLICT DO NOTHING;
 
-    -- Lampung Barat
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Lampung Barat';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Liwa'), (kb_id, 'Balik Bukit'), (kb_id, 'Sumber Jaya'), (kb_id, 'Belalau')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Mesuji'), ('Simpang Pematang'), ('Tanjung Raya')
+) AS t(name) WHERE k.name = 'Mesuji'
+ON CONFLICT DO NOTHING;
 
-    -- Pesisir Barat
-    SELECT id INTO kb_id FROM public.kabupaten WHERE name = 'Pesisir Barat';
-    IF kb_id IS NOT NULL THEN
-        INSERT INTO public.kecamatan (kabupaten_id, name) VALUES 
-        (kb_id, 'Pesisir Tengah'), (kb_id, 'Pesisir Utara'), (kb_id, 'Pesisir Selatan'), (kb_id, 'Ngambur'), (kb_id, 'Lemong')
-        ON CONFLICT DO NOTHING;
-    END IF;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Liwa'), ('Balik Bukit'), ('Sumber Jaya'), ('Belalau')
+) AS t(name) WHERE k.name = 'Lampung Barat'
+ON CONFLICT DO NOTHING;
 
-END $$;
+INSERT INTO public.kecamatan (kabupaten_id, name)
+SELECT k.id, t.name FROM public.kabupaten k CROSS JOIN (
+  VALUES ('Pesisir Tengah'), ('Pesisir Utara'), ('Pesisir Selatan'), ('Ngambur'), ('Lemong')
+) AS t(name) WHERE k.name = 'Pesisir Barat'
+ON CONFLICT DO NOTHING;
+
 
 -- 3. Insert Villages (Desa/Kelurahan) for some prominent sub-districts
-DO $$
-DECLARE
-    kc_id UUID;
-    desa_id_1 UUID;
-    desa_id_2 UUID;
-    desa_id_3 UUID;
-    desa_id_4 UUID;
-    desa_id_5 UUID;
-    g1_id UUID := gen_random_uuid();
-    g2_id UUID := gen_random_uuid();
-    g3_id UUID := gen_random_uuid();
-    g4_id UUID := gen_random_uuid();
-    g5_id UUID := gen_random_uuid();
-    d1_id UUID := gen_random_uuid();
-    d2_id UUID := gen_random_uuid();
-    d3_id UUID := gen_random_uuid();
-    komo_padi UUID;
-    komo_jagung UUID;
-    komo_kopi UUID;
-BEGIN
-    -- Kemiling, Bandar Lampung
-    SELECT id INTO kc_id FROM public.kecamatan WHERE name = 'Kemiling' LIMIT 1;
-    IF kc_id IS NOT NULL THEN
-        INSERT INTO public.desa (id, kecamatan_id, name) VALUES 
-        (gen_random_uuid(), kc_id, 'Beringin Jaya'),
-        (gen_random_uuid(), kc_id, 'Kedaung'),
-        (gen_random_uuid(), kc_id, 'Sumber Agung') RETURNING id INTO desa_id_1;
-    END IF;
+INSERT INTO public.desa (kecamatan_id, name)
+SELECT k.id, t.name FROM public.kecamatan k CROSS JOIN (
+  VALUES ('Beringin Jaya'), ('Kedaung'), ('Sumber Agung')
+) AS t(name) WHERE k.name = 'Kemiling'
+ON CONFLICT DO NOTHING;
 
-    -- Natar, Lampung Selatan
-    SELECT id INTO kc_id FROM public.kecamatan WHERE name = 'Natar' LIMIT 1;
-    IF kc_id IS NOT NULL THEN
-        INSERT INTO public.desa (id, kecamatan_id, name) VALUES 
-        (gen_random_uuid(), kc_id, 'Natar'),
-        (gen_random_uuid(), kc_id, 'Merak Batin'),
-        (gen_random_uuid(), kc_id, 'Hajimena') RETURNING id INTO desa_id_2;
-    END IF;
+INSERT INTO public.desa (kecamatan_id, name)
+SELECT k.id, t.name FROM public.kecamatan k CROSS JOIN (
+  VALUES ('Natar'), ('Merak Batin'), ('Hajimena')
+) AS t(name) WHERE k.name = 'Natar'
+ON CONFLICT DO NOTHING;
 
-    -- Terbanggi Besar, Lampung Tengah
-    SELECT id INTO kc_id FROM public.kecamatan WHERE name = 'Terbanggi Besar' LIMIT 1;
-    IF kc_id IS NOT NULL THEN
-        INSERT INTO public.desa (id, kecamatan_id, name) VALUES 
-        (gen_random_uuid(), kc_id, 'Terbanggi Besar'),
-        (gen_random_uuid(), kc_id, 'Bandar Jaya Barat'),
-        (gen_random_uuid(), kc_id, 'Poncowati') RETURNING id INTO desa_id_3;
-    END IF;
+INSERT INTO public.desa (kecamatan_id, name)
+SELECT k.id, t.name FROM public.kecamatan k CROSS JOIN (
+  VALUES ('Terbanggi Besar'), ('Bandar Jaya Barat'), ('Poncowati')
+) AS t(name) WHERE k.name = 'Terbanggi Besar'
+ON CONFLICT DO NOTHING;
 
-    -- Gisting, Tanggamus
-    SELECT id INTO kc_id FROM public.kecamatan WHERE name = 'Gisting' LIMIT 1;
-    IF kc_id IS NOT NULL THEN
-        INSERT INTO public.desa (id, kecamatan_id, name) VALUES 
-        (gen_random_uuid(), kc_id, 'Gisting Bawah'),
-        (gen_random_uuid(), kc_id, 'Gisting Atas'),
-        (gen_random_uuid(), kc_id, 'Campang') RETURNING id INTO desa_id_4;
-    END IF;
+INSERT INTO public.desa (kecamatan_id, name)
+SELECT k.id, t.name FROM public.kecamatan k CROSS JOIN (
+  VALUES ('Gisting Bawah'), ('Gisting Atas'), ('Campang')
+) AS t(name) WHERE k.name = 'Gisting'
+ON CONFLICT DO NOTHING;
 
-    -- Pesisir Tengah, Pesisir Barat
-    SELECT id INTO kc_id FROM public.kecamatan WHERE name = 'Pesisir Tengah' LIMIT 1;
-    IF kc_id IS NOT NULL THEN
-        INSERT INTO public.desa (id, kecamatan_id, name) VALUES 
-        (gen_random_uuid(), kc_id, 'Pasar Krui'),
-        (gen_random_uuid(), kc_id, 'Pusur'),
-        (gen_random_uuid(), kc_id, 'Way Redak') RETURNING id INTO desa_id_5;
-    END IF;
+INSERT INTO public.desa (kecamatan_id, name)
+SELECT k.id, t.name FROM public.kecamatan k CROSS JOIN (
+  VALUES ('Pasar Krui'), ('Pusur'), ('Way Redak')
+) AS t(name) WHERE k.name = 'Pesisir Tengah'
+ON CONFLICT DO NOTHING;
 
-    -- 4. INSERT GAPOKTAN (Linked to newly created desas + Coordinates in Lampung)
-    IF desa_id_1 IS NOT NULL THEN
-        INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude) VALUES 
-        (g1_id, 'Gapoktan Beringin Jaya', desa_id_1, 'Pak Suryo', '08123451111', -5.39, 105.21);
-    END IF;
 
-    IF desa_id_2 IS NOT NULL THEN
-        INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude) VALUES 
-        (g2_id, 'Gapoktan Natar Mandiri', desa_id_2, 'Pak Handoko', '08123452222', -5.32, 105.19);
-    END IF;
+-- 4. INSERT GAPOKTAN 
+-- To avoid complex UUID tracking without PL/pgSQL, we use predefined UUIDs for Gapoktans 
+-- so we can link them easily in subsequent inserts.
+INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude)
+SELECT 'a0000000-0000-0000-0000-000000000001', 'Gapoktan Beringin Jaya', d.id, 'Pak Suryo', '08123451111', -5.39, 105.21
+FROM public.desa d WHERE d.name = 'Beringin Jaya' LIMIT 1
+ON CONFLICT DO NOTHING;
 
-    IF desa_id_3 IS NOT NULL THEN
-        INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude) VALUES 
-        (g3_id, 'Gapoktan Poncowati Makmur', desa_id_3, 'Pak Budi', '08123453333', -4.83, 105.22);
-    END IF;
+INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude)
+SELECT 'a0000000-0000-0000-0000-000000000002', 'Gapoktan Natar Mandiri', d.id, 'Pak Handoko', '08123452222', -5.32, 105.19
+FROM public.desa d WHERE d.name = 'Natar' LIMIT 1
+ON CONFLICT DO NOTHING;
 
-    IF desa_id_4 IS NOT NULL THEN
-        INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude) VALUES 
-        (g4_id, 'Gapoktan Gisting Asri', desa_id_4, 'Ibu Siti', '08123454444', -5.44, 104.72);
-    END IF;
+INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude)
+SELECT 'a0000000-0000-0000-0000-000000000003', 'Gapoktan Poncowati Makmur', d.id, 'Pak Budi', '08123453333', -4.83, 105.22
+FROM public.desa d WHERE d.name = 'Poncowati' LIMIT 1
+ON CONFLICT DO NOTHING;
 
-    IF desa_id_5 IS NOT NULL THEN
-        INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude) VALUES 
-        (g5_id, 'Gapoktan Krui Pesisir', desa_id_5, 'Pak Andi', '08123455555', -5.19, 103.93);
-    END IF;
+INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude)
+SELECT 'a0000000-0000-0000-0000-000000000004', 'Gapoktan Gisting Asri', d.id, 'Ibu Siti', '08123454444', -5.44, 104.72
+FROM public.desa d WHERE d.name = 'Gisting Bawah' LIMIT 1
+ON CONFLICT DO NOTHING;
 
-    -- Get Komoditas IDs
-    SELECT id INTO komo_padi FROM public.komoditas WHERE name = 'Padi' LIMIT 1;
-    SELECT id INTO komo_jagung FROM public.komoditas WHERE name = 'Jagung' LIMIT 1;
-    SELECT id INTO komo_kopi FROM public.komoditas WHERE name = 'Kopi' LIMIT 1;
+INSERT INTO public.gapoktan (id, name, desa_id, ketua, phone, latitude, longitude)
+SELECT 'a0000000-0000-0000-0000-000000000005', 'Gapoktan Krui Pesisir', d.id, 'Pak Andi', '08123455555', -5.19, 103.93
+FROM public.desa d WHERE d.name = 'Pasar Krui' LIMIT 1
+ON CONFLICT DO NOTHING;
 
-    -- 5. Link Gapoktan to Komoditas
-    IF komo_padi IS NOT NULL THEN
-        INSERT INTO public.gapoktan_komoditas (gapoktan_id, komoditas_id) VALUES 
-        (g1_id, komo_padi), (g2_id, komo_padi), (g3_id, komo_padi), (g5_id, komo_padi) ON CONFLICT DO NOTHING;
-    END IF;
-    IF komo_jagung IS NOT NULL THEN
-        INSERT INTO public.gapoktan_komoditas (gapoktan_id, komoditas_id) VALUES 
-        (g2_id, komo_jagung), (g3_id, komo_jagung) ON CONFLICT DO NOTHING;
-    END IF;
-    IF komo_kopi IS NOT NULL THEN
-        INSERT INTO public.gapoktan_komoditas (gapoktan_id, komoditas_id) VALUES 
-        (g4_id, komo_kopi) ON CONFLICT DO NOTHING;
-    END IF;
 
-    -- 6. Insert Dryer Units
-    INSERT INTO public.dryer_units (id, name, gapoktan_id, capacity_kg, status) VALUES 
-    (d1_id, 'Dryer Padi Kemiling', g1_id, 4000, 'active'),
-    (gen_random_uuid(), 'Dryer Jagung Natar', g2_id, 5000, 'active'),
-    (d2_id, 'Dryer Padi Poncowati', g3_id, 8000, 'active'),
-    (d3_id, 'Dryer Kopi Gisting', g4_id, 3000, 'active'),
-    (gen_random_uuid(), 'Dryer Padi Krui', g5_id, 4000, 'maintenance');
+-- 5. Link Gapoktan to Komoditas
+INSERT INTO public.gapoktan_komoditas (gapoktan_id, komoditas_id)
+SELECT 'a0000000-0000-0000-0000-000000000001', k.id FROM public.komoditas k WHERE k.name = 'Padi'
+UNION ALL SELECT 'a0000000-0000-0000-0000-000000000002', k.id FROM public.komoditas k WHERE k.name = 'Padi'
+UNION ALL SELECT 'a0000000-0000-0000-0000-000000000003', k.id FROM public.komoditas k WHERE k.name = 'Padi'
+UNION ALL SELECT 'a0000000-0000-0000-0000-000000000005', k.id FROM public.komoditas k WHERE k.name = 'Padi'
+ON CONFLICT DO NOTHING;
 
-    -- 7. Insert Dummy Productions
-    IF komo_padi IS NOT NULL THEN
-        INSERT INTO public.productions (dryer_id, gapoktan_id, komoditas_id, qty_before, price_before, qty_after, price_after, production_date, notes) VALUES 
-        (d1_id, g1_id, komo_padi, 1500, 5000, 1200, 7500, CURRENT_DATE - INTERVAL '1 day', 'Hasil panen raya Kemiling'),
-        (d2_id, g3_id, komo_padi, 2000, 4800, 1650, 7200, CURRENT_DATE - INTERVAL '2 days', 'Padi Poncowati');
-    END IF;
+INSERT INTO public.gapoktan_komoditas (gapoktan_id, komoditas_id)
+SELECT 'a0000000-0000-0000-0000-000000000002', k.id FROM public.komoditas k WHERE k.name = 'Jagung'
+UNION ALL SELECT 'a0000000-0000-0000-0000-000000000003', k.id FROM public.komoditas k WHERE k.name = 'Jagung'
+ON CONFLICT DO NOTHING;
 
-    IF komo_kopi IS NOT NULL THEN
-        INSERT INTO public.productions (dryer_id, gapoktan_id, komoditas_id, qty_before, price_before, qty_after, price_after, production_date, notes) VALUES 
-        (d3_id, g4_id, komo_kopi, 800, 35000, 680, 56000, CURRENT_DATE, 'Kopi Robusta Gisting');
-    END IF;
+INSERT INTO public.gapoktan_komoditas (gapoktan_id, komoditas_id)
+SELECT 'a0000000-0000-0000-0000-000000000004', k.id FROM public.komoditas k WHERE k.name = 'Kopi'
+ON CONFLICT DO NOTHING;
 
-END $$;
+
+-- 6. Insert Dryer Units (with predefined UUIDs for Productions references)
+INSERT INTO public.dryer_units (id, name, gapoktan_id, capacity_kg, status) VALUES 
+('b0000000-0000-0000-0000-000000000001', 'Dryer Padi Kemiling', 'a0000000-0000-0000-0000-000000000001', 4000, 'active'),
+(gen_random_uuid(), 'Dryer Jagung Natar', 'a0000000-0000-0000-0000-000000000002', 5000, 'active'),
+('b0000000-0000-0000-0000-000000000002', 'Dryer Padi Poncowati', 'a0000000-0000-0000-0000-000000000003', 8000, 'active'),
+('b0000000-0000-0000-0000-000000000003', 'Dryer Kopi Gisting', 'a0000000-0000-0000-0000-000000000004', 3000, 'active'),
+(gen_random_uuid(), 'Dryer Padi Krui', 'a0000000-0000-0000-0000-000000000005', 4000, 'maintenance')
+ON CONFLICT DO NOTHING;
+
+
+-- 7. Insert Dummy Productions
+INSERT INTO public.productions (dryer_id, gapoktan_id, komoditas_id, qty_before, price_before, qty_after, price_after, production_date, notes)
+SELECT 'b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', k.id, 1500, 5000, 1200, 7500, CURRENT_DATE - INTERVAL '1 day', 'Hasil panen raya Kemiling'
+FROM public.komoditas k WHERE k.name = 'Padi' LIMIT 1;
+
+INSERT INTO public.productions (dryer_id, gapoktan_id, komoditas_id, qty_before, price_before, qty_after, price_after, production_date, notes)
+SELECT 'b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000003', k.id, 2000, 4800, 1650, 7200, CURRENT_DATE - INTERVAL '2 days', 'Padi Poncowati'
+FROM public.komoditas k WHERE k.name = 'Padi' LIMIT 1;
+
+INSERT INTO public.productions (dryer_id, gapoktan_id, komoditas_id, qty_before, price_before, qty_after, price_after, production_date, notes)
+SELECT 'b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000004', k.id, 800, 35000, 680, 56000, CURRENT_DATE, 'Kopi Robusta Gisting'
+FROM public.komoditas k WHERE k.name = 'Kopi' LIMIT 1;
