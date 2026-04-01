@@ -54,19 +54,19 @@ export default function KomoditasAdmin() {
   };
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
-          <header className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Kelola Komoditas</h1>
-              <p className="text-muted-foreground">Tambah dan kelola jenis komoditas pertanian</p>
-            </div>
-            <button 
-              onClick={() => { setEditingId(null); setNewName(''); setShowForm(!showForm); }}
-              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-            >
-              <Plus className="h-4 w-4" /> Tambah Komoditas
-            </button>
-          </header>
+    <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Komoditas</h1>
+          <p className="text-sm lg:text-base text-muted-foreground">Master data komoditas pertanian</p>
+        </div>
+        <button 
+          onClick={() => { setEditingId(null); setNewName(''); setShowForm(!showForm); }}
+          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+        >
+          <Plus className="h-4 w-4" /> Tambah Komoditas
+        </button>
+      </header>
 
           {(showForm || editingId) && (
             <form onSubmit={handleSubmit} className="flex items-end gap-3 bg-card/40 p-4 rounded-2xl border animate-in fade-in slide-in-from-top-4 duration-300">
@@ -108,8 +108,6 @@ export default function KomoditasAdmin() {
               </div>
             ))}
           </div>
-        </div>
-      </main>
     </div>
   );
 }

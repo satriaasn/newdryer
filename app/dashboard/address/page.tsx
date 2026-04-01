@@ -90,23 +90,6 @@ export default function AddressManagement() {
   };
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
-          <header className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Detail Wilayah</h1>
-              <p className="text-muted-foreground">Kelola data Kabupaten, Kecamatan, dan Desa</p>
-            </div>
-            <button 
-              onClick={() => { setEditingItem(null); setFormName(""); setShowForm(true); }}
-              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-all"
-            >
-              <Plus className="h-4 w-4" /> Tambah {activeTab === 'kabupaten' ? 'Kabupaten' : (activeTab === 'kecamatan' ? 'Kecamatan' : 'Desa')}
-            </button>
-          </header>
-
-          {/* Navigation Tabs */}
-          <div className="flex p-1 gap-1 rounded-2xl bg-muted/50 w-fit">
-            {[
               { id: 'kabupaten', label: 'Kabupaten', icon: Building2 },
               { id: 'kecamatan', label: 'Kecamatan', icon: MapIcon },
               { id: 'desa', label: 'Desa', icon: Home }
@@ -203,8 +186,6 @@ export default function AddressManagement() {
               </tbody>
             </table>
           </div>
-        </div>
-      </main>
     </div>
   );
 }

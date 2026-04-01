@@ -54,7 +54,24 @@ CREATE POLICY "Public read kecamatan" ON public.kecamatan FOR SELECT USING (true
 DROP POLICY IF EXISTS "Public read desa" ON public.desa;
 CREATE POLICY "Public read desa" ON public.desa FOR SELECT USING (true);
 
--- 5. SAMPLE DATA (Optional, common for West Java context)
-INSERT INTO public.kabupaten (name) VALUES ('Majalengka'), ('Sumedang'), ('Subang') ON CONFLICT DO NOTHING;
+-- 6. PROFILES TABLE FIX
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name TEXT,
+    role TEXT DEFAULT 'viewer',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
+CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
+CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Note: Use the "Detail Wilayah" menu in the dashboard to add more Specific Kecamatan and Desa.

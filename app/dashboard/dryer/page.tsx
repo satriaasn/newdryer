@@ -38,16 +38,19 @@ export default function DryerAdmin() {
   const statusLabel: Record<string, string> = { active: 'Aktif', inactive: 'Nonaktif', maintenance: 'Perawatan' };
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Kelola Unit Dryer</h1>
-              <p className="text-muted-foreground">Tambah dan kelola unit pengering</p>
-            </div>
-            <button onClick={() => { setEditingDryer(null); setShowForm(!showForm); }} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
-              <Plus className="h-4 w-4" /> Tambah Dryer
-            </button>
-          </div>
+    <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Unit Dryer</h1>
+          <p className="text-sm lg:text-base text-muted-foreground">Kelola unit pengeringan untuk setiap gapoktan</p>
+        </div>
+        <button 
+          onClick={() => { setEditingDryer(null); setShowForm(!showForm); }} 
+          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+        >
+          <Plus className="h-4 w-4" /> Tambah Unit
+        </button>
+      </header>
 
           {(showForm || editingDryer) && (
             <DryerForm 
@@ -99,8 +102,6 @@ export default function DryerAdmin() {
               </tbody>
             </table>
           </div>
-        </div>
-      </main>
     </div>
   );
 }

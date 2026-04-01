@@ -46,23 +46,6 @@ export default function UserManagement() {
   const roles: UserRole[] = ["admin", "operator", "viewer", "gapoktan", "administrator", "superadmin"];
 
   return (
-    <div className="p-4 lg:p-8 space-y-8">
-          <header className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Pengaturan User</h1>
-              <p className="text-muted-foreground">Kelola hak akses dan role pengguna sistem</p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => alert("Gunakan Dashboard Supabase untuk mengundang user baru (Auth -> Users -> Invite)")} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-all">
-                <UserPlus className="h-4 w-4" /> Tambah User
-              </button>
-            </div>
-          </header>
-
-          <div className="rounded-2xl border bg-card/60 p-6 space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input 
                   type="text" 
                   placeholder="Cari nama atau ID user..." 
@@ -141,8 +124,6 @@ export default function UserManagement() {
               </table>
             </div>
           </div>
-        </div>
-      </main>
     </div>
   );
 }
