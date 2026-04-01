@@ -6,7 +6,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Package, Lock, Mail, Loader2, ArrowRight, Github } from "lucide-react";
 import Link from "next/link";
 
-export default function SignIn() {
+export default function SignIn({ searchParams }: { searchParams: { redirectedFrom?: string } }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,9 +28,8 @@ export default function SignIn() {
       setError(error.message);
       setLoading(false);
     } else {
-      // Get the redirect URL from query params
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirectPath = searchParams.get('redirectedFrom') || '/dashboard';
+      // Get the redirect URL from props
+      const redirectPath = searchParams.redirectedFrom || '/dashboard';
       router.push(redirectPath);
       router.refresh();
     }
