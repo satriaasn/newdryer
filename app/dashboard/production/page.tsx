@@ -161,9 +161,11 @@ function ProductionForm({ gapoktan, initialData, onSaved, onCancel }: { gapoktan
     Promise.all([
       fetch(`/api/komoditas?gapoktan_id=${selectedGapoktan}`).then(r => r.json()),
       fetch(`/api/dryer?gapoktan_id=${selectedGapoktan}`).then(r => r.json()),
-    ]).then(([k, d]) => {
-      setKomoditasList(Array.isArray(k) ? k : []);
-      setDryerList(Array.isArray(d) ? d : []);
+      fetch('/api/komoditas').then(r => r.json()),
+      fetch('/api/dryer').then(r => r.json()),
+    ]).then(([k, d, allK, allD]) => {
+      setKomoditasList(Array.isArray(k) && k.length > 0 ? k : (Array.isArray(allK) ? allK : []));
+      setDryerList(Array.isArray(d) && d.length > 0 ? d : (Array.isArray(allD) ? allD : []));
     });
   }, [selectedGapoktan]);
 

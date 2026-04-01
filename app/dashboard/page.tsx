@@ -1,11 +1,22 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import type { DashboardStats, Production } from "@/lib/types";
 import { Factory, Users, Package, TrendingUp, Plus, Search, Calendar, Filter, X } from "lucide-react";
-import { useMemo } from "react";
+
+export const dynamic = 'force-dynamic';
+
+const ResponsiveContainer = dynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false });
+const AreaChart = dynamic(() => import("recharts").then(m => m.AreaChart), { ssr: false });
+const Area = dynamic(() => import("recharts").then(m => m.Area), { ssr: false });
+const BarChart = dynamic(() => import("recharts").then(m => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import("recharts").then(m => m.Bar), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then(m => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then(m => m.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import("recharts").then(m => m.CartesianGrid), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then(m => m.Tooltip), { ssr: false });
+const Cell = dynamic(() => import("recharts").then(m => m.Cell), { ssr: false });
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -45,6 +56,31 @@ export default function AdminDashboard() {
       return true;
     });
   }, [productions, filterGapoktan, filterKomoditas, filterDate, filterSearch]);
+
+  const trendData = useMemo(() => {
+    const last15Days = [...Array(15)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (14 - i));
+      return d.toISOString().split('T')[0];
+    });
+
+    return last15Days.map(date => {
+      const dayProds = productions.filter(p => p.production_date === date);
+      return {
+        date: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+        ton: dayProds.reduce((sum, p) => sum + Number(p.qty_after), 0)
+      };
+    });
+  }, [productions]);
+
+  const perKomoditas = useMemo(() => {
+    const map: Record<string, number> = {};
+    productions.forEach(p => {
+      const name = p.komoditas?.name || 'Lainnya';
+      map[name] = (map[name] || 0) + Number(p.qty_after);
+    });
+    return Object.entries(map).map(([name, ton]) => ({ name, ton }));
+  }, [productions]);
 
   const clearFilters = () => { setFilterGapoktan(''); setFilterKomoditas(''); setFilterDate(''); setFilterSearch(''); };
   const hasFilters = !!(filterGapoktan || filterKomoditas || filterDate || filterSearch);
@@ -95,10 +131,52 @@ export default function AdminDashboard() {
       ) : stats && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KPI title="Total Gapoktan" value={stats.totalGapoktan} icon={Users} color="text-blue-500" />
-            <KPI title="Unit Dryer" value={stats.totalDryers} icon={Factory} color="text-emerald-500" />
-            <KPI title="Total Produksi" value={stats.totalProductions} icon={Package} color="text-orange-500" />
-            <KPI title="Avg Kenaikan Harga" value={`+${stats.avgPriceDiffPct}%`} icon={TrendingUp} color="text-primary" />
+            <KPI title="Total Produksi (Ton)" value={`${stats.totalQtyAfter?.toLocaleString() || 0} T`} icon={Package} color="text-primary" />
+            <KPI title="Produksi Hari Ini" value={`${stats.todayQtyAfter?.toLocaleString() || 0} T`} icon={Calendar} color="text-blue-500" />
+            <KPI title="Avg Margin Harga" value={`+${stats.avgPriceDiffPct}%`} icon={TrendingUp} color="text-emerald-500" />
+            <KPI title="Total Gapoktan" value={stats.totalGapoktan} icon={Users} color="text-orange-500" />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Tren Produksi (15 Hari)</h3>
+              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trendData}>
+                    <defs>
+                      <linearGradient id="colorTon" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px', fontSize: '12px', color: '#fff' }} />
+                    <Area type="monotone" dataKey="ton" stroke="#2563eb" fillOpacity={1} fill="url(#colorTon)" strokeWidth={3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold flex items-center gap-2"><Package className="h-5 w-5 text-emerald-500" /> Perbandingan Komoditas</h3>
+              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={perKomoditas}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
+                    <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px', fontSize: '12px', color: '#fff' }} />
+                    <Bar dataKey="ton" radius={[6, 6, 0, 0]}>
+                      {perKomoditas.map((_, i) => (
+                        <Cell key={i} fill={['#2563eb', '#10b981', '#f59e0b', '#ef4444'][i % 4]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl border bg-card/60 p-4 lg:p-6">

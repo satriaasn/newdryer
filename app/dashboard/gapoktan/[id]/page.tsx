@@ -21,7 +21,7 @@ export default function GapoktanDetailPage() {
   useEffect(() => {
     if (!id) return;
     Promise.all([
-      gapoktanService.getOne(id as string),
+      gapoktanService.getById(id as string),
       fetch(`/api/production?gapoktan_id=${id}`).then(r => r.json())
     ]).then(([g, p]) => {
       setGapoktan(g);

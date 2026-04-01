@@ -5,7 +5,15 @@ export const productionService = {
   async getAll(): Promise<Production[]> {
     const { data, error } = await supabase
       .from('productions')
-      .select('*, dryer_units(*), gapoktan(*, desa(*, kecamatan(*, kabupaten(*)))), komoditas(*)')
+      .select(`
+        *,
+        dryer_units(*),
+        gapoktan(
+          *,
+          desa(*)
+        ),
+        komoditas(*)
+      `)
       .order('production_date', { ascending: false });
     if (error) throw new Error(error.message);
     return data as Production[];

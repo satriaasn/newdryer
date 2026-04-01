@@ -2,14 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import type { Production, Gapoktan, Komoditas, DashboardStats } from "@/lib/types";
-import nextDynamic from "next/dynamic";
-import { 
-  Users, Package, Factory, TrendingUp, Wheat, MapPin, 
-  Search, Calendar, Filter, ChevronDown, ChevronUp, X, LogOut
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-
 import dynamic from "next/dynamic";
 const ResponsiveContainer = dynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false });
 const AreaChart = dynamic(() => import("recharts").then(m => m.AreaChart), { ssr: false });
@@ -22,10 +14,17 @@ const BarChart = dynamic(() => import("recharts").then(m => m.BarChart), { ssr: 
 const Bar = dynamic(() => import("recharts").then(m => m.Bar), { ssr: false });
 const Cell = dynamic(() => import("recharts").then(m => m.Cell), { ssr: false });
 
-const MapContainer = nextDynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
-const TileLayer = nextDynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
-const Marker = nextDynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
-const Popup = nextDynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
+import { 
+  Users, Package, Factory, TrendingUp, Wheat, MapPin, 
+  Search, Calendar, Filter, ChevronDown, ChevronUp, X, LogOut
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
+const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
+const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 
 export default function PublicDashboard() {
   const router = useRouter();
@@ -39,18 +38,26 @@ export default function PublicDashboard() {
   const [leafletReady, setLeafletReady] = useState(false);
   const [customIcon, setCustomIcon] = useState<any>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   const reloadAll = () => {
+    setError(null);
     Promise.all([
       fetch('/api/dashboard', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
     ]).then(([s, p, g, k]) => {
+      if (s.error) throw new Error(s.error);
+      if (p.error) throw new Error(p.error);
       setStats(s);
       setProductions(Array.isArray(p) ? p : []);
       setGapoktanList(Array.isArray(g) ? g : []);
       setKomoditasList(Array.isArray(k) ? k : []);
       setLastUpdated(new Date().toLocaleTimeString());
+    }).catch(err => {
+      console.error(err);
+      setError(err.message);
     }).finally(() => setLoading(false));
   };
 
