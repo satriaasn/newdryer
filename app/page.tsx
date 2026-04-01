@@ -6,18 +6,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-const ResponsiveContainer = dynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false });
-const LineChart = dynamic(() => import("recharts").then(m => m.LineChart), { ssr: false });
-const Line = dynamic(() => import("recharts").then(m => m.Line), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then(m => m.XAxis), { ssr: false });
-const YAxis = dynamic(() => import("recharts").then(m => m.YAxis), { ssr: false });
-const CartesianGrid = dynamic(() => import("recharts").then(m => m.CartesianGrid), { ssr: false });
-const Tooltip = dynamic(() => import("recharts").then(m => m.Tooltip), { ssr: false });
-
-const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
-const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
-const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
+const DashboardMap = dynamic(() => import("@/components/dashboard/dashboard-map"), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div> });
+const TrendChart = dynamic(() => import("@/components/dashboard/trend-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
@@ -32,8 +22,6 @@ export default function PublicDashboard() {
   const [gapoktanList, setGapoktanList] = useState<Gapoktan[]>([]);
   const [komoditasList, setKomoditasList] = useState<Komoditas[]>([]);
   const [loading, setLoading] = useState(true);
-  const [leafletReady, setLeafletReady] = useState(false);
-  const [customIcon, setCustomIcon] = useState<any>(null);
 
   // Filters
   const [filterKomoditas, setFilterKomoditas] = useState('');
@@ -66,24 +54,6 @@ export default function PublicDashboard() {
   useEffect(() => {
     reloadAll();
     const interval = setInterval(reloadAll, 60000);
-
-    if (typeof window !== 'undefined') {
-      import('leaflet').then(L => {
-        setCustomIcon(L.icon({
-          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-          iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
-        }));
-        setLeafletReady(true);
-      });
-      if (!document.querySelector('link[href*="leaflet"]')) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-    }
     return () => clearInterval(interval);
   }, []);
 
@@ -276,7 +246,7 @@ export default function PublicDashboard() {
         </div>
 
         {/* MAP ROW - FULL WIDTH */}
-        <div className="bg-[#F1F5F9] rounded-2xl border shadow-sm relative overflow-hidden w-full" style={{ minHeight: '500px' }}>
+        <div className="bg-[#F1F5F9] rounded-2xl border shadow-sm relative overflow-hidden w-full" style={{ height: '500px' }}>
           <div className="absolute top-4 left-4 z-[400] bg-white/90 backdrop-blur-sm p-4 rounded-xl border shadow-sm pointer-events-none">
             <h3 className="text-sm font-bold text-[#0F172A]">Sebaran Unit Dryer Nasional</h3>
             <p className="text-[10px] text-muted-foreground uppercase mt-1">Geographic Distribution</p>
@@ -289,21 +259,10 @@ export default function PublicDashboard() {
              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-rose-500" /><span className="font-medium">Maintenance</span></div>
           </div>
 
-          {!leafletReady ? (
-            <div className="flex items-center justify-center h-full w-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div>
-          ) : (
-            <MapContainer center={[-3.3971, 115.2668]} zoom={5} className="h-full w-full z-10" scrollWheelZoom={true}>
-              <TileLayer attribution='&copy; OSM' url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
-              {gapoktanWithCoords.map(g => (
-                <Marker 
-                  key={g.id} 
-                  position={[g.latitude!, g.longitude!]} 
-                  icon={customIcon}
-                  eventHandlers={{ click: () => router.push(`/dashboard/gapoktan/${g.id}`) }}
-                />
-              ))}
-            </MapContainer>
-          )}
+          <DashboardMap
+            markers={gapoktanWithCoords.map(g => ({ id: g.id, latitude: g.latitude!, longitude: g.longitude! }))}
+            onMarkerClick={(id) => router.push(`/dashboard/gapoktan/${id}`)}
+          />
         </div>
 
         {/* TREND CHART */}
@@ -320,15 +279,7 @@ export default function PublicDashboard() {
            </div>
            
            <div className="h-[250px] w-full">
-             <ResponsiveContainer width="100%" height="100%">
-               <LineChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dy={10} />
-                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} dx={-10} />
-                 <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                 <Line type="monotone" dataKey="ton" stroke="#0F172A" strokeWidth={2.5} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, fill: '#0F172A' }} />
-               </LineChart>
-             </ResponsiveContainer>
+             <TrendChart data={trendData} />
            </div>
         </div>
 
