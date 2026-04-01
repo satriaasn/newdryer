@@ -8,6 +8,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const DashboardMap = dynamic(() => import("@/components/dashboard/dashboard-map"), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div> });
 const TrendChart = dynamic(() => import("@/components/dashboard/trend-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const VolumeBarChart = dynamic(() => import("@/components/dashboard/volume-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
@@ -344,28 +345,43 @@ export default function PublicDashboard() {
           />
         </div>
 
-        {/* TREND CHART */}
-        <div className="bg-white rounded-2xl border p-6 shadow-sm">
-           <div className="flex items-start justify-between mb-8">
-             <div>
-               <h2 className="text-lg font-bold text-[#0F172A]">Tren Produksi Nasional</h2>
-               <p className="text-xs text-muted-foreground mt-1">Total output pengeringan (Ton) sepanjang tahun berjalan</p>
-             </div>
-             <div className="flex items-center gap-4 text-xs font-medium">
-                <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#0F172A]" /> Produksi Aktual</div>
-                <div className="flex items-center gap-1"><span className="h-2 w-2 border border-gray-400 rounded-full" /> Target</div>
-             </div>
-           </div>
-           
-           <div className="h-[250px] w-full">
-             <TrendChart data={trendData} />
-           </div>
-        </div>
+         {/* TREND & VOLUME CHARTS */}
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl border p-6 shadow-sm">
+               <div className="flex items-start justify-between mb-8">
+                 <div>
+                   <h2 className="text-lg font-bold text-[#0F172A]">Tren Produksi</h2>
+                   <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-wider italic">Volume pengeringan sepanjang waktu</p>
+                 </div>
+                 <div className="h-8 w-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
+                    <TrendingUp className="h-4 w-4" />
+                 </div>
+               </div>
+               <div className="h-[250px] w-full">
+                 <TrendChart data={trendData} />
+               </div>
+            </div>
 
-        {/* DATA TABLES SECTION - TWO COLUMNS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
+            <div className="bg-white rounded-2xl border p-6 shadow-sm">
+               <div className="flex items-start justify-between mb-8">
+                 <div>
+                   <h2 className="text-lg font-bold text-[#0F172A]">Volume per Komoditas</h2>
+                   <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-wider italic">Distribusi volume berdasarkan jenis</p>
+                 </div>
+                 <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <Package className="h-4 w-4" />
+                 </div>
+               </div>
+               <div className="h-[250px] w-full">
+                  <VolumeBarChart data={komoditasStats.map(k => ({ name: k.name, allTime: k.allTime }))} />
+               </div>
+            </div>
+         </div>
+
+         {/* DATA TABLES SECTION - TWO COLUMNS */}
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
             {/* LEFT: DETAIL PRODUKSI (RIWAYAT) */}
-            <div className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow">
+            <div className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow overflow-hidden">
                <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600">
@@ -373,55 +389,63 @@ export default function PublicDashboard() {
                     </div>
                     <div>
                       <h2 className="text-lg font-bold text-[#0F172A]">Detail Produksi</h2>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Log pengeringan terbaru</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Semua unit monitoring</p>
                     </div>
-                  </div>
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <input 
-                      type="text" 
-                      placeholder="Cari..." 
-                      className="pl-8 pr-3 py-1.5 text-xs border rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none w-32 sm:w-40"
-                    />
                   </div>
                </div>
 
-               <div className="overflow-x-auto flex-grow">
-                 <table className="w-full text-left">
+               <div className="overflow-x-auto flex-grow rounded-xl border scrollbar-hide">
+                 <table className="w-full text-left min-w-[700px]">
                    <thead>
-                     <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-gray-100">
-                       <th className="px-3 py-3">Tanggal</th>
-                       <th className="px-3 py-3">Gapoktan</th>
-                       <th className="px-3 py-3 text-right">Qty</th>
+                     <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                       <th className="px-3 py-3">No Unit</th>
+                       <th className="px-3 py-3">Kelompok Tani</th>
+                       <th className="px-3 py-3">Lokasi</th>
+                       <th className="px-3 py-3">Komoditas</th>
+                       <th className="px-3 py-3">Kapasitas</th>
+                       <th className="px-3 py-3">Status</th>
+                       <th className="px-3 py-3 text-right">Produksi Harian</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-50">
-                     {filteredProductions.slice(0, 10).map(p => (
-                       <tr key={p.id} className="text-xs hover:bg-neutral-50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
-                         <td className="px-3 py-4 text-muted-foreground font-medium">{new Date(p.production_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</td>
-                         <td className="px-3 py-4">
-                            <p className="font-bold text-[#0F172A] mb-0.5">{p.gapoktan?.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN', 'Kab.')}</p>
-                         </td>
-                         <td className="px-3 py-4 text-right">
-                            <span className="font-black text-primary">{Number(p.qty_after || 0).toFixed(1)}</span>
-                            <span className="text-[10px] ml-1 text-muted-foreground font-bold">T</span>
-                         </td>
-                       </tr>
-                     ))}
+                     {filteredProductions.slice(0, 10).map(p => {
+                        const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
+                        const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
+                        const statusName = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
+                        const statusColor = isMaintenance ? 'text-rose-500' : (isIdle ? 'text-gray-500' : 'text-emerald-500');
+                        const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-gray-400' : 'bg-emerald-500');
+
+                        return (
+                          <tr key={p.id} className="text-[11px] hover:bg-neutral-50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
+                            <td className="px-3 py-4 font-mono text-[10px] text-muted-foreground">DRY-{p.gapoktan_id.substring(0,4).toUpperCase()}</td>
+                            <td className="px-3 py-4 font-bold text-[#0F172A]">{p.gapoktan?.name}</td>
+                            <td className="px-3 py-4 text-muted-foreground font-medium">
+                               {p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}
+                            </td>
+                            <td className="px-3 py-4">
+                               <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">{p.komoditas?.name}</span>
+                            </td>
+                            <td className="px-3 py-4 text-muted-foreground font-medium">{Number(p.gapoktan?.dryer_units?.[0]?.capacity_ton || 0).toFixed(1)} T</td>
+                            <td className="px-3 py-4">
+                               <div className="flex items-center gap-1"><span className={`h-1 w-1 rounded-full ${statusDot}`} /><span className={`font-bold ${statusColor}`}>{statusName}</span></div>
+                            </td>
+                            <td className="px-3 py-4 text-right">
+                               <span className="font-black text-primary">{Number(p.qty_after || 0).toFixed(1)}</span>
+                               <span className="text-[10px] ml-1 text-muted-foreground font-bold">Ton</span>
+                            </td>
+                          </tr>
+                        );
+                     })}
                      {filteredProductions.length === 0 && (
-                       <tr><td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground italic">Tidak ada data produksi</td></tr>
+                       <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground italic">Tidak ada data produksi</td></tr>
                      )}
                    </tbody>
                  </table>
                </div>
-               <button className="mt-4 w-full py-2.5 text-xs font-bold text-gray-500 hover:text-primary transition-colors border-t border-dashed">
-                 LIHAT SEMUA RIWAYAT →
-               </button>
             </div>
 
-            {/* RIGHT: DATA GAPOKTAN (REKAP WILAYAH) */}
-            <div className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow">
+            {/* RIGHT: DATA GAPOKTAN */}
+            <div className="bg-white rounded-2xl border p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow overflow-hidden">
                <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -429,42 +453,47 @@ export default function PublicDashboard() {
                     </div>
                     <div>
                       <h2 className="text-lg font-bold text-[#0F172A]">Data Gapoktan</h2>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Rekapitulasi per kabupaten</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Informasi kelompok tani</p>
                     </div>
                   </div>
-                  <Download className="h-4 w-4 text-muted-foreground hover:text-primary cursor-pointer transition-colors" />
                </div>
 
-               <div className="overflow-x-auto flex-grow">
-                 <table className="w-full text-left">
+               <div className="overflow-x-auto flex-grow rounded-xl border scrollbar-hide">
+                 <table className="w-full text-left min-w-[600px]">
                    <thead>
-                     <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-gray-100">
-                       <th className="px-3 py-3">Kabupaten</th>
+                     <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                       <th className="px-3 py-3">Wilayah (Kab/Kec/Des)</th>
+                       <th className="px-3 py-3">Kelompok Tani</th>
+                       <th className="px-3 py-3">Komoditas</th>
                        <th className="px-3 py-3 text-center">Unit</th>
-                       <th className="px-3 py-3 text-right">Tonnage</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-50">
-                     {kabupatenSummary.map(k => (
-                       <tr key={k.id} className="text-xs hover:bg-neutral-50 transition-colors">
-                         <td className="px-3 py-4 font-bold text-[#0F172A]">{k.name.replace('KABUPATEN ', '')}</td>
-                         <td className="px-3 py-4 text-center">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${k.unitCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
-                              {k.unitCount}
-                            </span>
+                     {gapoktanList.map((g: any) => (
+                       <tr key={g.id} className="text-[11px] hover:bg-neutral-50 transition-colors">
+                         <td className="px-3 py-4">
+                            <div className="font-bold text-[#0F172A]">{g.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}</div>
+                            <div className="text-[10px] text-muted-foreground line-clamp-1">{g.desa?.kecamatan?.name}, {g.desa?.name}</div>
                          </td>
-                         <td className="px-3 py-4 text-right">
-                            <span className="font-bold text-gray-900">{Number(k.totalTonnage || 0).toFixed(1)}</span>
-                            <span className="text-[10px] ml-1 text-muted-foreground font-bold">TON</span>
+                         <td className="px-3 py-4 font-bold text-[#0F172A]">{g.name}</td>
+                         <td className="px-3 py-4">
+                            <div className="flex flex-wrap gap-1">
+                              {g.komoditas?.map((k: any) => (
+                                <span key={k.id} className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-100">
+                                  {k.name}
+                                </span>
+                              ))}
+                            </div>
+                         </td>
+                         <td className="px-3 py-4 text-center">
+                            <span className="px-2.5 py-1 rounded-lg bg-primary text-white font-black shadow-sm">
+                              {g.dryer_units?.length || 0}
+                            </span>
                          </td>
                        </tr>
                      ))}
                    </tbody>
                  </table>
-               </div>
-               <div className="mt-4 pt-4 border-t border-dashed flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  <span>Total Kabupaten</span>
-                  <span className="text-[#0F172A]">{kabupatenSummary.length} Wilayah</span>
                </div>
             </div>
          </div>
