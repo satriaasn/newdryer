@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -9,6 +9,8 @@ interface MapMarker {
   id: string;
   latitude: number;
   longitude: number;
+  name?: string;
+  address?: string;
 }
 
 interface DashboardMapProps {
@@ -54,7 +56,14 @@ export default function DashboardMap({ markers, onMarkerClick }: DashboardMapPro
           position={[m.latitude, m.longitude]}
           icon={customIcon}
           eventHandlers={{ click: () => onMarkerClick(m.id) }}
-        />
+        >
+          <Popup className="custom-popup">
+            <div className="p-1">
+              <h3 className="font-bold text-[#0F172A] text-sm">{m.name}</h3>
+              <p className="text-[10px] text-muted-foreground mt-1 italic leading-tight">{m.address}</p>
+            </div>
+          </Popup>
+        </Marker>
       ))}
     </MapContainer>
   );

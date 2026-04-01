@@ -177,7 +177,7 @@ export default function PublicDashboard() {
       const allTime = prods.reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
       const todayTotal = prods.filter(p => p.production_date.startsWith(today)).reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
       return { ...k, allTime, todayTotal };
-    });
+    }).sort((a, b) => (b.allTime || 0) - (a.allTime || 0));
     return stats;
   }, [filteredProductions, komoditasList]);
 
@@ -399,7 +399,13 @@ export default function PublicDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                <div className="lg:col-span-3 h-[500px] rounded-2xl border overflow-hidden shadow-inner relative">
                   <DynamicMap 
-                    markers={gapoktanList.filter(g => g.latitude && g.longitude).map(g => ({ id: g.id, latitude: g.latitude!, longitude: g.longitude! }))} 
+                    markers={gapoktanList.filter(g => g.latitude && g.longitude).map(g => ({ 
+                      id: g.id, 
+                      latitude: g.latitude!, 
+                      longitude: g.longitude!,
+                      name: g.name,
+                      address: `${g.desa?.name || ''}, ${g.desa?.kecamatan?.name || ''}`
+                    }))} 
                     onMarkerClick={(id: string) => {
                       const found = gapoktanList.find(g => g.id === id);
                       if (found) setSelectedGapoktan(found);
@@ -435,9 +441,15 @@ export default function PublicDashboard() {
                               <Factory className="h-3 w-3" />
                               {g.dryer_units?.length || 0} Unit
                            </div>
-                           <button className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                              Lihat Detail →
-                           </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/dashboard/gapoktan/${g.id}`);
+                              }}
+                              className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                               Lihat Detail →
+                            </button>
                         </div>
                       </div>
                     ))}

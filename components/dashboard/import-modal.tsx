@@ -98,7 +98,15 @@ export function ImportModal({ title, isOpen, onClose, onSuccess }: ImportModalPr
              <div className="space-y-1">
                <p className="font-semibold">Format Kolom</p>
                <p className="text-xs text-blue-700/80">Pastikan format kolom tabel sesuai dengan template yang tersedia agar data terbaca dengan benar.</p>
-               <button className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 mt-2">
+               <button 
+                 onClick={() => {
+                   const link = document.createElement('a');
+                   link.href = '/template-import.csv';
+                   link.download = 'template-import.csv';
+                   link.click();
+                 }}
+                 className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 mt-2"
+               >
                  <Download className="h-3 w-3" /> Unduh Template CSV
                </button>
              </div>
