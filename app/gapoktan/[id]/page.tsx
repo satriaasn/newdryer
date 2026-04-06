@@ -61,7 +61,7 @@ export default function PublicGapoktanDetailPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="animate-pulse text-center space-y-4">
         <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-sm font-medium text-slate-500 italic uppercase tracking-widest">Memuat Profil Gapoktan...</p>
@@ -70,7 +70,7 @@ export default function PublicGapoktanDetailPage() {
   );
 
   if (!gapoktan) return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-8 text-center">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 text-center">
       <div className="h-20 w-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-6 border border-rose-100 shadow-sm">
          <ShieldCheck className="h-10 w-10 opacity-50" />
       </div>
@@ -150,7 +150,7 @@ export default function PublicGapoktanDetailPage() {
          <div className="grid lg:grid-cols-3 gap-8">
             {/* SIDEBAR INFO */}
             <div className="lg:col-span-1 space-y-6">
-               <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
+               <div className="bg-card rounded-3xl border border-border p-8 shadow-sm hover:border-primary/30 transition-colors">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
                      <Info className="h-4 w-4" /> Detail Kelompok
                   </h3>
@@ -183,7 +183,7 @@ export default function PublicGapoktanDetailPage() {
                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Komoditas Fokus</p>
                            <div className="flex flex-wrap gap-2 mt-1">
                               {gapoktan.komoditas?.map(k => (
-                                 <span key={k.id} className="text-[9px] font-black uppercase tracking-widest bg-slate-50 text-slate-600 px-2.5 py-1 rounded-md border border-slate-100">{k.name}</span>
+                                 <span key={k.id} className="text-[9px] font-black uppercase tracking-widest bg-muted text-muted-foreground px-2.5 py-1 rounded-md border border-border">{k.name}</span>
                               ))}
                            </div>
                         </div>
@@ -191,7 +191,7 @@ export default function PublicGapoktanDetailPage() {
                   </div>
                </div>
 
-               <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
+               <div className="bg-card rounded-3xl border border-border p-8 shadow-sm hover:border-primary/30 transition-colors">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
                      <Factory className="h-4 w-4" /> Aset Infrastruktur
                   </h3>
@@ -222,7 +222,7 @@ export default function PublicGapoktanDetailPage() {
 
             {/* PRODUCTION HISTORY TABLE Section */}
             <div className="lg:col-span-2 space-y-6">
-               <div className="bg-white rounded-3xl border border-slate-100 p-1 shadow-sm overflow-hidden flex flex-col">
+               <div className="bg-card rounded-3xl border border-border p-1 shadow-sm overflow-hidden flex flex-col hover:border-primary/30 transition-colors">
                   <div className="px-8 pt-8 pb-4 flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
@@ -238,7 +238,7 @@ export default function PublicGapoktanDetailPage() {
                   <div className="overflow-x-auto scrollbar-hide px-4 pb-4 mt-4">
                      <table className="w-full text-left min-w-[1000px]">
                         <thead>
-                           <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] bg-slate-50/50 rounded-xl">
+                           <tr className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] bg-muted/50 rounded-xl">
                               <th className="px-6 py-4">TGL / UNIT</th>
                               <th className="px-6 py-4">KOMODITAS</th>
                               <th className="px-6 py-4 text-right">TON SEBELUM</th>
@@ -327,7 +327,7 @@ export default function PublicGapoktanDetailPage() {
 }
 
 const StatCard = ({ title, value, unit, icon: Icon, color }: any) => (
-  <div className={cn("bg-white p-6 rounded-3xl border border-slate-100 shadow-sm border-l-4 transition-all hover:translate-y-[-2px] hover:shadow-md", color)}>
+  <div className={cn("bg-card p-6 rounded-3xl border border-border shadow-sm border-l-4 transition-all hover:translate-y-[-2px] hover:shadow-lg hover:border-primary/50 hover:shadow-primary/5 card-sky-glow", "border-l-primary")}>
     <div className="flex justify-between items-start">
       <div className="space-y-1">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">{title}</p>
@@ -336,7 +336,7 @@ const StatCard = ({ title, value, unit, icon: Icon, color }: any) => (
            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{unit}</span>
         </div>
       </div>
-      <div className="p-2 rounded-xl bg-slate-50 text-slate-400">
+      <div className="p-2 rounded-xl bg-muted text-muted-foreground">
          <Icon className="h-5 w-5" />
       </div>
     </div>

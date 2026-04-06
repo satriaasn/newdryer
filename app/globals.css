@@ -48,26 +48,26 @@
     --ring: 197 71% 73%;
   }
 
-  /* Oligarch Theme: Sky Blue Premium (Matches User Screenshot) */
+  /* Oligarch Theme: Sky Blue Premium (Refined for Card Contrast) */
   [data-theme="oligarch"] {
-    --background: 222.2 84% 3%; /* Deep Charcoal-Navy Black */
+    --background: 222 84% 4.9%; /* Deepest Black-Blue */
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 5.5%; 
+    --card: 222 84% 8%; /* Slightly Lighter for Card Separation */
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 3%;
+    --popover: 222 84% 5%;
     --popover-foreground: 210 40% 98%;
     --primary: 197 71% 73%; /* Vibrant #87ceeb */
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-foreground: 222 47% 11%;
     --secondary: 197 71% 15%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 12%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 32% 12%;
+    --muted-foreground: 215 20% 65%;
     --accent: 197 71% 73%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 62.8% 30.6%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
-    --border: 222.2 84% 12%;
-    --input: 222.2 84% 12%;
+    --border: 222 84% 15%; /* Visible Border for Cards */
+    --input: 222 84% 15%;
     --ring: 197 71% 73%;
   }
 }
