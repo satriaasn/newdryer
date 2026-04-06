@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { Production, DashboardStats } from "@/lib/types";
+import { whatsappService } from "./whatsapp.service";
 
 export const productionService = {
   async getAll(): Promise<Production[]> {
@@ -52,6 +53,12 @@ export const productionService = {
       .select('*, dryer_units(*), gapoktan(*), komoditas(*)')
       .single();
     if (error) throw new Error(error.message);
+    
+    // Trigger WhatsApp notification if active
+    whatsappService.sendProductionReport(data).catch(err => {
+      console.warn("WhatsApp notification skipped:", err.message);
+    });
+
     return data as Production;
   },
 

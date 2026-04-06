@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { userService, type Profile } from "@/services/user.service";
 import { settingsService, type AppSettings } from "@/services/settings.service";
+import { whatsappService, type WhatsAppSettings } from "@/services/whatsapp.service";
 import { 
   User, 
   Settings, 
@@ -11,7 +12,11 @@ import {
   LayoutDashboard, 
   ShieldCheck,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
+  Send,
+  BellRing,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,17 +27,29 @@ export default function ProfileSettingsPage() {
     app_slogan: "Real-time oversight of national agricultural drying infrastructure",
     copyright: "© 2026 Kementerian Pertanian Republik Indonesia. All rights reserved."
   });
+  const [waSettings, setWaSettings] = useState<WhatsAppSettings>({
+    api_key: "",
+    target_number: "",
+    is_active: false,
+    send_on_input: true,
+    send_daily_summary: false,
+    daily_summary_time: "18:00",
+    message_template: ""
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
     Promise.all([
       userService.getCurrentProfile(),
-      settingsService.getSettings()
-    ]).then(([p, s]) => {
+      settingsService.getSettings(),
+      whatsappService.getSettings()
+    ]).then(([p, s, wa]) => {
       setProfile(p);
       if (s) setSettings(s);
+      if (wa) setWaSettings(wa);
     }).catch(err => console.error(err)).finally(() => setLoading(false));
   }, []);
 
@@ -41,12 +58,35 @@ export default function ProfileSettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      await settingsService.updateSettings(settings);
+      await Promise.all([
+        settingsService.updateSettings(settings),
+        whatsappService.updateSettings(waSettings)
+      ]);
       setMessage({ type: 'success', text: 'Konfigurasi berhasil disimpan.' });
     } catch (err: any) {
       setMessage({ type: 'error', text: 'Gagal menyimpan konfigurasi: ' + err.message });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestWA = async () => {
+    if (!waSettings.target_number || !waSettings.api_key) {
+      alert("Masukkan Nomor Tujuan dan API Key terlebih dahulu.");
+      return;
+    }
+    setTesting(true);
+    try {
+      const res = await whatsappService.sendTestMessage(waSettings.target_number, waSettings.api_key);
+      if (res.success) {
+        alert(res.message);
+      } else {
+        alert("Error: " + res.message);
+      }
+    } catch (err: any) {
+      alert("Gagal: " + err.message);
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -171,6 +211,136 @@ export default function ProfileSettingsPage() {
               </div>
 
             </form>
+          </div>
+
+          {/* WhatsApp Integration Block */}
+          <div className="bg-card rounded-2xl border p-6 md:p-8 shadow-sm mt-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -translate-y-16 translate-x-16 blur-3xl opacity-50" />
+            
+            <div className="flex items-center justify-between gap-3 mb-8 border-b pb-4 relative z-10">
+               <div className="flex items-center gap-3">
+                 <MessageSquare className="h-6 w-6 text-emerald-500" />
+                 <h2 className="text-lg font-bold">Integrasi WhatsApp (Automatic Report)</h2>
+               </div>
+               <div className="flex items-center gap-2">
+                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{waSettings.is_active ? 'Aktif' : 'Nonaktif'}</span>
+                 <button 
+                   onClick={() => setWaSettings({...waSettings, is_active: !waSettings.is_active})}
+                   className={cn(
+                     "w-12 h-6 rounded-full transition-all relative ring-4 ring-background shadow-inner",
+                     waSettings.is_active ? "bg-emerald-500" : "bg-muted"
+                   )}
+                 >
+                   <div className={cn(
+                     "absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md",
+                     waSettings.is_active ? "left-7" : "left-1"
+                   )} />
+                 </button>
+               </div>
+            </div>
+
+            <div className="space-y-6 relative z-10">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2 group">
+                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">WA Gateway API Key (Fonnté)</label>
+                  <input 
+                    type="password" 
+                    value={waSettings.api_key || ""}
+                    onChange={(e) => setWaSettings({...waSettings, api_key: e.target.value})}
+                    placeholder="Masukkan API Key..."
+                    className="w-full px-4 py-3 rounded-xl border bg-background focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2 group">
+                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Nomor WA Atasan (628...)</label>
+                  <input 
+                    type="text" 
+                    value={waSettings.target_number || ""}
+                    onChange={(e) => setWaSettings({...waSettings, target_number: e.target.value})}
+                    placeholder="628123456789"
+                    className="w-full px-4 py-3 rounded-xl border bg-background focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-muted/30 p-4 rounded-2xl border border-dashed border-emerald-500/20 space-y-4">
+                <h3 className="text-sm font-bold flex items-center gap-2 italic">
+                   <BellRing className="h-4 w-4 text-emerald-500" /> Kapan Laporan Dikirim?
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="flex items-center gap-3 p-3 bg-background rounded-xl border cursor-pointer hover:bg-muted/30 transition-all">
+                    <input 
+                      type="checkbox" 
+                      checked={waSettings.send_on_input} 
+                      onChange={(e) => setWaSettings({...waSettings, send_on_input: e.target.checked})}
+                      className="h-4 w-4 rounded-full accent-emerald-500"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold uppercase tracking-tight">Setiap Input Data</span>
+                      <span className="text-[10px] text-muted-foreground italic">Kirim WA Real-time setelah operator simpan data.</span>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 bg-background rounded-xl border cursor-pointer hover:bg-muted/30 transition-all">
+                    <input 
+                      type="checkbox" 
+                      checked={waSettings.send_daily_summary} 
+                      onChange={(e) => setWaSettings({...waSettings, send_daily_summary: e.target.checked})}
+                      className="h-4 w-4 rounded-full accent-emerald-500"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold uppercase tracking-tight">Ringkasan Harian (Scheduled)</span>
+                      <span className="text-[10px] text-muted-foreground italic">Kirim 1 WA berisi total produksi hari ini.</span>
+                    </div>
+                  </label>
+                </div>
+                {waSettings.send_daily_summary && (
+                  <div className="flex items-center gap-3 px-1 animate-in slide-in-from-top-2 duration-300">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-medium">Jam Pengiriman:</span>
+                    <input 
+                      type="time" 
+                      value={waSettings.daily_summary_time}
+                      onChange={(e) => setWaSettings({...waSettings, daily_summary_time: e.target.value})}
+                      className="bg-background border rounded-lg px-2 py-1 text-xs font-bold"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 group">
+                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Template Pesan Laporan</label>
+                <textarea 
+                   value={waSettings.message_template}
+                   onChange={(e) => setWaSettings({...waSettings, message_template: e.target.value})}
+                   rows={3}
+                   className="w-full px-4 py-3 rounded-xl border bg-background focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium text-sm leading-relaxed"
+                   placeholder="Gunakan {{gapoktan}}, {{qty}}, {{komoditas}}, {{notes}}"
+                />
+                <p className="text-[10px] text-muted-foreground italic px-1">
+                  Tips: Gunakan variabel di atas untuk memasukkan data otomatis ke dalam pesan WA.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-4 pt-2">
+                <button 
+                  onClick={handleSaveSettings}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 text-xs"
+                >
+                  {saving ? <div className="animate-spin h-3 w-3 border-b-2 border-white rounded-full" /> : <Save className="h-4 w-4" />}
+                  Simpan Konfigurasi WA
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleTestWA}
+                  disabled={testing}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-background border border-emerald-500 text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all text-xs"
+                >
+                  {testing ? <div className="animate-spin h-3 w-3 border-b-2 border-emerald-500 rounded-full" /> : <Send className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
