@@ -55,16 +55,18 @@ export default function VolumeBarChart({ data, theme = 'oligarch' }: VolumeBarCh
           width={100}
         />
         <Tooltip 
-          cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9' }}
+          cursor={{ fill: 'rgba(0,0,0,0.05)' }}
           contentStyle={{ 
-            backgroundColor: isDark ? '#0f172a' : '#fff',
-            borderRadius: '12px', 
-            border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #E2E8F0', 
-            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            color: isDark ? '#fff' : '#000'
+            backgroundColor: '#1e293b', // Slate 800 for high contrast
+            borderRadius: '8px', 
+            border: '1px solid #334155', // Slate 700 
+            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)',
+            color: '#f8fafc', // Slate 50
+            padding: '8px 12px',
+            fontSize: '12px'
           }} 
+          itemStyle={{ color: '#38bdf8', fontWeight: 'bold' }} // Sky 400
+          labelStyle={{ color: '#94a3b8', marginBottom: '4px' }} // Slate 400
         />
         <Bar dataKey="ton" name="Volume (Ton)" radius={[0, 8, 8, 0]} barSize={24}>
           {data.map((entry, index) => (

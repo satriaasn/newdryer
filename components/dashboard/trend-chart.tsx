@@ -41,13 +41,16 @@ export default function TrendChart({ data, theme = 'oligarch' }: TrendChartProps
         />
         <Tooltip 
           contentStyle={{ 
-            backgroundColor: isDark ? '#0f172a' : '#fff',
-            borderRadius: '12px', 
-            border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #E2E8F0', 
-            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-            color: isDark ? '#fff' : '#000'
+            backgroundColor: '#1e293b', // Slate 800 for high contrast
+            borderRadius: '8px', 
+            border: '1px solid #334155', // Slate 700 
+            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)',
+            color: '#f8fafc', // Slate 50
+            padding: '8px 12px',
+            fontSize: '12px'
           }} 
-          itemStyle={{ color: primaryColor }}
+          itemStyle={{ color: '#38bdf8', fontWeight: 'bold' }} // Sky 400
+          labelStyle={{ color: '#94a3b8', marginBottom: '4px' }} // Slate 400
         />
         <Line 
           type="monotone" 
