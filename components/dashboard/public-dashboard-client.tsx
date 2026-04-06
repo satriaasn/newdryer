@@ -44,6 +44,10 @@ export default function PublicDashboardClient() {
 
   const [selectedGapoktan, setSelectedGapoktan] = useState<Gapoktan | null>(null);
 
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+  };
+
   const resetFilters = () => {
     setFilterKabupaten('');
     setFilterKecamatan('');
@@ -213,7 +217,7 @@ export default function PublicDashboardClient() {
   }, [productions]);
 
   const exportToCSV = () => {
-    const headers = ['No Unit', 'Tanggal', 'Gapoktan', 'Alamat', 'Komoditas', 'Status', 'Produksi (Ton)'];
+    const headers = ['No Unit', 'Tanggal', 'Gapoktan', 'Alamat', 'Komoditas', 'Tonase Sebelum', 'Harga Sebelum', 'Tonase Sesudah', 'Harga Sesudah', 'Status'];
     const rows = filteredProductions.map(p => {
       const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
       const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
@@ -224,8 +228,11 @@ export default function PublicDashboardClient() {
         p.gapoktan?.name,
         `"${p.gapoktan?.desa?.name}, ${p.gapoktan?.desa?.kecamatan?.name}, ${p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}"`,
         p.komoditas?.name,
-        status,
-        Number(p.qty_before || 0).toFixed(2)
+        Number(p.qty_before || 0).toFixed(2),
+        Number(p.price_before || 0).toFixed(0),
+        Number(p.qty_after || 0).toFixed(2),
+        Number(p.price_after || 0).toFixed(0),
+        status
       ];
     });
 
@@ -519,15 +526,18 @@ export default function PublicDashboardClient() {
            </div>
 
            <div className="overflow-x-auto rounded-xl border scrollbar-hide">
-              <table className="w-full text-left min-w-[1000px]">
+              <table className="w-full text-left min-w-[1200px]">
                 <thead>
                   <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-[#1a2333]">
                     <th className="px-5 py-4 border-b border-slate-700/50">Unit-Tgl</th>
                     <th className="px-5 py-4 border-b border-slate-700/50">Kelompok Tani</th>
                     <th className="px-5 py-4 border-b border-slate-700/50">Alamat Lengkap</th>
                     <th className="px-5 py-4 border-b border-slate-700/50">Komoditas</th>
+                    <th className="px-5 py-4 border-b border-slate-700/50 text-right">Ton Sebelum</th>
+                    <th className="px-5 py-4 border-b border-slate-700/50 text-right">Harga Sebelum</th>
+                    <th className="px-5 py-4 border-b border-slate-700/50 text-right">Ton Sesudah</th>
+                    <th className="px-5 py-4 border-b border-slate-700/50 text-right">Harga Sesudah</th>
                     <th className="px-5 py-4 border-b border-slate-700/50">Status</th>
-                    <th className="px-5 py-4 text-right border-b border-slate-700/50">Output (Ton)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
@@ -561,21 +571,31 @@ export default function PublicDashboardClient() {
                           <td className="px-5 py-5">
                              <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20 text-[10px]">{p.komoditas?.name}</span>
                           </td>
+                          <td className="px-5 py-5 text-right">
+                             <span className="text-sm font-bold text-white">{Number(p.qty_before || 0).toFixed(2)}</span>
+                             <span className="text-[9px] ml-1 text-slate-500 uppercase">Ton</span>
+                          </td>
+                          <td className="px-5 py-5 text-right">
+                             <span className="text-[11px] font-bold text-emerald-400">{formatCurrency(p.price_before || 0)}</span>
+                          </td>
+                          <td className="px-5 py-5 text-right">
+                             <span className="text-sm font-bold text-white">{Number(p.qty_after || 0).toFixed(2)}</span>
+                             <span className="text-[9px] ml-1 text-slate-500 uppercase">Ton</span>
+                          </td>
+                          <td className="px-5 py-5 text-right">
+                             <span className="text-[11px] font-bold text-blue-400">{formatCurrency(p.price_after || 0)}</span>
+                          </td>
                           <td className="px-5 py-5">
                              <div className="flex items-center gap-2">
                                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot} animate-pulse`} />
                                 <span className={`font-bold text-[10px] uppercase tracking-widest ${statusColor}`}>{statusName}</span>
                              </div>
                           </td>
-                          <td className="px-5 py-5 text-right">
-                             <span className="text-xl font-black text-white">{Number(p.qty_before || 0).toFixed(1)}</span>
-                             <span className="text-[10px] ml-1.5 text-slate-500 font-bold">TON</span>
-                          </td>
                         </tr>
                      );
                   })}
                   {filteredProductions.length === 0 && (
-                    <tr className="bg-[#1e293b]"><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400 italic">Tidak ada data sesuai filter</td></tr>
+                    <tr className="bg-[#1e293b]"><td colSpan={9} className="px-5 py-10 text-center text-sm text-slate-400 italic">Tidak ada data sesuai filter</td></tr>
                   )}
                 </tbody>
               </table>
