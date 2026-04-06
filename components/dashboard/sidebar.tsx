@@ -18,6 +18,7 @@ import {
   MapPin,
   X,
   Settings,
+  Download,
 } from "lucide-react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { userService, type Profile } from "@/services/user.service";
@@ -32,6 +33,7 @@ const navigation = [
   { name: "Detail Wilayah", href: "/dashboard/address", icon: MapPin },
   { name: "Pengaturan User", href: "/dashboard/users", icon: ShieldCheck },
   { name: "Profil & Pengaturan", href: "/dashboard/profile", icon: Settings },
+  { name: "Export Data", href: "/dashboard/export", icon: Download },
 ];
 
 interface SidebarProps {

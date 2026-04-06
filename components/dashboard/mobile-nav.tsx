@@ -7,14 +7,15 @@ import {
   LayoutDashboard, 
   ClipboardList, 
   Users, 
-  MapPin 
+  MapPin,
+  Download
 } from "lucide-react";
 
 const mobileNavigation = [
   { name: "Dash", href: "/dashboard", icon: LayoutDashboard },
   { name: "Produksi", href: "/dashboard/production", icon: ClipboardList },
   { name: "Gapoktan", href: "/dashboard/gapoktan", icon: Users },
-  { name: "Alamat", href: "/dashboard/address", icon: MapPin },
+  { name: "Ekspor", href: "/dashboard/export", icon: Download },
 ];
 
 export function MobileNav() {
