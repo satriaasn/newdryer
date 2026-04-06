@@ -53,9 +53,26 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: profileError.message }, { status: 400 })
   }
 
+  // 3. Initialize app_settings with default branding
+  const { data: settings, error: settingsError } = await supabase
+    .from('app_settings')
+    .upsert({
+      id: 1,
+      app_name: 'Dashboard Monitoring Hibah Dryer',
+      app_slogan: 'Real-time oversight of national agricultural drying infrastructure',
+      copyright: '© 2026 Kementerian Pertanian Republik Indonesia. All rights reserved.',
+      updated_at: new Date().toISOString()
+    })
+    .select()
+
+  if (settingsError) {
+    console.error('Settings Seed Error (ensure table exists):', settingsError)
+  }
+
   return NextResponse.json({ 
     message: 'Superadmin created successfully', 
     user: { id: user.id, email: user.email },
-    profile
+    profile,
+    settings
   })
 }
