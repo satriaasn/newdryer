@@ -305,7 +305,7 @@ export default function PublicDashboardClient() {
              <button onClick={() => handleThemeChange('dark')} className={cn("p-2 rounded-lg transition-all", theme === 'dark' ? "bg-slate-800 shadow text-white" : "text-muted-foreground hover:bg-slate-800/10")}>
                 <Moon className="h-4 w-4" />
              </button>
-             <button onClick={() => handleThemeChange('oligarch')} className={cn("p-2 rounded-lg transition-all flex items-center gap-1.5 px-3", theme === 'oligarch' ? "bg-[#0f172a] shadow text-white border border-white/20" : "text-muted-foreground hover:bg-[#0f172a]/10")}>
+             <button onClick={() => handleThemeChange('oligarch')} className={cn("p-2 rounded-lg transition-all flex items-center gap-1.5 px-3", theme === 'oligarch' ? "bg-[#87ceeb] shadow text-slate-900 border border-white/20" : "text-muted-foreground hover:bg-[#87ceeb]/20")}>
                 <Palette className="h-4 w-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Oligarch</span>
              </button>
