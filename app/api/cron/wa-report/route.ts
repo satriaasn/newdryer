@@ -60,18 +60,18 @@ export async function GET(request: Request) {
                  (productions.length > 10 ? '\n...dan lainnya' : '') +
                  `\n\n_Pesan otomatis dari Dashboard Monitoring Dryer_`;
 
+    const formData = new FormData();
+    formData.append('target', settings.target_number);
+    formData.append('message', message);
+    formData.append('countryCode', '62');
+
     // 6. Send to WhatsApp via Fonnté
     const response = await fetch('https://api.fonnte.com/send', {
       method: 'POST',
       headers: {
-        'Authorization': settings.api_key,
-        'Content-Type': 'application/json',
+        'Authorization': settings.api_key.trim(),
       },
-      body: JSON.stringify({
-        target: settings.target_number,
-        message: message,
-        countryCode: '62',
-      }),
+      body: formData,
     });
 
     const resData = await response.json();

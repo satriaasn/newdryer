@@ -53,17 +53,17 @@ export const whatsappService = {
 
   async sendTestMessage(target: string, apiKey: string): Promise<{ success: boolean; message: string }> {
     try {
+      const formData = new FormData();
+      formData.append('target', target);
+      formData.append('message', 'Halo! Ini adalah pesan ujicoba sistem laporan AgroDryer. Jika pesan ini sampai, berarti pengaturan WA Gateway Anda sudah benar.');
+      formData.append('countryCode', '62');
+
       const response = await fetch('https://api.fonnte.com/send', {
         method: 'POST',
         headers: {
-          'Authorization': apiKey,
-          'Content-Type': 'application/json',
+          'Authorization': apiKey.trim(),
         },
-        body: JSON.stringify({
-          target: target,
-          message: 'Halo! Ini adalah pesan ujicoba sistem laporan AgroDryer. Jika pesan ini sampai, berarti pengaturan WA Gateway Anda sudah benar.',
-          countryCode: '62', // Default Indonesia
-        }),
+        body: formData,
       });
 
       const resData = await response.json();
@@ -91,17 +91,17 @@ export const whatsappService = {
         .replace('{{komoditas}}', p.komoditas?.name || '-')
         .replace('{{notes}}', p.notes || '-');
 
+      const formData = new FormData();
+      formData.append('target', settings.target_number);
+      formData.append('message', message);
+      formData.append('countryCode', '62');
+
       const response = await fetch('https://api.fonnte.com/send', {
         method: 'POST',
         headers: {
-          'Authorization': settings.api_key,
-          'Content-Type': 'application/json',
+          'Authorization': settings.api_key.trim(),
         },
-        body: JSON.stringify({
-          target: settings.target_number,
-          message: message,
-          countryCode: '62',
-        }),
+        body: formData,
       });
 
       const resData = await response.json();
