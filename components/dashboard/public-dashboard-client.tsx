@@ -14,7 +14,6 @@ const VolumeBarChart = nextDynamic(() => import("@/components/dashboard/volume-c
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
   Search, Calendar, Filter, Download, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
-  Search, Calendar, Filter, Download, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
   Wheat, ClipboardList, Sun, Moon, Palette, Check, ChevronDown, ChevronUp
 } from "lucide-react";
 
