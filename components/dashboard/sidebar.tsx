@@ -30,6 +30,7 @@ const navigation = [
   { name: "Peta GIS", href: "/dashboard/maps", icon: Map },
   { name: "Detail Wilayah", href: "/dashboard/address", icon: MapPin },
   { name: "Pengaturan User", href: "/dashboard/users", icon: ShieldCheck },
+  { name: "Profil & Pengaturan", href: "/dashboard/profile", icon: Settings },
 ];
 
 interface SidebarProps {

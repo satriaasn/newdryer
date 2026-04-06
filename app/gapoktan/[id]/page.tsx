@@ -17,6 +17,11 @@ export default function PublicGapoktanDetailPage() {
   const [gapoktan, setGapoktan] = useState<Gapoktan | null>(null);
   const [productions, setProductions] = useState<Production[]>([]);
   const [loading, setLoading] = useState(true);
+  const [appSettings, setAppSettings] = useState<{app_name: string, app_slogan: string, copyright: string}>({
+    app_name: "Dashboard Monitoring Hibah Dryer",
+    app_slogan: "Real-time oversight of national agricultural drying infrastructure",
+    copyright: "© 2026 Kementerian Pertanian Republik Indonesia. All rights reserved."
+  });
 
   const [theme, setTheme] = useState<'light' | 'dark' | 'oligarch'>('oligarch');
 
@@ -32,10 +37,12 @@ export default function PublicGapoktanDetailPage() {
     if (!id) return;
     Promise.all([
       gapoktanService.getById(id as string),
-      fetch(`/api/production?gapoktan_id=${id}`).then(r => r.json())
-    ]).then(([g, p]) => {
+      fetch(`/api/production?gapoktan_id=${id}`).then(r => r.json()),
+      fetch('/api/settings').then(r => r.json())
+    ]).then(([g, p, s]) => {
       setGapoktan(g);
       setProductions(Array.isArray(p) ? p : []);
+      if (s && !s.error) setAppSettings(s);
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -76,7 +83,7 @@ export default function PublicGapoktanDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans pb-20">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col pb-0">
       {/* HEADER SECTION - PREMIUM DARK BLUE */}
       <div className="bg-[#0f172a] text-white pt-10 pb-20 lg:pb-32 px-6 lg:px-12 relative overflow-hidden">
          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
@@ -85,13 +92,20 @@ export default function PublicGapoktanDetailPage() {
          </div>
 
          <div className="max-w-[1400px] mx-auto relative z-10">
-            <button 
-              onClick={() => router.push('/')} 
-              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 group"
-            >
-              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-              <span className="text-sm font-bold uppercase tracking-widest">Dashboard Utama</span>
-            </button>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+              <button 
+                onClick={() => router.push('/')} 
+                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+              >
+                <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                <span className="text-sm font-bold uppercase tracking-widest">Dashboard Utama</span>
+              </button>
+              
+              <div className="text-right hidden md:block">
+                <h2 className="text-sm font-black text-primary uppercase tracking-widest leading-none">{appSettings.app_name}</h2>
+                <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-tighter opacity-70">{appSettings.app_slogan}</p>
+              </div>
+            </div>
 
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                <div className="space-y-4">
@@ -282,6 +296,32 @@ export default function PublicGapoktanDetailPage() {
             </div>
          </div>
       </main>
+
+      {/* FOOTER SECTION */}
+      <footer className="mt-auto py-10 px-6 lg:px-10 border-t bg-card/30 backdrop-blur-md">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
+              <Package className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-black tracking-tight text-foreground uppercase tracking-widest">{appSettings.app_name}</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-50 tracking-[0.2em] mt-0.5">Agriculture Monitoring System</span>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center md:items-end gap-2 text-center md:text-right">
+            <p className="text-xs text-muted-foreground font-medium italic opacity-70 transition-opacity hover:opacity-100">{appSettings.copyright}</p>
+            <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
+               <span>Efficiency</span>
+               <span className="h-1 w-1 rounded-full bg-primary/20" />
+               <span>Precision</span>
+               <span className="h-1 w-1 rounded-full bg-primary/20" />
+               <span>Integrity</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

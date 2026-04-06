@@ -10,8 +10,8 @@
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 197 71% 73%; /* Sky Blue #87ceeb equivalent in HSL */
-    --primary-foreground: 210 40% 98%;
+    --primary: 197 71% 73%; /* Sky Blue #87ceeb */
+    --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 197 71% 73%;
     --radius: 0.75rem;
   }
 
@@ -33,41 +33,41 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 197 71% 73%;
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 197 71% 73%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --ring: 197 71% 73%;
   }
 
-  /* Oligarch Theme: Sky Blue Premium */
+  /* Oligarch Theme: Sky Blue Premium (Matches User Screenshot) */
   [data-theme="oligarch"] {
-    --background: 222.2 84% 4.9%; /* Use a dark background to make Sky Blue pop */
+    --background: 222.2 84% 3%; /* Deep Charcoal-Navy Black */
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 7%; 
+    --card: 222.2 84% 5.5%; 
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 84% 3%;
     --popover-foreground: 210 40% 98%;
-    --primary: 197 71% 73%; /* Sky Blue #87ceeb */
+    --primary: 197 71% 73%; /* Vibrant #87ceeb */
     --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 197 71% 25%;
+    --secondary: 197 71% 15%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 20%;
+    --muted: 217.2 32.6% 12%;
     --muted-foreground: 215 20.2% 65.1%;
     --accent: 197 71% 73%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 25%;
-    --input: 217.2 32.6% 25%;
+    --border: 222.2 84% 12%;
+    --input: 222.2 84% 12%;
     --ring: 197 71% 73%;
   }
 }
@@ -94,7 +94,7 @@
 }
 
 .card-hover {
-  @apply transition-all duration-300 hover:shadow-lg hover:border-primary/20 hover:translate-y-[-2px];
+  @apply transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:translate-y-[-2px] hover:shadow-primary/5;
 }
 
 /* Custom Scrollbars */

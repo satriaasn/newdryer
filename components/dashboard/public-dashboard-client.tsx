@@ -29,6 +29,13 @@ export default function PublicDashboardClient() {
   // Theme State
   const [theme, setTheme] = useState<'light' | 'dark' | 'oligarch'>('oligarch');
 
+  // App Settings State
+  const [appSettings, setAppSettings] = useState<{app_name: string, app_slogan: string, copyright: string}>({
+    app_name: "Dashboard Monitoring Hibah Dryer",
+    app_slogan: "Real-time oversight of national agricultural drying infrastructure",
+    copyright: "© 2026 Kementerian Pertanian Republik Indonesia. All rights reserved."
+  });
+
   // Filters
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterStatus, setFilterStatus] = useState('Semua');
@@ -68,12 +75,14 @@ export default function PublicDashboardClient() {
       fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
-      supabase.from('kabupaten').select('*')
-    ]).then(([prodData, gapoktanData, komoditasData, kabRes]) => {
+      supabase.from('kabupaten').select('*'),
+      fetch('/api/settings', { cache: 'no-store' }).then(r => r.json())
+    ]).then(([prodData, gapoktanData, komoditasData, kabRes, settingsData]) => {
       setProductions(prodData);
       setGapoktanList(gapoktanData);
       setKomoditasList(komoditasData);
       setAllKabupaten(kabRes.data || []);
+      if (settingsData && !settingsData.error) setAppSettings(settingsData);
       setLoading(false);
     }).catch(err => console.error(err)).finally(() => setLoading(false));
   };
@@ -288,12 +297,12 @@ export default function PublicDashboardClient() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col">
       {/* HEADER SECTION */}
       <header className="bg-card border-b px-6 lg:px-10 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-0 z-50 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary">Dashboard Monitoring Hibah Dryer</h1>
-          <p className="text-sm text-muted-foreground mt-1">Real-time oversight of national agricultural drying infrastructure</p>
+          <h1 className="text-2xl font-bold tracking-tight text-primary transition-all duration-500 line-clamp-1">{appSettings.app_name}</h1>
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl line-clamp-1">{appSettings.app_slogan}</p>
         </div>
         
         <div className="flex items-center gap-4 w-full md:w-auto">
@@ -320,7 +329,7 @@ export default function PublicDashboardClient() {
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto p-6 lg:p-8 space-y-6">
+      <main className="flex-1 max-w-[1400px] mx-auto p-6 lg:p-8 space-y-6 w-full">
         
         {/* TOP FILTERS SECTION */}
         <div className="bg-card rounded-2xl border p-4 shadow-sm flex flex-col items-start gap-4">
@@ -648,6 +657,32 @@ export default function PublicDashboardClient() {
         </div>
 
       </main>
+
+      {/* FOOTER SECTION */}
+      <footer className="mt-auto py-10 px-6 lg:px-10 border-t bg-card/30 backdrop-blur-md">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
+              <Package className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-black tracking-tight text-foreground uppercase tracking-widest">{appSettings.app_name}</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-50 tracking-[0.2em] mt-0.5">Agriculture Monitoring System</span>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center md:items-end gap-2 text-center md:text-right">
+            <p className="text-xs text-muted-foreground font-medium italic opacity-70 transition-opacity hover:opacity-100">{appSettings.copyright}</p>
+            <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
+               <span>Efficiency</span>
+               <span className="h-1 w-1 rounded-full bg-primary/20" />
+               <span>Precision</span>
+               <span className="h-1 w-1 rounded-full bg-primary/20" />
+               <span>Integrity</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
