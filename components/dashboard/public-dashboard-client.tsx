@@ -399,11 +399,11 @@ export default function PublicDashboardClient() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <KPICard title="Total Produksi" value={Number(stats?.totalQtyBefore || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-t-4 border-t-primary border-l-0" />
-          <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-t-4 border-t-primary border-l-0" />
-          <KPICard title="Total Gapoktan" value={stats?.totalGapoktan || 0} unit="Poktan" trend="Update terbaru" trendUp={true} borderLeft="border-t-4 border-t-primary border-l-0" />
-          <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-t-4 border-t-primary border-l-0" />
-          <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-t-4 border-t-primary border-l-0" />
+          <KPICard title="Total Produksi" value={Number(stats?.totalQtyBefore || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
+          <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-blue-500" />
+          <KPICard title="Total Gapoktan" value={stats?.totalGapoktan || 0} unit="Poktan" trend="Update terbaru" trendUp={true} borderLeft="border-l-rose-500" />
+          <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-indigo-500" />
+          <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-orange-500" />
         </div>
 
         {/* SCORECARD KOMODITAS Section */}
@@ -413,7 +413,14 @@ export default function PublicDashboardClient() {
             <div className="h-px flex-grow mx-4 bg-muted/20" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                borderLeft="border-t-4 border-t-primary border-l-0" 
+            {komoditasStats.map((k: any) => (
+              <KPICard 
+                key={`all-${k.id}`}
+                title={`TOTAL ${k.name.toUpperCase()}`} 
+                value={Number(k.allTime || 0).toFixed(1)} 
+                unit="Ton"
+                trend="All time accumulation" 
+                borderLeft="border-l-blue-500" 
               />
             ))}
           </div>
@@ -430,7 +437,7 @@ export default function PublicDashboardClient() {
                 value={Number(k.todayTotal || 0).toFixed(1)} 
                 unit="Ton"
                 trend="Updated just now" 
-                borderLeft="border-t-4 border-t-primary border-l-0" 
+                borderLeft="border-l-emerald-500" 
               />
             ))}
           </div>
@@ -681,7 +688,7 @@ export default function PublicDashboardClient() {
 }
 
 const KPICard = ({ title, value, unit, trend, trendUp, borderLeft }: any) => (
-  <div className={cn("bg-card p-4 rounded-2xl border border-border/50 shadow-sm transition-all hover:shadow-lg hover:shadow-primary/10 hover:translate-y-[-2px] hover:border-primary/50 card-sky", borderLeft || "border-t-4 border-t-primary border-l-0")}>
+  <div className={cn("bg-card p-4 rounded-2xl border border-border shadow-sm border-l-4 transition-all hover:shadow-md hover:translate-y-[-2px]", borderLeft)}>
     <div className="flex flex-col">
       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
       <div className="flex items-baseline gap-1">
