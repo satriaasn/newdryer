@@ -453,7 +453,7 @@ export default function PublicDashboardClient() {
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                router.push(`/dashboard/gapoktan/${g.id}`);
+                                router.push(`/gapoktan/${g.id}`);
                               }}
                               className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                             >
@@ -549,7 +549,7 @@ export default function PublicDashboardClient() {
                      const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-slate-500' : 'bg-emerald-500');
 
                      return (
-                        <tr key={p.id} className="text-[11px] bg-[#1e293b] border-b border-slate-700/50 hover:bg-[#27354d] transition-all cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
+                        <tr key={p.id} className="text-[11px] bg-[#1e293b] border-b border-slate-700/50 hover:bg-[#27354d] transition-all cursor-pointer" onClick={() => router.push(`/gapoktan/${p.gapoktan_id}`)}>
                           <td className="px-5 py-5">
                              <div className="font-mono text-[9px] text-slate-400 uppercase font-bold tracking-tighter">ID: {p.gapoktan_id.substring(0,6).toUpperCase()}</div>
                              <div className="font-bold text-white text-[12px]">{p.production_date}</div>
