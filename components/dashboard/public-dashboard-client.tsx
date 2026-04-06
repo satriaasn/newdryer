@@ -450,7 +450,7 @@ export default function PublicDashboardClient() {
                               }}
                               className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                             >
-                               Lihat Detail →
+                                Lihat Detail →
                             </button>
                         </div>
                       </div>
@@ -521,53 +521,61 @@ export default function PublicDashboardClient() {
            <div className="overflow-x-auto rounded-xl border scrollbar-hide">
               <table className="w-full text-left min-w-[1000px]">
                 <thead>
-                  <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-gray-50 border-b border-gray-100">
-                    <th className="px-4 py-3">No Unit / Tgl</th>
-                    <th className="px-4 py-3">Kelompok Tani</th>
-                    <th className="px-4 py-3">Alamat Lengkap</th>
-                    <th className="px-4 py-3">Komoditas</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Produksi (Ton)</th>
+                  <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-[#1a2333]">
+                    <th className="px-5 py-4 border-b border-slate-700/50">Unit-Tgl</th>
+                    <th className="px-5 py-4 border-b border-slate-700/50">Kelompok Tani</th>
+                    <th className="px-5 py-4 border-b border-slate-700/50">Alamat Lengkap</th>
+                    <th className="px-5 py-4 border-b border-slate-700/50">Komoditas</th>
+                    <th className="px-5 py-4 border-b border-slate-700/50">Status</th>
+                    <th className="px-5 py-4 text-right border-b border-slate-700/50">Output (Ton)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-slate-800/50">
                   {filteredProductions.slice(0, itemsPerPage).map((p: any) => {
                      const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
                      const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
                      const statusName = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
-                     const statusColor = isMaintenance ? 'text-rose-500' : (isIdle ? 'text-gray-500' : 'text-emerald-500');
-                     const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-gray-400' : 'bg-emerald-500');
+                     const statusColor = isMaintenance ? 'text-rose-400' : (isIdle ? 'text-slate-400' : 'text-emerald-400');
+                     const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-slate-500' : 'bg-emerald-500');
 
                      return (
-                       <tr key={p.id} className="text-[11px] hover:bg-neutral-50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
-                         <td className="px-4 py-4">
-                            <div className="font-mono text-[10px] text-muted-foreground">DRY-{p.gapoktan_id.substring(0,4).toUpperCase()}</div>
-                            <div className="font-bold text-[#0F172A]">{p.production_date}</div>
-                         </td>
-                         <td className="px-4 py-4 font-bold text-[#0F172A]">{p.gapoktan?.name}</td>
-                         <td className="px-4 py-4 text-muted-foreground font-medium italic">
-                            <div className="text-[11px] text-[#0F172A] font-bold not-italic">
-                              {p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}, {p.gapoktan?.desa?.kecamatan?.name}
-                            </div>
-                            <div className="text-[10px]">
-                              {p.gapoktan?.desa?.name}
-                            </div>
-                         </td>
-                         <td className="px-4 py-4">
-                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-100">{p.komoditas?.name}</span>
-                         </td>
-                         <td className="px-4 py-4">
-                            <div className="flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} /><span className={`font-bold ${statusColor}`}>{statusName}</span></div>
-                         </td>
-                         <td className="px-4 py-4 text-right">
-                            <span className="text-lg font-black text-primary">{Number(p.qty_before || 0).toFixed(1)}</span>
-                            <span className="text-[10px] ml-1 text-muted-foreground font-bold">Ton</span>
-                         </td>
-                       </tr>
+                        <tr key={p.id} className="text-[11px] bg-[#1e293b] border-b border-slate-700/50 hover:bg-[#27354d] transition-all cursor-pointer" onClick={() => router.push(`/dashboard/gapoktan/${p.gapoktan_id}`)}>
+                          <td className="px-5 py-5">
+                             <div className="font-mono text-[9px] text-slate-400 uppercase font-bold tracking-tighter">ID: {p.gapoktan_id.substring(0,6).toUpperCase()}</div>
+                             <div className="font-bold text-white text-[12px]">{p.production_date}</div>
+                          </td>
+                          <td className="px-5 py-5">
+                            <div className="font-bold text-white text-[13px] tracking-tight">{p.gapoktan?.name}</div>
+                            <div className="text-[10px] text-emerald-400/80 font-bold uppercase mt-0.5 tracking-wider font-mono">Unit Aktif</div>
+                          </td>
+                          <td className="px-5 py-5">
+                             <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-white text-[13px]">
+                                  {p.gapoktan?.desa?.kecamatan?.kabupaten?.name?.replace('KABUPATEN ', '') || '-'}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                   {p.gapoktan?.desa?.kecamatan?.name || '-'} / {p.gapoktan?.desa?.name || '-'}
+                                </span>
+                             </div>
+                          </td>
+                          <td className="px-5 py-5">
+                             <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20 text-[10px]">{p.komoditas?.name}</span>
+                          </td>
+                          <td className="px-5 py-5">
+                             <div className="flex items-center gap-2">
+                                <span className={`h-1.5 w-1.5 rounded-full ${statusDot} animate-pulse`} />
+                                <span className={`font-bold text-[10px] uppercase tracking-widest ${statusColor}`}>{statusName}</span>
+                             </div>
+                          </td>
+                          <td className="px-5 py-5 text-right">
+                             <span className="text-xl font-black text-white">{Number(p.qty_before || 0).toFixed(1)}</span>
+                             <span className="text-[10px] ml-1.5 text-slate-500 font-bold">TON</span>
+                          </td>
+                        </tr>
                      );
                   })}
                   {filteredProductions.length === 0 && (
-                    <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground italic">Tidak ada data sesuai filter</td></tr>
+                    <tr className="bg-[#1e293b]"><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400 italic">Tidak ada data sesuai filter</td></tr>
                   )}
                 </tbody>
               </table>

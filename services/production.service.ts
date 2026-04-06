@@ -10,7 +10,13 @@ export const productionService = {
         dryer_units(*),
         gapoktan(
           *,
-          desa(*)
+          desa(
+            *,
+            kecamatan(
+              *,
+              kabupaten(*)
+            )
+          )
         ),
         komoditas(*)
       `)
