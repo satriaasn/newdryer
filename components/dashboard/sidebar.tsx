@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   MapPin,
   X,
+  Settings,
 } from "lucide-react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { userService, type Profile } from "@/services/user.service";
