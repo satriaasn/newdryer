@@ -18,7 +18,17 @@ export default function PublicGapoktanDetailPage() {
   const [productions, setProductions] = useState<Production[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [theme, setTheme] = useState<'light' | 'dark' | 'oligarch'>('oligarch');
+
   useEffect(() => {
+    const savedTheme = localStorage.getItem('agro-theme') as any;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      applyTheme(savedTheme);
+    } else {
+      applyTheme('oligarch');
+    }
+
     if (!id) return;
     Promise.all([
       gapoktanService.getById(id as string),
@@ -28,6 +38,16 @@ export default function PublicGapoktanDetailPage() {
       setProductions(Array.isArray(p) ? p : []);
     }).finally(() => setLoading(false));
   }, [id]);
+
+  const applyTheme = (t: string) => {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.removeAttribute('data-theme');
+    if (t === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (t === 'oligarch') {
+      document.documentElement.setAttribute('data-theme', 'oligarch');
+    }
+  };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);

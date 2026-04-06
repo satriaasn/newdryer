@@ -14,7 +14,7 @@ const VolumeBarChart = nextDynamic(() => import("@/components/dashboard/volume-c
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
   Search, Calendar, Filter, Download, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
-  Wheat, ClipboardList
+  Wheat, ClipboardList, Sun, Moon, Palette, Check
 } from "lucide-react";
 
 export default function PublicDashboardClient() {
@@ -25,6 +25,9 @@ export default function PublicDashboardClient() {
   const [komoditasList, setKomoditasList] = useState<Komoditas[]>([]);
   const [allKabupaten, setAllKabupaten] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Theme State
+  const [theme, setTheme] = useState<'light' | 'dark' | 'oligarch'>('oligarch');
 
   // Filters
   const [filterKomoditas, setFilterKomoditas] = useState('');
@@ -76,10 +79,36 @@ export default function PublicDashboardClient() {
   };
 
   useEffect(() => {
+    // Load theme from local storage
+    const savedTheme = localStorage.getItem('agro-theme') as any;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      applyTheme(savedTheme);
+    } else {
+      applyTheme('oligarch');
+    }
+
     reloadAll();
     const interval = setInterval(reloadAll, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const applyTheme = (t: string) => {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.removeAttribute('data-theme');
+    
+    if (t === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (t === 'oligarch') {
+      document.documentElement.setAttribute('data-theme', 'oligarch');
+    }
+    localStorage.setItem('agro-theme', t);
+  };
+
+  const handleThemeChange = (t: 'light' | 'dark' | 'oligarch') => {
+    setTheme(t);
+    applyTheme(t);
+  };
 
   // Extract unique regions for cascade
   const availableKabupaten = useMemo(() => {
@@ -250,7 +279,7 @@ export default function PublicDashboardClient() {
   const paginatedProductions = filteredProductions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (loading) return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="animate-pulse text-center space-y-4">
         <Factory className="h-12 w-12 mx-auto text-primary" />
         <p className="text-sm font-medium">Memuat Monitoring Hibah Dryer...</p>
@@ -259,17 +288,32 @@ export default function PublicDashboardClient() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-foreground font-sans">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       {/* HEADER SECTION */}
-      <header className="bg-white border-b px-6 lg:px-10 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-0 z-50 shadow-sm">
+      <header className="bg-card border-b px-6 lg:px-10 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-0 z-50 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#0F172A]">Dashboard Monitoring Hibah Dryer</h1>
-          <p className="text-sm text-muted-foreground mt-1 text-[#64748B]">Real-time oversight of national agricultural drying infrastructure</p>
+          <h1 className="text-2xl font-bold tracking-tight text-primary">Dashboard Monitoring Hibah Dryer</h1>
+          <p className="text-sm text-muted-foreground mt-1">Real-time oversight of national agricultural drying infrastructure</p>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {/* THEME PICKER */}
+          <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl border">
+             <button onClick={() => handleThemeChange('light')} className={cn("p-2 rounded-lg transition-all", theme === 'light' ? "bg-white shadow text-slate-900" : "text-muted-foreground hover:bg-white/50")}>
+                <Sun className="h-4 w-4" />
+             </button>
+             <button onClick={() => handleThemeChange('dark')} className={cn("p-2 rounded-lg transition-all", theme === 'dark' ? "bg-slate-800 shadow text-white" : "text-muted-foreground hover:bg-slate-800/10")}>
+                <Moon className="h-4 w-4" />
+             </button>
+             <button onClick={() => handleThemeChange('oligarch')} className={cn("p-2 rounded-lg transition-all flex items-center gap-1.5 px-3", theme === 'oligarch' ? "bg-[#0f172a] shadow text-white border border-white/20" : "text-muted-foreground hover:bg-[#0f172a]/10")}>
+                <Palette className="h-4 w-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Oligarch</span>
+             </button>
+          </div>
+
           <button 
             onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] text-white font-medium text-sm rounded-lg hover:bg-[#1E293B] transition-colors shadow-sm whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold text-sm rounded-lg hover:scale-105 transition-all shadow-lg shadow-primary/20 whitespace-nowrap"
           >
             <Download className="h-4 w-4" /> Export Data
           </button>
@@ -279,40 +323,40 @@ export default function PublicDashboardClient() {
       <main className="max-w-[1400px] mx-auto p-6 lg:p-8 space-y-6">
         
         {/* TOP FILTERS SECTION */}
-        <div className="bg-white rounded-2xl border p-4 shadow-sm flex flex-col items-start gap-4">
-          <div className="flex items-center gap-2 text-[#0F172A] font-bold border-b w-full pb-3">
+        <div className="bg-card rounded-2xl border p-4 shadow-sm flex flex-col items-start gap-4">
+          <div className="flex items-center gap-2 text-foreground font-bold border-b w-full pb-3">
             <Filter className="h-5 w-5" />
             <span>Filter Data & Wilayah</span>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-4 w-full">
             <div className="md:col-span-2 lg:col-span-2 relative">
-              <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kabupaten</label>
-              <select value={filterKabupaten} onChange={(e: any) => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); setFilterDesa(''); }} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
+              <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kabupaten</label>
+              <select value={filterKabupaten} onChange={(e: any) => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); setFilterDesa(''); }} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
                 <option value="">Semua Kabupaten</option>
                 {availableKabupaten.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </div>
             
             <div className="md:col-span-2 lg:col-span-2 relative">
-              <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kecamatan</label>
-              <select value={filterKecamatan} onChange={(e: any) => { setFilterKecamatan(e.target.value); setFilterDesa(''); }} disabled={!filterKabupaten} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
+              <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kecamatan</label>
+              <select value={filterKecamatan} onChange={(e: any) => { setFilterKecamatan(e.target.value); setFilterDesa(''); }} disabled={!filterKabupaten} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
                 <option value="">Semua Kecamatan</option>
                 {availableKecamatan.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </div>
 
             <div className="md:col-span-2 lg:col-span-2 relative">
-              <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Desa</label>
-              <select value={filterDesa} onChange={(e: any) => setFilterDesa(e.target.value)} disabled={!filterKecamatan} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
+              <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Desa</label>
+              <select value={filterDesa} onChange={(e: any) => setFilterDesa(e.target.value)} disabled={!filterKecamatan} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
                 <option value="">Semua Desa</option>
                 {availableDesa.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
 
             <div className="md:col-span-3 lg:col-span-3 relative">
-               <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Rentang Tanggal</label>
-               <div className="flex items-center gap-1 border rounded-xl px-2 py-2.5 bg-white">
+               <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Rentang Tanggal</label>
+               <div className="flex items-center gap-1 border rounded-xl px-2 py-2.5 bg-background">
                   <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                   <input type="date" value={filterStartDate} onChange={(e: any) => setFilterStartDate(e.target.value)} className="w-full text-xs outline-none bg-transparent" />
                   <span className="text-muted-foreground text-[10px]">s/d</span>
@@ -322,8 +366,8 @@ export default function PublicDashboardClient() {
 
             <div className="md:col-span-3 lg:col-span-3 flex items-end gap-2">
               <div className="relative flex-grow">
-                <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Cari Group</label>
-                <div className="flex items-center gap-2 px-3 py-2.5 border rounded-xl bg-white focus-within:ring-2 ring-primary/20 transition-all">
+                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Cari Group</label>
+                <div className="flex items-center gap-2 px-3 py-2.5 border rounded-xl bg-background focus-within:ring-2 ring-primary/20 transition-all">
                   <Search className="h-4 w-4 text-muted-foreground" />
                   <input 
                     type="text" 
@@ -336,7 +380,7 @@ export default function PublicDashboardClient() {
               </div>
               <button 
                 onClick={resetFilters}
-                className="p-2.5 bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 hover:text-primary transition-all shadow-sm shrink-0 group"
+                className="p-2.5 bg-background border border-border text-muted-foreground rounded-xl hover:bg-muted hover:text-primary transition-all shadow-sm shrink-0 group"
                 title="Reset Filters"
               >
                 <RefreshCw className="h-5 w-5 group-active:rotate-180 transition-transform duration-500" />
@@ -357,7 +401,7 @@ export default function PublicDashboardClient() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Produksi Per Komoditas (All Time)</h2>
-            <div className="h-px flex-grow mx-4 bg-gray-100" />
+            <div className="h-px flex-grow mx-4 bg-muted/20" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {komoditasStats.map((k: any) => (
@@ -374,7 +418,7 @@ export default function PublicDashboardClient() {
 
           <div className="flex items-center justify-between mt-6">
             <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Produksi Per Komoditas (Hari Ini)</h2>
-            <div className="h-px flex-grow mx-4 bg-gray-100" />
+            <div className="h-px flex-grow mx-4 bg-muted/20" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {komoditasStats.map((k: any) => (
@@ -391,14 +435,14 @@ export default function PublicDashboardClient() {
         </div>
 
         <div className="grid grid-cols-1 gap-6">
-          <div className="bg-white rounded-2xl border p-6 shadow-sm">
+          <div className="bg-card rounded-2xl border p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
                   <MapPin className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[#0F172A]">Pemetaan GIS Dryer</h2>
+                  <h2 className="text-lg font-bold text-foreground">Pemetaan GIS Dryer</h2>
                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Lokasi unit monitoring secara real-time</p>
                 </div>
               </div>
@@ -407,6 +451,7 @@ export default function PublicDashboardClient() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                <div className="lg:col-span-3 h-[500px] rounded-2xl border overflow-hidden shadow-inner relative">
                   <DynamicMap 
+                    theme={theme}
                     markers={gapoktanList.filter(g => g.latitude && g.longitude).map(g => ({ 
                       id: g.id, 
                       latitude: g.latitude!, 
@@ -430,17 +475,17 @@ export default function PublicDashboardClient() {
                         key={g.id}
                         onClick={() => setSelectedGapoktan(g)}
                         className={`group p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
-                          selectedGapoktan?.id === g.id ? 'border-primary bg-primary/5 shadow-sm' : 'bg-white hover:border-primary/20'
+                          selectedGapoktan?.id === g.id ? 'border-primary bg-primary/5 shadow-sm' : 'bg-background hover:border-primary/20'
                         }`}
                       >
-                        <h4 className="font-bold text-sm text-[#0F172A]">{g.name}</h4>
+                        <h4 className="font-bold text-sm text-foreground">{g.name}</h4>
                         <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1 font-medium italic">
                            <MapPin className="h-3 w-3" />
                            {g.desa?.name}
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
                           {g.komoditas?.map((k: any) => (
-                            <span key={k.id} className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded border border-emerald-100 uppercase">
+                            <span key={k.id} className="text-[9px] bg-emerald-500/10 text-emerald-500 font-bold px-2 py-0.5 rounded border border-emerald-500/20 uppercase">
                               {k.name}
                             </span>
                           ))}
@@ -468,59 +513,59 @@ export default function PublicDashboardClient() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-             <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
+             <div className="bg-card rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600">
                     <TrendingUp className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-[#0F172A]">Tren Produksi</h2>
+                    <h2 className="text-lg font-bold text-foreground">Tren Produksi</h2>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Volume pengeringan bulanan</p>
                   </div>
                 </div>
                 <div className="h-[300px]">
-                  <TrendChart data={trendData} />
+                  <TrendChart data={trendData} theme={theme} />
                 </div>
              </div>
 
-             <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
+             <div className="bg-card rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
                     <Wheat className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-[#0F172A]">Volume per Komoditas</h2>
+                    <h2 className="text-lg font-bold text-foreground">Volume per Komoditas</h2>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Distribusi tonase hasil panen</p>
                   </div>
                 </div>
                 <div className="h-[300px]">
-                   <VolumeBarChart data={komoditasStats.map((k: any) => ({ name: k.name, ton: k.allTime }))} />
+                   <VolumeBarChart data={komoditasStats.map((k: any) => ({ name: k.name, ton: k.allTime }))} theme={theme} />
                 </div>
              </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <div className="bg-card rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                   <ClipboardList className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[#0F172A]">Data Riwayat Produksi</h2>
+                  <h2 className="text-lg font-bold text-foreground">Data Riwayat Produksi</h2>
                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Total log pengeringan unit monitoring</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-medium">Tampilkan:</span>
+                <span className="text-xs text-muted-foreground font-medium text-[10px] uppercase font-bold tracking-widest leading-none">Rows:</span>
                 <select 
                   value={itemsPerPage} 
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  className="text-xs font-bold border rounded-lg px-2 py-1 outline-none bg-white focus:ring-2 focus:ring-primary/20"
+                  className="text-xs font-bold border rounded-lg px-2 py-1 outline-none bg-background focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value={25}>25 Baris</option>
-                  <option value={50}>50 Baris</option>
-                  <option value={100}>100 Baris</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
                 </select>
               </div>
            </div>
@@ -528,19 +573,19 @@ export default function PublicDashboardClient() {
            <div className="overflow-x-auto rounded-xl border scrollbar-hide">
               <table className="w-full text-left min-w-[1200px]">
                 <thead>
-                  <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-[#1a2333]">
-                    <th className="px-5 py-4 border-b border-slate-700/50">Unit-Tgl</th>
-                    <th className="px-5 py-4 border-b border-slate-700/50">Kelompok Tani</th>
-                    <th className="px-5 py-4 border-b border-slate-700/50">Alamat Lengkap</th>
-                    <th className="px-5 py-4 border-b border-slate-700/50">Komoditas</th>
-                    <th className="px-5 py-4 border-b border-slate-700/50 text-right">Ton Sebelum</th>
-                    <th className="px-5 py-4 border-b border-slate-700/50 text-right">Harga Sebelum</th>
-                    <th className="px-5 py-4 border-b border-slate-700/50 text-right">Ton Sesudah</th>
-                    <th className="px-5 py-4 border-b border-slate-700/50 text-right">Harga Sesudah</th>
-                    <th className="px-5 py-4 border-b border-slate-700/50">Status</th>
+                  <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/30">
+                    <th className="px-5 py-4 border-b">Unit-Tgl</th>
+                    <th className="px-5 py-4 border-b">Kelompok Tani</th>
+                    <th className="px-5 py-4 border-b">Alamat Lengkap</th>
+                    <th className="px-5 py-4 border-b">Komoditas</th>
+                    <th className="px-5 py-4 border-b text-right">Ton Sebelum</th>
+                    <th className="px-5 py-4 border-b text-right">Harga Sebelum</th>
+                    <th className="px-5 py-4 border-b text-right">Ton Sesudah</th>
+                    <th className="px-5 py-4 border-b text-right">Harga Sesudah</th>
+                    <th className="px-5 py-4 border-b">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50">
+                <tbody className="divide-y divide-border">
                   {filteredProductions.slice(0, itemsPerPage).map((p: any) => {
                      const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
                      const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
@@ -549,41 +594,41 @@ export default function PublicDashboardClient() {
                      const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-slate-500' : 'bg-emerald-500');
 
                      return (
-                        <tr key={p.id} className="text-[11px] bg-[#1e293b] border-b border-slate-700/50 hover:bg-[#27354d] transition-all cursor-pointer" onClick={() => router.push(`/gapoktan/${p.gapoktan_id}`)}>
+                        <tr key={p.id} className="text-[11px] hover:bg-muted/30 transition-all cursor-pointer" onClick={() => router.push(`/gapoktan/${p.gapoktan_id}`)}>
                           <td className="px-5 py-5">
-                             <div className="font-mono text-[9px] text-slate-400 uppercase font-bold tracking-tighter">ID: {p.gapoktan_id.substring(0,6).toUpperCase()}</div>
-                             <div className="font-bold text-white text-[12px]">{p.production_date}</div>
+                             <div className="font-mono text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">ID: {p.gapoktan_id.substring(0,6).toUpperCase()}</div>
+                             <div className="font-bold text-foreground text-[12px]">{p.production_date}</div>
                           </td>
                           <td className="px-5 py-5">
-                            <div className="font-bold text-white text-[13px] tracking-tight">{p.gapoktan?.name}</div>
-                            <div className="text-[10px] text-emerald-400/80 font-bold uppercase mt-0.5 tracking-wider font-mono">Unit Aktif</div>
+                            <div className="font-bold text-foreground text-[13px] tracking-tight">{p.gapoktan?.name}</div>
+                            <div className="text-[10px] text-emerald-500 font-bold uppercase mt-0.5 tracking-wider font-mono">Unit Aktif</div>
                           </td>
                           <td className="px-5 py-5">
                              <div className="flex flex-col gap-0.5">
-                                <span className="font-bold text-white text-[13px]">
+                                <span className="font-bold text-foreground text-[13px]">
                                   {p.gapoktan?.desa?.kecamatan?.kabupaten?.name?.replace('KABUPATEN ', '') || '-'}
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                                    {p.gapoktan?.desa?.kecamatan?.name || '-'} / {p.gapoktan?.desa?.name || '-'}
                                 </span>
                              </div>
                           </td>
                           <td className="px-5 py-5">
-                             <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20 text-[10px]">{p.komoditas?.name}</span>
+                             <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-bold border border-primary/20 text-[10px]">{p.komoditas?.name}</span>
                           </td>
                           <td className="px-5 py-5 text-right">
-                             <span className="text-sm font-bold text-white">{Number(p.qty_before || 0).toFixed(2)}</span>
-                             <span className="text-[9px] ml-1 text-slate-500 uppercase">Ton</span>
+                             <span className="text-sm font-bold text-foreground">{Number(p.qty_before || 0).toFixed(2)}</span>
+                             <span className="text-[9px] ml-1 text-muted-foreground uppercase">Ton</span>
                           </td>
                           <td className="px-5 py-5 text-right">
-                             <span className="text-[11px] font-bold text-emerald-400">{formatCurrency(p.price_before || 0)}</span>
+                             <span className="text-[11px] font-bold text-emerald-500">{formatCurrency(p.price_before || 0)}</span>
                           </td>
                           <td className="px-5 py-5 text-right">
-                             <span className="text-sm font-bold text-white">{Number(p.qty_after || 0).toFixed(2)}</span>
-                             <span className="text-[9px] ml-1 text-slate-500 uppercase">Ton</span>
+                             <span className="text-sm font-bold text-foreground">{Number(p.qty_after || 0).toFixed(2)}</span>
+                             <span className="text-[9px] ml-1 text-muted-foreground uppercase">Ton</span>
                           </td>
                           <td className="px-5 py-5 text-right">
-                             <span className="text-[11px] font-bold text-blue-400">{formatCurrency(p.price_after || 0)}</span>
+                             <span className="text-[11px] font-bold text-blue-500">{formatCurrency(p.price_after || 0)}</span>
                           </td>
                           <td className="px-5 py-5">
                              <div className="flex items-center gap-2">
@@ -595,7 +640,7 @@ export default function PublicDashboardClient() {
                      );
                   })}
                   {filteredProductions.length === 0 && (
-                    <tr className="bg-[#1e293b]"><td colSpan={9} className="px-5 py-10 text-center text-sm text-slate-400 italic">Tidak ada data sesuai filter</td></tr>
+                    <tr><td colSpan={9} className="px-5 py-10 text-center text-sm text-muted-foreground italic">Tidak ada data sesuai filter</td></tr>
                   )}
                 </tbody>
               </table>
@@ -608,18 +653,18 @@ export default function PublicDashboardClient() {
 }
 
 const KPICard = ({ title, value, unit, trend, trendUp, borderLeft }: any) => (
-  <div className={cn("bg-white p-4 rounded-2xl border border-gray-100 shadow-sm border-l-4 transition-all hover:shadow-md", borderLeft)}>
+  <div className={cn("bg-card p-4 rounded-2xl border border-border shadow-sm border-l-4 transition-all hover:shadow-md hover:translate-y-[-2px]", borderLeft)}>
     <div className="flex flex-col">
       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
       <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-black text-[#0F172A] tracking-tight">{value}</span>
+        <span className="text-2xl font-black text-foreground tracking-tight">{value}</span>
         <span className="text-xs font-bold text-muted-foreground">{unit}</span>
       </div>
       <div className="mt-2 flex items-center gap-1.5">
         <div className={cn(
           "px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1",
-          trendUp === true ? "bg-emerald-50 text-emerald-600" : 
-          trendUp === false ? "bg-rose-50 text-rose-600" : "bg-gray-50 text-gray-500"
+          trendUp === true ? "bg-emerald-500/10 text-emerald-500" : 
+          trendUp === false ? "bg-rose-500/10 text-rose-600" : "bg-muted text-muted-foreground"
         )}>
           {trendUp === true && <ArrowUpRight className="h-2.5 w-2.5" />}
           {trendUp === false && <ArrowDownRight className="h-2.5 w-2.5" />}
