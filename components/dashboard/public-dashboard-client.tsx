@@ -14,7 +14,8 @@ const VolumeBarChart = nextDynamic(() => import("@/components/dashboard/volume-c
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
   Search, Calendar, Filter, Download, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
-  Wheat, ClipboardList, Sun, Moon, Palette, Check
+  Search, Calendar, Filter, Download, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
+  Wheat, ClipboardList, Sun, Moon, Palette, Check, ChevronDown, ChevronUp
 } from "lucide-react";
 
 export default function PublicDashboardClient() {
@@ -54,6 +55,9 @@ export default function PublicDashboardClient() {
 
   const [selectedGapoktan, setSelectedGapoktan] = useState<Gapoktan | null>(null);
 
+  // Filter Toggle State
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
   };
@@ -88,6 +92,9 @@ export default function PublicDashboardClient() {
   };
 
   useEffect(() => {
+    // Determine initial filter state based on screen width
+    setIsFilterOpen(window.innerWidth >= 1024);
+
     // Load theme from local storage
     const savedTheme = localStorage.getItem('agro-theme') as any;
     if (savedTheme) {
@@ -332,13 +339,25 @@ export default function PublicDashboardClient() {
       <main className="flex-1 max-w-[1400px] mx-auto p-6 lg:p-8 space-y-6 w-full">
         
         {/* TOP FILTERS SECTION */}
-        <div className="bg-card rounded-2xl border p-4 shadow-sm flex flex-col items-start gap-4">
-          <div className="flex items-center gap-2 text-foreground font-bold border-b w-full pb-3">
-            <Filter className="h-5 w-5" />
-            <span>Filter Data & Wilayah</span>
+        <div className="bg-card rounded-2xl border p-4 shadow-xl shadow-black/5 flex flex-col items-start gap-4 sticky top-[80px] z-40 backdrop-blur-md bg-opacity-95">
+          <div 
+            className="flex items-center justify-between text-foreground font-bold border-b w-full pb-2 md:pb-3 cursor-pointer select-none"
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+          >
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-primary" />
+              <span>Filter Data & Wilayah</span>
+              {!isFilterOpen && (filterKabupaten || filterKecamatan || filterDesa || filterSearch || filterStartDate || filterEndDate) && (
+                <span className="ml-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+              )}
+            </div>
+            <button className="text-muted-foreground p-1 rounded-md hover:bg-muted transition-colors flex items-center gap-1 text-xs uppercase tracking-widest font-bold">
+              {isFilterOpen ? <><ChevronUp className="h-4 w-4" /> Tutup</> : <><ChevronDown className="h-4 w-4" /> Buka</>}
+            </button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-4 w-full">
+          <div className={cn("w-full transition-all duration-300 overflow-hidden", isFilterOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0")}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-4 w-full pt-2">
             <div className="md:col-span-2 lg:col-span-2 relative">
               <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kabupaten</label>
               <select value={filterKabupaten} onChange={(e: any) => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); setFilterDesa(''); }} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
@@ -395,6 +414,7 @@ export default function PublicDashboardClient() {
                 <RefreshCw className="h-5 w-5 group-active:rotate-180 transition-transform duration-500" />
               </button>
             </div>
+          </div>
           </div>
         </div>
 
