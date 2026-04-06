@@ -55,7 +55,9 @@ export const productionService = {
       supabase.from('gapoktan').select('id, desa(kecamatan(kabupaten_id))'),
       supabase.from('dryer_units').select('id', { count: 'exact', head: true }),
       supabase.from('productions').select('qty_before, qty_after, qty_diff_pct, price_diff_pct'),
-      supabase.from('productions').select('qty_after').eq('production_date', today),
+      supabase.from('productions')
+        .select('qty_before, qty_after')
+        .eq('production_date', today),
     ]);
 
     const gapoktans = gapoktanRes.data || [];
@@ -70,8 +72,9 @@ export const productionService = {
     });
 
     const totalQtyBefore = productions.reduce((s: any, p: any) => s + Number(p.qty_before), 0);
-    const totalQtyAfter = productions.reduce((s: any, p: any) => s + Number(p.qty_after), 0);
-    const todayQtyAfter = todayProductions.reduce((s: any, p: any) => s + Number(p.qty_after), 0);
+    const totalQtyAfter = productions.reduce((s: any, p: any) => s + Number(p.qty_after || 0), 0);
+    const todayQtyBefore = todayProductions.reduce((s: any, p: any) => s + Number(p.qty_before || 0), 0);
+    const todayQtyAfter = todayProductions.reduce((s: any, p: any) => s + Number(p.qty_after || 0), 0);
     
     const avgQtyDiff = productions.length > 0
       ? productions.reduce((s: any, p: any) => s + Number(p.qty_diff_pct), 0) / productions.length
@@ -89,7 +92,7 @@ export const productionService = {
       avgPriceDiffPct: Math.round(avgPriceDiff * 100) / 100,
       totalQtyBefore,
       totalQtyAfter,
-      todayQtyAfter,
+      todayQtyAfter: todayQtyBefore, // Using before as requested for 'tonase hari ini'
       coverageKabupaten: coverageKabSet.size,
     };
   },

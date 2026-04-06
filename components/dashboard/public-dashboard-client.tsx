@@ -139,8 +139,8 @@ export default function PublicDashboardClient() {
 
   const stats = useMemo<DashboardStats>(() => {
     const today = new Date().toISOString().split('T')[0];
-    const totalQtyAfter = filteredProductions.reduce((sum: any, p: any) => sum + Number(p.qty_after || 0), 0);
-    const todayQtyAfter = filteredProductions.filter((p: any) => p.production_date.startsWith(today)).reduce((sum: any, p: any) => sum + Number(p.qty_after || 0), 0);
+    const totalQtyBefore = filteredProductions.reduce((sum: any, p: any) => sum + Number(p.qty_before || 0), 0);
+    const todayQtyBefore = filteredProductions.filter((p: any) => p.production_date.startsWith(today)).reduce((sum: any, p: any) => sum + Number(p.qty_before || 0), 0);
     const totalGapoktan = filteredGapoktan.length;
     const totalDryers = filteredGapoktan.reduce((sum: any, g: any) => sum + (g.dryer_units?.length || 0), 0);
     const coverageKabSet = new Set();
@@ -156,9 +156,9 @@ export default function PublicDashboardClient() {
       todayProductions: filteredProductions.filter((p: any) => p.production_date.startsWith(today)).length,
       avgQtyDiffPct: 0,
       avgPriceDiffPct: 0,
-      totalQtyBefore: 0,
-      totalQtyAfter,
-      todayQtyAfter,
+      totalQtyBefore,
+      totalQtyAfter: totalQtyBefore, // Sync for backwards compatibility if needed
+      todayQtyAfter: todayQtyBefore,
       coverageKabupaten: coverageKabSet.size
     };
   }, [filteredProductions, filteredGapoktan]);
@@ -174,8 +174,8 @@ export default function PublicDashboardClient() {
         if (p.komoditas_id !== k.id) return false;
         return true;
       });
-      const allTime = prods.reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
-      const todayTotal = prods.filter(p => p.production_date.startsWith(today)).reduce((sum, p) => sum + Number(p.qty_after || 0), 0);
+      const allTime = prods.reduce((sum, p) => sum + Number(p.qty_before || 0), 0);
+      const todayTotal = prods.filter(p => p.production_date.startsWith(today)).reduce((sum, p) => sum + Number(p.qty_before || 0), 0);
       return { ...k, allTime, todayTotal };
     }).sort((a, b) => (b.allTime || 0) - (a.allTime || 0));
     return stats;
@@ -190,7 +190,7 @@ export default function PublicDashboardClient() {
         if (filterEndDate && p.production_date > filterEndDate) return false;
         return true;
       });
-      const totalTonnage = prods.reduce((sum: any, p: any) => sum + Number(p.qty_after || 0), 0);
+      const totalTonnage = prods.reduce((sum: any, p: any) => sum + Number(p.qty_before || 0), 0);
       const activeUnits = units.filter((u: any) => u.dryer_units?.some((d: any) => d.status === 'active')).length;
       return {
         ...kab,
@@ -205,7 +205,7 @@ export default function PublicDashboardClient() {
     const map: Record<string, number> = {};
     productions.forEach(p => {
       const d = new Date(p.production_date).toLocaleDateString('id-ID', { month: 'short' });
-      map[d] = (map[d] || 0) + Number(p.qty_after);
+      map[d] = (map[d] || 0) + Number(p.qty_before);
     });
     // Fill dummy months if data is sparse to match wireframe look
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -225,7 +225,7 @@ export default function PublicDashboardClient() {
         `"${p.gapoktan?.desa?.name}, ${p.gapoktan?.desa?.kecamatan?.name}, ${p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}"`,
         p.komoditas?.name,
         status,
-        Number(p.qty_after || 0).toFixed(2)
+        Number(p.qty_before || 0).toFixed(2)
       ];
     });
 
@@ -338,9 +338,10 @@ export default function PublicDashboardClient() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard title="Total Produksi" value={Number(stats?.totalQtyAfter || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <KPICard title="Total Produksi" value={Number(stats?.totalQtyBefore || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
           <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-blue-500" />
+          <KPICard title="Total Gapoktan" value={stats?.totalGapoktan || 0} unit="Poktan" trend="Update terbaru" trendUp={true} borderLeft="border-l-rose-500" />
           <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-indigo-500" />
           <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-orange-500" />
         </div>
@@ -545,7 +546,12 @@ export default function PublicDashboardClient() {
                          </td>
                          <td className="px-4 py-4 font-bold text-[#0F172A]">{p.gapoktan?.name}</td>
                          <td className="px-4 py-4 text-muted-foreground font-medium italic">
-                            {p.gapoktan?.desa?.name}, {p.gapoktan?.desa?.kecamatan?.name}, {p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}
+                            <div className="text-[11px] text-[#0F172A] font-bold not-italic">
+                              {p.gapoktan?.desa?.kecamatan?.kabupaten?.name.replace('KABUPATEN ', '')}, {p.gapoktan?.desa?.kecamatan?.name}
+                            </div>
+                            <div className="text-[10px]">
+                              {p.gapoktan?.desa?.name}
+                            </div>
                          </td>
                          <td className="px-4 py-4">
                             <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-100">{p.komoditas?.name}</span>
@@ -554,7 +560,7 @@ export default function PublicDashboardClient() {
                             <div className="flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} /><span className={`font-bold ${statusColor}`}>{statusName}</span></div>
                          </td>
                          <td className="px-4 py-4 text-right">
-                            <span className="text-lg font-black text-primary">{Number(p.qty_after || 0).toFixed(1)}</span>
+                            <span className="text-lg font-black text-primary">{Number(p.qty_before || 0).toFixed(1)}</span>
                             <span className="text-[10px] ml-1 text-muted-foreground font-bold">Ton</span>
                          </td>
                        </tr>

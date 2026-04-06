@@ -58,7 +58,7 @@ export default function AdminDashboard() {
       const dayProds = productions.filter(p => p.production_date === date);
       return {
         date: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-        ton: dayProds.reduce((sum, p) => sum + Number(p.qty_after), 0)
+        ton: dayProds.reduce((sum, p) => sum + Number(p.qty_before), 0)
       };
     });
   }, [productions]);
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
     const map: Record<string, number> = {};
     productions.forEach(p => {
       const name = p.komoditas?.name || 'Lainnya';
-      map[name] = (map[name] || 0) + Number(p.qty_after);
+      map[name] = (map[name] || 0) + Number(p.qty_before);
     });
     return Object.entries(map).map(([name, ton]) => ({ name, ton }));
   }, [productions]);
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
       ) : stats && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KPI title="Total Produksi (Ton)" value={`${Number(stats.totalQtyAfter || 0).toFixed(1)} T`} icon={Package} color="text-primary" />
+            <KPI title="Total Produksi (Ton)" value={`${Number(stats.totalQtyBefore || 0).toFixed(1)} T`} icon={Package} color="text-primary" />
             <KPI title="Produksi Hari Ini" value={`${Number(stats.todayQtyAfter || 0).toFixed(1)} T`} icon={Calendar} color="text-blue-500" />
             <KPI title="Avg Margin Harga" value={`+${stats.avgPriceDiffPct}%`} icon={TrendingUp} color="text-emerald-500" />
             <KPI title="Total Unit Dryer" value={stats.totalDryers || 0} icon={Factory} color="text-indigo-500" />

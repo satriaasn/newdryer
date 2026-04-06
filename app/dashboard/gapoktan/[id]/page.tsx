@@ -142,7 +142,7 @@ export default function GapoktanDetailPage() {
                            <span className="text-xs font-semibold">{p.komoditas?.name}</span>
                         </td>
                         <td className="py-3 pr-4 text-right font-mono">
-                           <p className="font-bold">{Number(p.qty_after).toLocaleString()}</p>
+                           <p className="font-bold">{Number(p.qty_before).toLocaleString()}</p>
                            <p className={`text-[10px] ${Number(p.qty_diff_pct) < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>{p.qty_diff_pct}%</p>
                         </td>
                         <td className="py-3 text-right font-mono">
