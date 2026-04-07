@@ -15,6 +15,7 @@ export default function DryerAdmin() {
   const [showImport, setShowImport] = useState(false);
 
   const [editingDryer, setEditingDryer] = useState<DryerUnit | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const reload = () => {
     Promise.all([
@@ -35,6 +36,13 @@ export default function DryerAdmin() {
       else { const err = await res.json(); alert(err.error); }
     } catch (e: any) { alert(e.message); }
   };
+
+  const filteredDryers = dryers.filter(d => {
+    const s = searchQuery.toLowerCase();
+    return d.name.toLowerCase().includes(s) || 
+           d.gapoktan?.name?.toLowerCase().includes(s) ||
+           d.gapoktan?.desa?.name?.toLowerCase().includes(s);
+  });
 
   const statusColor: Record<string, string> = { active: 'bg-emerald-500/10 text-emerald-500', inactive: 'bg-gray-500/10 text-gray-500', maintenance: 'bg-amber-500/10 text-amber-500' };
   const statusLabel: Record<string, string> = { active: 'Aktif', inactive: 'Nonaktif', maintenance: 'Perawatan' };
@@ -62,6 +70,19 @@ export default function DryerAdmin() {
         </div>
       </header>
 
+      <div className="relative">
+        <input 
+          type="text" 
+          value={searchQuery} 
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Cari dryer atau gapoktan..." 
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-card/60 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+        />
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </div>
+      </div>
+
       <ImportModal title="Import Data Unit Dryer" isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={reload} />
 
           {(showForm || editingDryer) && (
@@ -88,7 +109,9 @@ export default function DryerAdmin() {
               <tbody className="divide-y">
                 {loading ? (
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">Memuat...</td></tr>
-                ) : dryers.map(d => (
+                ) : filteredDryers.length === 0 ? (
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">Data tidak ditemukan</td></tr>
+                ) : filteredDryers.map(d => (
                   <tr key={d.id} className="text-sm hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center"><Factory className="h-4 w-4 text-primary" /></div><span className="font-semibold">{d.name}</span></div></td>
                     <td className="px-6 py-4 font-medium">{d.gapoktan?.name || '-'}</td>

@@ -15,6 +15,15 @@ export default function ProductionPage() {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingProduction, setEditingProduction] = useState<Production | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredProductions = productions.filter(p => {
+    const s = searchQuery.toLowerCase();
+    return p.gapoktan?.name?.toLowerCase().includes(s) || 
+           p.komoditas?.name?.toLowerCase().includes(s) ||
+           p.dryer_units?.name?.toLowerCase().includes(s) ||
+           p.production_date?.toLowerCase().includes(s);
+  });
 
   const reload = () => {
     Promise.all([
@@ -71,6 +80,19 @@ export default function ProductionPage() {
         </div>
       </header>
 
+      <div className="relative">
+        <input 
+          type="text" 
+          value={searchQuery} 
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Cari data produksi..." 
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-card/60 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+        />
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </div>
+      </div>
+
       <ImportModal title="Import Data Produksi" isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={reload} />
 
           {(showForm || editingProduction) && (
@@ -106,9 +128,9 @@ export default function ProductionPage() {
                 <tbody className="divide-y">
                   {loading ? (
                     <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Memuat...</td></tr>
-                  ) : productions.length === 0 ? (
-                    <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Belum ada data</td></tr>
-                  ) : productions.map(p => (
+                  ) : filteredProductions.length === 0 ? (
+                    <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Data tidak ditemukan</td></tr>
+                  ) : filteredProductions.map(p => (
                     <tr key={p.id} className="text-sm hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">{p.production_date}</td>
                       <td className="px-4 py-3 font-medium">{p.gapoktan?.name || '-'}</td>

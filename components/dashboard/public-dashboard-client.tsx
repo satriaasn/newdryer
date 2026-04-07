@@ -39,14 +39,13 @@ export default function PublicDashboardClient() {
   // Filters
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterStatus, setFilterStatus] = useState('Semua');
-  const [filterSearch, setFilterSearch] = useState('');
+  const [filterGapoktan, setFilterGapoktan] = useState('');
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
   
   // Wilayah Cascade
   const [filterKabupaten, setFilterKabupaten] = useState('');
   const [filterKecamatan, setFilterKecamatan] = useState('');
-  const [filterDesa, setFilterDesa] = useState('');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,8 +63,7 @@ export default function PublicDashboardClient() {
   const resetFilters = () => {
     setFilterKabupaten('');
     setFilterKecamatan('');
-    setFilterDesa('');
-    setFilterSearch('');
+    setFilterGapoktan('');
     setFilterStartDate('');
     setFilterEndDate('');
     setFilterKomoditas('');
@@ -146,44 +144,27 @@ export default function PublicDashboardClient() {
     return Array.from(kecs.values());
   }, [gapoktanList, filterKabupaten]);
 
-  const availableDesa = useMemo(() => {
-    const desas = new Map();
-    gapoktanList.forEach(g => {
-      if (g.desa && (!filterKecamatan || g.desa.kecamatan_id === filterKecamatan) && (!filterKabupaten || g.desa.kecamatan?.kabupaten_id === filterKabupaten)) {
-        desas.set(g.desa.id, g.desa);
-      }
-    });
-    return Array.from(desas.values());
-  }, [gapoktanList, filterKabupaten, filterKecamatan]);
-
   const filteredGapoktan = useMemo(() => {
     return gapoktanList.filter(g => {
       if (filterKomoditas && !g.komoditas?.some(k => k.id === filterKomoditas)) return false;
       if (filterKabupaten && g.desa?.kecamatan?.kabupaten_id !== filterKabupaten) return false;
       if (filterKecamatan && g.desa?.kecamatan_id !== filterKecamatan) return false;
-      if (filterDesa && g.desa_id !== filterDesa) return false;
-      if (filterSearch) {
-        if (!g.name.toLowerCase().includes(filterSearch.toLowerCase())) return false;
-      }
+      if (filterGapoktan && g.id !== filterGapoktan) return false;
       return true;
     });
-  }, [gapoktanList, filterKomoditas, filterKabupaten, filterKecamatan, filterDesa, filterSearch]);
+  }, [gapoktanList, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan]);
 
   const filteredProductions = useMemo(() => {
     return productions.filter(p => {
-      if (filterSearch) {
-        const s = `${p.gapoktan?.name} ${p.gapoktan?.desa?.name} ${p.komoditas?.name}`.toLowerCase();
-        if (!s.includes(filterSearch.toLowerCase())) return false;
-      }
       if (filterKomoditas && p.komoditas_id !== filterKomoditas) return false;
       if (filterKabupaten && p.gapoktan?.desa?.kecamatan?.kabupaten_id !== filterKabupaten) return false;
       if (filterKecamatan && p.gapoktan?.desa?.kecamatan_id !== filterKecamatan) return false;
-      if (filterDesa && p.gapoktan?.desa_id !== filterDesa) return false;
+      if (filterGapoktan && p.gapoktan_id !== filterGapoktan) return false;
       if (filterStartDate && p.production_date < filterStartDate) return false;
       if (filterEndDate && p.production_date > filterEndDate) return false;
       return true;
     });
-  }, [productions, filterSearch, filterKomoditas, filterKabupaten, filterKecamatan, filterDesa, filterStartDate, filterEndDate]);
+  }, [productions, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterStartDate, filterEndDate]);
 
   const stats = useMemo<DashboardStats>(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -346,7 +327,7 @@ export default function PublicDashboardClient() {
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5 text-primary" />
               <span>Filter Data & Wilayah</span>
-              {!isFilterOpen && (filterKabupaten || filterKecamatan || filterDesa || filterSearch || filterStartDate || filterEndDate) && (
+              {!isFilterOpen && (filterKabupaten || filterKecamatan || filterGapoktan || filterStartDate || filterEndDate) && (
                 <span className="ml-2 h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
               )}
             </div>
@@ -364,22 +345,14 @@ export default function PublicDashboardClient() {
                 {availableKabupaten.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </div>
-            
-            <div className="md:col-span-2 lg:col-span-2 relative">
+                        <div className="md:col-span-2 lg:col-span-2 relative">
               <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kecamatan</label>
-              <select value={filterKecamatan} onChange={(e: any) => { setFilterKecamatan(e.target.value); setFilterDesa(''); }} disabled={!filterKabupaten} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
+              <select value={filterKecamatan} onChange={(e: any) => setFilterKecamatan(e.target.value)} disabled={!filterKabupaten} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
                 <option value="">Semua Kecamatan</option>
                 {availableKecamatan.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </div>
 
-            <div className="md:col-span-2 lg:col-span-2 relative">
-              <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Desa</label>
-              <select value={filterDesa} onChange={(e: any) => setFilterDesa(e.target.value)} disabled={!filterKecamatan} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
-                <option value="">Semua Desa</option>
-                {availableDesa.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
 
             <div className="md:col-span-3 lg:col-span-3 relative">
                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Rentang Tanggal</label>
@@ -393,16 +366,16 @@ export default function PublicDashboardClient() {
 
             <div className="md:col-span-3 lg:col-span-3 flex items-end gap-2">
               <div className="relative flex-grow">
-                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Cari Group</label>
+                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Pilih Gapoktan</label>
                 <div className="flex items-center gap-2 px-3 py-2.5 border rounded-xl bg-background focus-within:ring-2 ring-primary/20 transition-all">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <input 
-                    type="text" 
-                    value={filterSearch} 
-                    onChange={(e: any) => setFilterSearch(e.target.value)}
-                    placeholder="Nama poktan..." 
-                    className="w-full outline-none text-sm bg-transparent" 
-                  />
+                  <select 
+                    value={filterGapoktan} 
+                    onChange={(e: any) => setFilterGapoktan(e.target.value)}
+                    className="w-full outline-none text-sm bg-transparent appearance-none cursor-pointer"
+                  >
+                    <option value="">Semua Gapoktan</option>
+                    {gapoktanList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
                 </div>
               </div>
               <button 

@@ -15,6 +15,7 @@ export default function GapoktanAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingGapoktan, setEditingGapoktan] = useState<Gapoktan | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const reload = () => {
     Promise.all([
@@ -35,6 +36,15 @@ export default function GapoktanAdmin() {
       else { const err = await res.json(); alert(err.error); }
     } catch (e: any) { alert(e.message); }
   };
+
+  const filteredGapoktan = gapoktan.filter(g => {
+    const s = searchQuery.toLowerCase();
+    return g.name.toLowerCase().includes(s) || 
+           g.ketua?.toLowerCase().includes(s) || 
+           g.address?.toLowerCase().includes(s) ||
+           g.desa?.name?.toLowerCase().includes(s) ||
+           g.desa?.kecamatan?.name?.toLowerCase().includes(s);
+  });
 
   return (
     <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
@@ -59,6 +69,19 @@ export default function GapoktanAdmin() {
         </div>
       </header>
 
+      <div className="relative">
+        <input 
+          type="text" 
+          value={searchQuery} 
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Cari gapoktan, ketua, atau alamat..." 
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-card/60 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+        />
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </div>
+      </div>
+
       <ImportModal title="Import Data Gapoktan" isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={reload} />
 
           {(showForm || editingGapoktan) && (
@@ -73,7 +96,9 @@ export default function GapoktanAdmin() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[1,2,3].map(i => <div key={i} className="h-48 rounded-2xl border bg-card/60 animate-pulse" />)}</div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {gapoktan.map(g => (
+              {filteredGapoktan.length === 0 ? (
+                <div className="col-span-full py-12 text-center text-muted-foreground">Data tidak ditemukan</div>
+              ) : filteredGapoktan.map(g => (
                 <div key={g.id} className="relative group rounded-2xl border bg-card/60 p-6 hover:shadow-xl hover:border-primary/20 transition-all">
                   <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                     <button 
