@@ -30,8 +30,12 @@ export default function TrendChart({ data, theme = 'oligarch' }: TrendChartProps
           dataKey="date" 
           axisLine={false} 
           tickLine={false} 
-          tick={{ fontSize: 10, fill: textColor }} 
-          dy={10} 
+          tick={{ fontSize: 9, fill: textColor }} 
+          dy={10}
+          angle={-45}
+          textAnchor="end"
+          interval={0}
+          height={60}
         />
         <YAxis 
           axisLine={false} 

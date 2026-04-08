@@ -56,6 +56,19 @@ export default function PublicDashboardClient() {
   // Filter Toggle State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  // Sorting state
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
   };
@@ -155,7 +168,7 @@ export default function PublicDashboardClient() {
   }, [gapoktanList, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan]);
 
   const filteredProductions = useMemo(() => {
-    return productions.filter(p => {
+    let result = productions.filter(p => {
       if (filterKomoditas && p.komoditas_id !== filterKomoditas) return false;
       if (filterKabupaten && p.gapoktan?.desa?.kecamatan?.kabupaten_id !== filterKabupaten) return false;
       if (filterKecamatan && p.gapoktan?.desa?.kecamatan_id !== filterKecamatan) return false;
@@ -164,7 +177,25 @@ export default function PublicDashboardClient() {
       if (filterEndDate && p.production_date > filterEndDate) return false;
       return true;
     });
-  }, [productions, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterStartDate, filterEndDate]);
+
+    if (sortKey) {
+      result.sort((a, b) => {
+        let valA: any = a[sortKey as keyof Production];
+        let valB: any = b[sortKey as keyof Production];
+
+        // Special handling for nested objects
+        if (sortKey === 'gapoktan') valA = a.gapoktan?.name, valB = b.gapoktan?.name;
+        if (sortKey === 'komoditas') valA = a.komoditas?.name, valB = b.komoditas?.name;
+        if (sortKey === 'alamat') valA = a.gapoktan?.desa?.name, valB = b.gapoktan?.desa?.name;
+
+        if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [productions, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterStartDate, filterEndDate, sortKey, sortDir]);
 
   const stats = useMemo<DashboardStats>(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -233,12 +264,25 @@ export default function PublicDashboardClient() {
   const trendData = useMemo(() => {
     const map: Record<string, number> = {};
     productions.forEach(p => {
-      const d = new Date(p.production_date).toLocaleDateString('id-ID', { month: 'short' });
+      const d = new Date(p.production_date).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
       map[d] = (map[d] || 0) + Number(p.qty_before);
     });
-    // Fill dummy months if data is sparse to match wireframe look
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
-    return months.map(m => ({ date: m, ton: Number((map[m] || Math.floor(Math.random() * 50) + 10).toFixed(1)) })); 
+    
+    // Sort keys chronologically
+    const sortedKeys = Object.keys(map).sort((a, b) => {
+      const dateA = new Date(a.replace(' ', ' 1, '));
+      const dateB = new Date(b.replace(' ', ' 1, '));
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    if (sortedKeys.length === 0) {
+       // Default dummy view if no data
+       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+       const year = new Date().getFullYear();
+       return months.map(m => ({ date: `${m} ${year}`, ton: Number((Math.floor(Math.random() * 50) + 10).toFixed(1)) }));
+    }
+
+    return sortedKeys.map(k => ({ date: k, ton: Number(map[k].toFixed(1)) }));
   }, [productions]);
 
   const exportToCSV = () => {
@@ -340,7 +384,7 @@ export default function PublicDashboardClient() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-4 w-full pt-2">
             <div className="md:col-span-2 lg:col-span-2 relative">
               <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kabupaten</label>
-              <select value={filterKabupaten} onChange={(e: any) => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); setFilterDesa(''); }} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
+              <select value={filterKabupaten} onChange={(e: any) => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); }} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
                 <option value="">Semua Kabupaten</option>
                 {availableKabupaten.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
@@ -575,14 +619,30 @@ export default function PublicDashboardClient() {
               <table className="w-full text-left min-w-[1200px]">
                 <thead>
                   <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/30">
-                    <th className="px-5 py-4 border-b">Unit-Tgl</th>
-                    <th className="px-5 py-4 border-b">Kelompok Tani</th>
-                    <th className="px-5 py-4 border-b">Alamat Lengkap</th>
-                    <th className="px-5 py-4 border-b">Komoditas</th>
-                    <th className="px-5 py-4 border-b text-right">Ton Sebelum</th>
-                    <th className="px-5 py-4 border-b text-right">Harga Sebelum</th>
-                    <th className="px-5 py-4 border-b text-right">Ton Sesudah</th>
-                    <th className="px-5 py-4 border-b text-right">Harga Sesudah</th>
+                    <th className="px-5 py-4 border-b cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('production_date')}>
+                      <div className="flex items-center gap-1">Unit-Tgl {sortKey === 'production_date' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
+                    </th>
+                    <th className="px-5 py-4 border-b cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('gapoktan')}>
+                      <div className="flex items-center gap-1">Kelompok Tani {sortKey === 'gapoktan' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
+                    </th>
+                    <th className="px-5 py-4 border-b cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('alamat')}>
+                      <div className="flex items-center gap-1">Alamat Lengkap {sortKey === 'alamat' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
+                    </th>
+                    <th className="px-5 py-4 border-b cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('komoditas')}>
+                      <div className="flex items-center gap-1">Komoditas {sortKey === 'komoditas' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
+                    </th>
+                    <th className="px-5 py-4 border-b text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('qty_before')}>
+                      <div className="flex items-center justify-end gap-1">Ton Sebelum {sortKey === 'qty_before' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
+                    </th>
+                    <th className="px-5 py-4 border-b text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('price_before')}>
+                      <div className="flex items-center justify-end gap-1">Harga Sebelum {sortKey === 'price_before' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
+                    </th>
+                    <th className="px-5 py-4 border-b text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('qty_after')}>
+                      <div className="flex items-center justify-end gap-1">Ton Sesudah {sortKey === 'qty_after' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
+                    </th>
+                    <th className="px-5 py-4 border-b text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('price_after')}>
+                      <div className="flex items-center justify-end gap-1">Harga Sesudah {sortKey === 'price_after' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
+                    </th>
                     <th className="px-5 py-4 border-b">Status</th>
                   </tr>
                 </thead>
