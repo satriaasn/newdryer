@@ -22,7 +22,8 @@ const getAdminClient = () => {
 };
 
 const checkAdmin = async () => {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { allowed: false, error: "Authentication session not found. Please re-login." };
 

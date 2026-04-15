@@ -16,13 +16,15 @@ import {
   Copy,
   Settings2,
   LayoutList,
-  Hash
+  Hash,
+  CalendarDays,
+  PieChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function WhatsAppReportingPage() {
   const supabase = createClientComponentClient();
-  const [activeTab, setActiveTab] = useState<'log' | 'manual'>('log');
+  const [activeTab, setActiveTab] = useState<'log' | 'manual' | 'daily'>('log');
   const [productions, setProductions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,7 +34,7 @@ export default function WhatsAppReportingPage() {
   const [selectedProd, setSelectedProd] = useState<any | null>(null);
   const [previewMessage, setPreviewMessage] = useState("");
   
-  // Specific for Manual Tab
+  // Specific for Manual/Daily Tab
   const [manualMessage, setManualMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -54,7 +56,7 @@ export default function WhatsAppReportingPage() {
           dryer_units (id, name)
         `)
         .order('production_date', { ascending: false })
-        .limit(50),
+        .limit(100),
       whatsappService.getSettings()
     ]);
     
@@ -70,17 +72,50 @@ export default function WhatsAppReportingPage() {
     setSelectedProd(p);
     if (!waSettings) return;
     
-    let msg = waSettings.message_template
-      .replace('{{gapoktan}}', p.gapoktan?.name || '-')
-      .replace('{{qty}}', Number(p.qty_after || p.qty_before).toFixed(1))
-      .replace('{{komoditas}}', p.komoditas?.name || '-')
-      .replace('{{notes}}', p.notes || '-');
+    // Fix: Use replaceAll for multiple occurrences
+    let msg = (waSettings.message_template || "")
+      .replaceAll('{{gapoktan}}', p.gapoktan?.name || '-')
+      .replaceAll('{{qty}}', Number(p.qty_after || p.qty_before).toFixed(1))
+      .replaceAll('{{komoditas}}', p.komoditas?.name || '-')
+      .replaceAll('{{notes}}', p.notes || '-');
     
     setPreviewMessage(msg);
     setFeedback(null);
   };
 
-  const handleSendAction = async (msg: string, isManualLaunch: boolean = false) => {
+  const generateDailyRecap = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayProds = productions.filter(p => (p.production_date || "").includes(today));
+
+    if (todayProds.length === 0) {
+      setManualMessage("BELUM ADA DATA PRODUKSI UNTUK HARI INI.");
+      return;
+    }
+
+    const totalQty = todayProds.reduce((acc, p) => acc + Number(p.qty_after || p.qty_before || 0), 0);
+    const commodities = Array.from(new Set(todayProds.map(p => p.komoditas?.name))).filter(Boolean);
+    const gapoktans = Array.from(new Set(todayProds.map(p => p.gapoktan?.name))).filter(Boolean);
+    
+    const commBreakdown = commodities.map(c => {
+      const cProds = todayProds.filter(p => p.komoditas?.name === c);
+      const cQty = cProds.reduce((acc, p) => acc + Number(p.qty_after || p.qty_before || 0), 0);
+      return `- ${c}: ${cQty.toFixed(1)} Ton (${cProds.length} Batch)`;
+    }).join('\n');
+
+    const message = `REKAP PRODUKSI HARIAN (${today})\n` +
+      `----------------------------------\n` +
+      `Gapoktan Terlibat:\n${gapoktans.map(g => `• ${g}`).join('\n')}\n\n` +
+      `Total Produksi: ${todayProds.length} Batch\n` +
+      `Total Volume: ${totalQty.toFixed(1)} Ton\n\n` +
+      `Rincian per Komoditas:\n${commBreakdown}\n` +
+      `----------------------------------\n` +
+      `Dikirim via Sistem Oligarch`;
+
+    setManualMessage(message);
+    setFeedback(null);
+  };
+
+  const handleSendAction = async (msg: string, isFromTab: boolean = false) => {
     if (!waSettings?.api_key || !waSettings?.target_number) {
       setFeedback({ type: 'error', text: 'Konfigurasi WA belum lengkap (API Key/Nomor Tujuan).' });
       return;
@@ -104,7 +139,7 @@ export default function WhatsAppReportingPage() {
       const resData = await response.json();
       if (resData.status === true) {
         setFeedback({ type: 'success', text: 'Pesan berhasil dikirim ke WhatsApp!' });
-        if (!isManualLaunch) setTimeout(() => setSelectedProd(null), 1500);
+        if (!isFromTab) setTimeout(() => setSelectedProd(null), 1500);
       } else {
         setFeedback({ type: 'error', text: 'Gagal mengirim: ' + (resData.reason || 'Cek koneksi API.') });
       }
@@ -159,6 +194,15 @@ export default function WhatsAppReportingPage() {
             <LayoutList className="h-4 w-4" /> Data Produksi
           </button>
           <button 
+            onClick={() => { setActiveTab('daily'); setFeedback(null); generateDailyRecap(); }}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeTab === 'daily' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <CalendarDays className="h-4 w-4" /> Recap Harian
+          </button>
+          <button 
             onClick={() => { setActiveTab('manual'); setFeedback(null); }}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
@@ -185,7 +229,7 @@ export default function WhatsAppReportingPage() {
                   />
                 </div>
                 <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                  <ClipboardList className="h-4 w-4" /> 50 Log Terakhir
+                  <ClipboardList className="h-4 w-4" /> 100 Log Terakhir
                 </div>
             </div>
 
@@ -240,6 +284,76 @@ export default function WhatsAppReportingPage() {
             </div>
           </div>
         </div>
+      ) : activeTab === 'daily' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in slide-in-from-bottom-6 duration-500">
+           <div className="lg:col-span-2 bg-card rounded-2xl border p-8 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-emerald-500 text-white flex items-center justify-center rounded-2xl shadow-lg shadow-emerald-500/20">
+                    <PieChart className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-black text-xl tracking-tight">Ringkasan Harian</h2>
+                    <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest">Otomatisasi Laporan Manager</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={generateDailyRecap}
+                  className="p-2 hover:bg-muted rounded-xl transition-all text-emerald-600"
+                  title="Refresh Data"
+                >
+                  <Hash className="h-5 w-5" />
+                </button>
+              </div>
+
+              <textarea 
+                value={manualMessage}
+                onChange={(e) => setManualMessage(e.target.value)}
+                rows={12}
+                className="w-full p-6 rounded-3xl border bg-background/50 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all text-sm font-mono leading-relaxed shadow-inner"
+              />
+
+              <div className="flex gap-4 pt-2">
+                 <button 
+                    onClick={() => handleSendAction(manualMessage, true)}
+                    disabled={isSending || loading}
+                    className="flex-1 py-4 bg-emerald-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-500/20 disabled:opacity-50"
+                 >
+                    {isSending ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <Send className="h-4 w-4" />}
+                    Kirim Recap Harian
+                 </button>
+                 <button 
+                  onClick={() => copyToClipboard(manualMessage)}
+                  className="px-6 py-4 bg-muted hover:bg-muted/80 text-foreground font-black uppercase tracking-widest text-xs rounded-2xl transition-all"
+                 >
+                    <Copy className="h-4 w-4" />
+                 </button>
+              </div>
+           </div>
+
+           <div className="space-y-6">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6">
+                 <h4 className="font-black text-emerald-700 text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                   <AlertCircle className="h-4 w-4" /> Info Laporan
+                 </h4>
+                 <p className="text-sm font-medium text-emerald-800 leading-relaxed">
+                   Data diambil dari seluruh produksi dengan tanggal hari ini. Gunakan tombol refresh di atas jika baru saja menambah data baru.
+                 </p>
+              </div>
+              <div className="bg-card border rounded-2xl p-6 shadow-sm">
+                 <h4 className="font-black text-xs uppercase tracking-widest mb-4">Tujuan Pengiriman</h4>
+                 <div className="p-4 bg-muted/50 rounded-xl border border-dashed flex items-center gap-4">
+                    <div className="h-10 w-10 bg-background rounded-lg flex items-center justify-center border shadow-sm">
+                      <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                       <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Manager / Server</div>
+                       <div className="text-sm font-bold">{waSettings?.target_number || 'None'}</div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-right-4 duration-300">
            {/* Manual Send Form */}
@@ -256,12 +370,12 @@ export default function WhatsAppReportingPage() {
 
               <div className="space-y-4">
                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Tujuan: {waSettings?.target_number || 'Belum diatur'}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Isi Pesan</label>
                     <textarea 
                        value={manualMessage}
                        onChange={(e) => setManualMessage(e.target.value)}
                        placeholder="Ketik laporan atau pesan di sini..."
-                       rows={8}
+                       rows={10}
                        className="w-full p-4 rounded-2xl border bg-background focus:ring-4 focus:ring-primary/10 outline-none transition-all text-sm font-medium leading-relaxed"
                     />
                  </div>
@@ -326,7 +440,7 @@ export default function WhatsAppReportingPage() {
       )}
 
       {/* FEEDBACK NOTIFICATION */}
-      {feedback && activeTab === 'manual' && (
+      {feedback && (activeTab === 'manual' || activeTab === 'daily') && (
         <div className={cn(
           "fixed bottom-8 right-8 p-4 rounded-xl flex items-center gap-3 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 z-50",
           feedback.type === 'success' ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
@@ -368,7 +482,7 @@ export default function WhatsAppReportingPage() {
                     />
                  </div>
 
-                 {feedback && (
+                 {feedback && activeTab === 'log' && (
                    <div className={cn(
                      "p-4 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-300",
                      feedback.type === 'success' ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-rose-500/10 text-rose-600 border border-rose-500/20"
