@@ -79,7 +79,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-lg shadow-primary/20 transition-transform group-hover:scale-110">
               <Package className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-xl tracking-tight gradient-text">AgroDryer</span>
+            <div>
+              <span className="font-bold text-xl tracking-tight gradient-text">AgroDryer</span>
+              <div className="text-[8px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-full inline-block ml-1 align-top">v1.1.0</div>
+            </div>
           </div>
           {/* Close button for mobile */}
           <button 
@@ -101,11 +104,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             
-            // Link Laporan WA & Pengaturan User hanya untuk admin/administrator
-            const normalizedRole = (profile?.role || "").toLowerCase();
-            const isAdmin = normalizedRole.includes("admin");
+            // LOGIKA ADMIN ABSOLUT (Case-insensitive & Partial Match)
+            const role = (profile?.role || "").toLowerCase().trim();
+            const isAdmin = role.includes("admin") || role.includes("super");
             
-            if ((item.name === "Laporan WA" || item.name === "Pengaturan User") && !isAdmin) {
+            // Menu khusus admin
+            const isRestricted = ["Laporan WA", "Pengaturan User"].includes(item.name);
+            if (isRestricted && !isAdmin) {
               return null;
             }
 
@@ -142,10 +147,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter">{profile?.role || "Administrator"}</p>
               </div>
             </div>
-            {/* DEBUG INFO: Hanya muncul jika ada profile load */}
             {profile && (
-              <div className="px-3 text-[9px] font-mono text-muted-foreground/40 text-center">
-                DEBUG: {profile.role || 'no-role'} | IS_ADMIN: {String((profile.role || "").toLowerCase().includes("admin"))}
+              <div className="px-3 text-[9px] font-mono text-muted-foreground/30 text-center uppercase tracking-tighter">
+                Sistem v1.1.0 | Active: {profile.role}
               </div>
             )}
           </div>
