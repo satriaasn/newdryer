@@ -132,50 +132,129 @@ export default function PublicGapoktanDetailPage() {
                   <button 
                     onClick={() => {
                       const g = gapoktan;
-                      const totalQty = productions.reduce((s, p) => s + Number(p.qty_before || 0), 0);
+                      const totalQtyBefore = productions.reduce((s, p) => s + Number(p.qty_before || 0), 0);
+                      const totalQtyAfter = productions.reduce((s, p) => s + Number(p.qty_after || 0), 0);
+
+                      // Commodity aggregation
+                      const commAgg: Record<string, { qty: number; count: number }> = {};
+                      productions.forEach(p => {
+                        const k = p.komoditas?.name || '-';
+                        if (!commAgg[k]) commAgg[k] = { qty: 0, count: 0 };
+                        commAgg[k].qty += Number(p.qty_before || 0);
+                        commAgg[k].count++;
+                      });
+
+                      const fmtCur = (v: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v);
+
                       const win = window.open('', '_blank');
                       if (!win) return;
                       win.document.write(`
-                        <html><head><title>Profil ${g.name}</title>
-                        <style>
-                          body { font-family: Arial, sans-serif; margin: 30px; color: #1a1a1a; max-width: 700px; }
-                          h1 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 16px; }
-                          .row { display: flex; margin: 6px 0; }
-                          .label { font-weight: 700; width: 160px; color: #555; font-size: 13px; }
-                          .value { font-size: 13px; }
-                          .section { margin-top: 20px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; }
-                          .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin: 2px 4px 2px 0; font-weight: 600; }
-                          .stats { display: flex; gap: 12px; margin: 16px 0; }
-                          .stat-box { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 12px; text-align: center; }
-                          .stat-val { font-size: 24px; font-weight: 900; }
-                          .stat-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-                          .footer { margin-top: 40px; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
-                          @media print { @page { margin: 15mm; } }
-                        </style></head><body>
-                        <h1>PROFIL GAPOKTAN: ${g.name}</h1>
-                        <div class="stats">
-                          <div class="stat-box"><div class="stat-val">${totalQty.toFixed(1)}</div><div class="stat-label">Total Produksi (Ton)</div></div>
-                          <div class="stat-box"><div class="stat-val">${g.dryer_units?.length || 0}</div><div class="stat-label">Unit Dryer</div></div>
-                          <div class="stat-box"><div class="stat-val">${g.komoditas?.length || 0}</div><div class="stat-label">Komoditas</div></div>
-                          <div class="stat-box"><div class="stat-val">${productions.length}</div><div class="stat-label">Log Transaksi</div></div>
-                        </div>
-                        <div class="row"><div class="label">Nama Gapoktan</div><div class="value">${g.name}</div></div>
-                        <div class="row"><div class="label">Ketua</div><div class="value">${g.ketua || '-'}</div></div>
-                        <div class="row"><div class="label">No. Telepon</div><div class="value">${g.phone || '-'}</div></div>
-                        <div class="row"><div class="label">Alamat</div><div class="value">${g.address || '-'}</div></div>
-                        <div class="row"><div class="label">Desa</div><div class="value">${g.desa?.name || '-'}</div></div>
-                        <div class="row"><div class="label">Kecamatan</div><div class="value">${g.desa?.kecamatan?.name || '-'}</div></div>
-                        <div class="row"><div class="label">Kabupaten</div><div class="value">${g.desa?.kecamatan?.kabupaten?.name || '-'}</div></div>
-                        ${g.latitude ? `<div class="row"><div class="label">Koordinat</div><div class="value">${g.latitude?.toFixed(6)}, ${g.longitude?.toFixed(6)}</div></div>` : ''}
-                        <div class="section">Komoditas</div>
-                        <div>${g.komoditas?.map(k => `<span class="badge">${k.name}</span>`).join('') || '<em style="color:#999">Belum ada</em>'}</div>
-                        ${g.dryer_units && g.dryer_units.length > 0 ? `
-                          <div class="section">Unit Dryer (${g.dryer_units.length} unit)</div>
-                          <div>${g.dryer_units.map(d => `<span class="badge">${d.name} (${d.capacity_ton}T) - ${d.status === 'active' ? 'AKTIF' : 'NONAKTIF'}</span>`).join('')}</div>
-                        ` : ''}
-                        <div class="footer">Dicetak pada ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
-                        <script>window.onload=function(){window.print();}</script>
-                        </body></html>
+<html><head><title>Profil Gapoktan - ${g.name}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; max-width: 800px; margin: 0 auto; padding: 24px; }
+  .header { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); color: white; padding: 32px; border-radius: 16px; margin-bottom: 24px; }
+  .header h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .header .sub { font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
+  .header .loc { font-size: 12px; margin-top: 12px; opacity: 0.8; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; text-align: center; }
+  .stat .val { font-size: 28px; font-weight: 900; color: #0f172a; }
+  .stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 2px; }
+  .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #f1f5f9; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .info-row { display: flex; gap: 8px; padding: 6px 0; }
+  .info-label { font-size: 11px; font-weight: 700; color: #94a3b8; width: 110px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .info-value { font-size: 12px; font-weight: 600; color: #1e293b; }
+  .badge { display: inline-block; background: #ecfdf5; color: #059669; padding: 3px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; margin: 2px; border: 1px solid #d1fae5; }
+  .badge-blue { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
+  th { background: #f8fafc; font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; padding: 10px 8px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+  td { padding: 8px; border-bottom: 1px solid #f1f5f9; }
+  tr:hover { background: #fafafe; }
+  .r { text-align: right; }
+  .mono { font-family: 'Consolas', monospace; }
+  .comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 8px; }
+  .comm-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .comm-name { font-size: 11px; font-weight: 700; color: #166534; }
+  .comm-val { font-size: 16px; font-weight: 900; color: #15803d; }
+  .comm-batch { font-size: 9px; color: #86efac; font-weight: 700; }
+  .footer { margin-top: 24px; padding-top: 12px; border-top: 2px solid #e2e8f0; font-size: 9px; color: #94a3b8; display: flex; justify-content: space-between; }
+  @media print { @page { margin: 12mm; } body { padding: 0; } }
+</style></head>
+<body>
+  <div class="header">
+    <div class="sub">Profil Gapoktan — Dashboard Monitoring Hibah Dryer</div>
+    <h1>${g.name}</h1>
+    <div class="loc">📍 ${g.desa?.name || '-'}, ${g.desa?.kecamatan?.name || '-'}, ${g.desa?.kecamatan?.kabupaten?.name || '-'}</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="val">${totalQtyBefore.toFixed(1)}</div><div class="lbl">Total Masuk (Ton)</div></div>
+    <div class="stat"><div class="val">${totalQtyAfter.toFixed(1)}</div><div class="lbl">Total Keluar (Ton)</div></div>
+    <div class="stat"><div class="val">${g.dryer_units?.length || 0}</div><div class="lbl">Unit Dryer</div></div>
+    <div class="stat"><div class="val">${productions.length}</div><div class="lbl">Total Batch</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Informasi Gapoktan</div>
+    <div class="info-grid">
+      <div class="info-row"><div class="info-label">Ketua</div><div class="info-value">${g.ketua || '-'}</div></div>
+      <div class="info-row"><div class="info-label">Telepon</div><div class="info-value">${g.phone || '-'}</div></div>
+      <div class="info-row"><div class="info-label">Alamat</div><div class="info-value">${g.address || '-'}</div></div>
+      ${g.latitude ? `<div class="info-row"><div class="info-label">Koordinat</div><div class="info-value mono">${g.latitude?.toFixed(6)}, ${g.longitude?.toFixed(6)}</div></div>` : ''}
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div class="card">
+      <div class="card-title">Komoditas</div>
+      <div>${g.komoditas?.map(k => '<span class="badge">' + k.name + '</span>').join('') || '<em style="color:#ccc">Belum ada</em>'}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Unit Dryer</div>
+      <div>${g.dryer_units?.map(d => '<span class="badge-blue badge">' + d.name + ' (' + d.capacity_ton + 'T) — ' + (d.status === 'active' ? '✅ Aktif' : '❌ Nonaktif') + '</span>').join('') || '<em style="color:#ccc">Belum ada</em>'}</div>
+    </div>
+  </div>
+
+  ${Object.keys(commAgg).length > 0 ? `
+  <div class="card">
+    <div class="card-title">Ringkasan Produksi per Komoditas</div>
+    <div class="comm-grid">
+      ${Object.entries(commAgg).map(([k, v]) => '<div class="comm-card"><div><div class="comm-name">' + k + '</div><div class="comm-batch">' + v.count + ' Batch</div></div><div class="comm-val">' + v.qty.toFixed(1) + ' T</div></div>').join('')}
+    </div>
+  </div>
+  ` : ''}
+
+  ${productions.length > 0 ? `
+  <div class="card">
+    <div class="card-title">Detail Riwayat Produksi (${productions.length} Record)</div>
+    <table>
+      <thead><tr><th>No</th><th>Tanggal</th><th>Komoditas</th><th>Unit Dryer</th><th class="r">Qty Masuk</th><th class="r">Harga Masuk</th><th class="r">Qty Keluar</th><th class="r">Harga Keluar</th></tr></thead>
+      <tbody>
+        ${productions.slice(0, 50).map((p, i) => '<tr>' +
+          '<td>' + (i+1) + '</td>' +
+          '<td>' + (p.production_date || '-') + '</td>' +
+          '<td><span class="badge" style="margin:0">' + (p.komoditas?.name || '-') + '</span></td>' +
+          '<td>' + (p.dryer_units?.name || '-') + '</td>' +
+          '<td class="r mono">' + Number(p.qty_before || 0).toFixed(2) + '</td>' +
+          '<td class="r mono">' + fmtCur(p.price_before || 0) + '</td>' +
+          '<td class="r mono">' + Number(p.qty_after || 0).toFixed(2) + '</td>' +
+          '<td class="r mono">' + fmtCur(p.price_after || 0) + '</td>' +
+        '</tr>').join('')}
+        ${productions.length > 50 ? '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:12px;font-style:italic">... dan ' + (productions.length - 50) + ' data lainnya</td></tr>' : ''}
+      </tbody>
+    </table>
+  </div>
+  ` : ''}
+
+  <div class="footer">
+    <span>Dicetak pada ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span>
+    <span>Dashboard Monitoring Hibah Dryer — Halaman 1</span>
+  </div>
+  <script>window.onload=function(){window.print();}</script>
+</body></html>
                       `);
                       win.document.close();
                     }}

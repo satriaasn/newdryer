@@ -102,7 +102,6 @@ export default function WhatsAppReportingPage() {
   const generateDailyRecap = (freshData?: any[], selectedDate?: string) => {
     const data = freshData || productions;
     const targetDate = selectedDate || recapDate;
-    // Use startsWith to handle dates like "2026-04-15T00:00:00+00:00" or "2026-04-15"
     const dateProds = data.filter(p => {
       const pd = (p.production_date || "").substring(0, 10);
       return pd === targetDate;
@@ -119,22 +118,40 @@ export default function WhatsAppReportingPage() {
     }
 
     const totalQty = dateProds.reduce((acc, p) => acc + Number(p.qty_after || p.qty_before || 0), 0);
-    const commodities = Array.from(new Set(dateProds.map(p => p.komoditas?.name))).filter(Boolean);
     const activeUnits = Array.from(new Set(dateProds.map(p => p.dryer_units?.name))).filter(Boolean);
     
-    const commBreakdown = commodities.map(c => {
-      const cProds = dateProds.filter(p => p.komoditas?.name === c);
-      const cQty = cProds.reduce((acc, p) => acc + Number(p.qty_after || p.qty_before || 0), 0);
-      return `- ${c}: ${cQty.toFixed(1)} Ton (${cProds.length} Batch)`;
-    }).join('\n');
+    // Group by Gapoktan
+    const gapoktanMap: Record<string, { name: string; items: { komoditas: string; qty: number }[] }> = {};
+    dateProds.forEach(p => {
+      const gName = p.gapoktan?.name || 'Lainnya';
+      if (!gapoktanMap[gName]) gapoktanMap[gName] = { name: gName, items: [] };
+      gapoktanMap[gName].items.push({
+        komoditas: p.komoditas?.name || '-',
+        qty: Number(p.qty_after || p.qty_before || 0),
+      });
+    });
 
-    const message = `REKAP PRODUKSI HARIAN (${formattedDate})\n` +
-      `----------------------------------\n` +
-      `Total Produksi: ${dateProds.length} Batch\n` +
-      `Total Volume: ${totalQty.toFixed(1)} Ton\n\n` +
-      `Rincian per Komoditas:\n${commBreakdown}\n\n` +
-      `Unit Aktif: ${activeUnits.join(', ')}.\n` +
-      `----------------------------------`;
+    // Build per-gapoktan breakdown
+    const gapoktanBreakdown = Object.values(gapoktanMap).map(g => {
+      // Aggregate same commodity within a gapoktan
+      const commMap: Record<string, number> = {};
+      g.items.forEach(i => {
+        commMap[i.komoditas] = (commMap[i.komoditas] || 0) + i.qty;
+      });
+      const lines = Object.entries(commMap).map(([k, v]) => `  ${k}: ${v.toFixed(1)} Ton`).join('\n');
+      return `📌 *${g.name}*\n${lines}`;
+    }).join('\n\n');
+
+    const message = 
+      `📋 *REKAP PRODUKSI HARIAN*\n` +
+      `📅 ${formattedDate}\n` +
+      `══════════════════\n\n` +
+      `📊 *Total Produksi: ${totalQty.toFixed(1)} Ton* (${dateProds.length} Batch)\n\n` +
+      `📝 *Rincian Per Gapoktan:*\n\n` +
+      `${gapoktanBreakdown}\n\n` +
+      `🏭 Unit Aktif: ${activeUnits.join(', ')}\n` +
+      `══════════════════\n` +
+      `_Laporan Selesai_`;
 
     setManualMessage(message);
     setFeedback(null);
