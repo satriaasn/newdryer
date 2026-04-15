@@ -102,9 +102,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             const isActive = pathname === item.href;
             
             // Link Laporan WA & Pengaturan User hanya untuk admin/administrator
-            const normalizedRole = (profile?.role || "").toLowerCase().trim().replace(/\s/g, "");
-            const adminRoles = ['admin', 'administrator', 'superadmin'];
-            if ((item.name === "Laporan WA" || item.name === "Pengaturan User") && !adminRoles.includes(normalizedRole)) {
+            const normalizedRole = (profile?.role || "").toLowerCase();
+            const isAdmin = normalizedRole.includes("admin");
+            
+            if ((item.name === "Laporan WA" || item.name === "Pengaturan User") && !isAdmin) {
               return null;
             }
 
@@ -131,14 +132,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         <div className="p-4 border-t space-y-4">
-          <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-muted/30">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-white font-bold text-xs">
-              {profile?.full_name?.charAt(0) || 'A'}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-muted/30">
+              <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-white font-bold text-xs">
+                {profile?.full_name?.charAt(0) || 'A'}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-medium truncate">{profile?.full_name || "Admin"}</p>
+                <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter">{profile?.role || "Administrator"}</p>
+              </div>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium truncate">{profile?.full_name || "Admin"}</p>
-              <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter">{profile?.role || "Administrator"}</p>
-            </div>
+            {/* DEBUG INFO: Hanya muncul jika ada profile load */}
+            {profile && (
+              <div className="px-3 text-[9px] font-mono text-muted-foreground/40 text-center">
+                DEBUG: {profile.role || 'no-role'} | IS_ADMIN: {String((profile.role || "").toLowerCase().includes("admin"))}
+              </div>
+            )}
           </div>
           <button 
             onClick={handleSignOut}
