@@ -52,7 +52,7 @@
   [data-theme="oligarch"] {
     --background: 222.2 84% 3%; /* Deep Charcoal-Navy Black */
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 5.5%; 
+    --card: 222.2 40% 12%; /* Lighter grey-navy for better contrast */
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 3%;
     --popover-foreground: 210 40% 98%;
@@ -62,13 +62,13 @@
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 12%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 197 71% 73%;
+    --accent: 142 71% 45%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 222.2 84% 12%;
-    --input: 222.2 84% 12%;
-    --ring: 197 71% 73%;
+    --border: 222.2 40% 18%; /* Slightly lighter border */
+    --input: 222.2 40% 18%;
+    --ring: 142 71% 45%;
   }
 }
 
@@ -104,4 +104,17 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.bg-lampung-accent {
+  background-image: url('/images/brand/lampung-bg.png');
+  background-size: 600px;
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  background-attachment: fixed;
+  opacity: 0.08;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
 }

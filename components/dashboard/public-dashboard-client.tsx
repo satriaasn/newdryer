@@ -328,7 +328,10 @@ export default function PublicDashboardClient() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-hidden">
+      {/* Lampung Identity Accent */}
+      <div className="bg-lampung-accent" />
+
       {/* HEADER SECTION */}
       <header className="bg-card border-b px-6 lg:px-10 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-0 z-50 shadow-sm">
         <div>
@@ -394,6 +397,14 @@ export default function PublicDashboardClient() {
               <select value={filterKecamatan} onChange={(e: any) => setFilterKecamatan(e.target.value)} disabled={!filterKabupaten} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
                 <option value="">Semua Kecamatan</option>
                 {availableKecamatan.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
+              </select>
+            </div>
+
+            <div className="md:col-span-2 lg:col-span-2 relative">
+              <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Komoditas</label>
+              <select value={filterKomoditas} onChange={(e: any) => setFilterKomoditas(e.target.value)} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
+                <option value="">Semua Komoditas</option>
+                {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </div>
 

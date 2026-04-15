@@ -19,12 +19,14 @@ import {
   X,
   Settings,
   Download,
+  MessageSquare,
 } from "lucide-react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { userService, type Profile } from "@/services/user.service";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Laporan WA", href: "/dashboard/reports", icon: MessageSquare },
   { name: "Produksi", href: "/dashboard/production", icon: ClipboardList },
   { name: "Gapoktan", href: "/dashboard/gapoktan", icon: Users },
   { name: "Unit Dryer", href: "/dashboard/dryer", icon: Factory },
@@ -98,6 +100,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <p className="px-3 text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-2">Admin Panel</p>
           {navigation.map((item) => {
             const isActive = pathname === item.href;
+            
+            // Link Laporan WA hanya untuk admin
+            if (item.name === "Laporan WA" && profile?.role !== 'admin') {
+              return null;
+            }
+
             return (
               <Link
                 key={item.name}
