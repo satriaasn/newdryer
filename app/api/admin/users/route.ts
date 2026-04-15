@@ -29,24 +29,47 @@ const checkAdmin = async () => {
   if (userError || !user) {
     return { 
       allowed: false, 
-      error: "Authentication session not found.",
-      diagnostics: { userError: userError?.message, user: !!user }
+      error: "Sesi login tidak ditemukan. Silakan login ulang.",
+      diagnostics: { userError: userError?.message }
     };
   }
 
-  // Use Admin Client for Role Check to bypass RLS issues in API environment
   const adminClient = getAdminClient();
+  
+  // Use maybeSingle to avoid "Cannot coerce" error when 0 rows found
   const { data: profile, error: profileError } = await adminClient
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  if (profileError || !profile) {
+  if (profileError) {
     return { 
       allowed: false, 
-      error: "Profile record not found.",
-      diagnostics: { profileError: profileError?.message, userId: user.id }
+      error: "Gagal membaca profil dari database.",
+      diagnostics: { profileError: profileError.message, userId: user.id }
+    };
+  }
+
+  // Auto-create profile if it doesn't exist yet
+  if (!profile) {
+    const meta = user.user_metadata || {};
+    const defaultRole = (meta.role || 'admin').toLowerCase();
+    await adminClient.from('profiles').upsert({
+      id: user.id,
+      full_name: meta.full_name || user.email?.split('@')[0] || 'User',
+      role: defaultRole,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    // If auto-created with admin role, allow through
+    if (['admin', 'administrator', 'superadmin'].includes(defaultRole)) {
+      return { allowed: true, userId: user.id };
+    }
+    return {
+      allowed: false,
+      error: "Profil baru dibuat otomatis, tapi role bukan admin.",
+      diagnostics: { autoCreatedRole: defaultRole, userId: user.id }
     };
   }
 
@@ -56,7 +79,7 @@ const checkAdmin = async () => {
   if (!adminRoles.includes(roleData)) {
     return { 
       allowed: false, 
-      error: "Insufficient role permission.",
+      error: `Role Anda '${roleData}' tidak memiliki akses admin.`,
       diagnostics: { detectedRole: roleData, userId: user.id }
     };
   }

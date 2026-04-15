@@ -18,7 +18,9 @@ import {
   LayoutList,
   Hash,
   CalendarDays,
-  PieChart
+  PieChart,
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,12 +62,14 @@ export default function WhatsAppReportingPage() {
       whatsappService.getSettings()
     ]);
     
-    if (prodRes.data) setProductions(prodRes.data);
+    const prods = prodRes.data || [];
+    setProductions(prods);
     if (settingsRes) {
       setWaSettings(settingsRes);
       setManualMessage(settingsRes.message_template || "");
     }
     setLoading(false);
+    return prods;
   };
 
   const handleOpenPreview = (p: any) => {
@@ -83,9 +87,10 @@ export default function WhatsAppReportingPage() {
     setFeedback(null);
   };
 
-  const generateDailyRecap = () => {
+  const generateDailyRecap = (freshData?: any[]) => {
+    const data = freshData || productions;
     const today = new Date().toISOString().split('T')[0];
-    const todayProds = productions.filter(p => (p.production_date || "").includes(today));
+    const todayProds = data.filter(p => (p.production_date || "").includes(today));
 
     if (todayProds.length === 0) {
       setManualMessage("BELUM ADA DATA PRODUKSI UNTUK HARI INI.");
@@ -168,11 +173,14 @@ export default function WhatsAppReportingPage() {
   };
 
   const refreshData = async () => {
-    setLoading(true);
-    await loadData();
-    generateDailyRecap();
-    setFeedback({ type: 'success', text: 'Data produksi telah diperbarui!' });
-    setTimeout(() => setFeedback(null), 2000);
+    try {
+      const freshProds = await loadData();
+      generateDailyRecap(freshProds);
+      setFeedback({ type: 'success', text: 'Data produksi telah diperbarui!' });
+      setTimeout(() => setFeedback(null), 2000);
+    } catch (err) {
+      setFeedback({ type: 'error', text: 'Gagal memuat data terbaru.' });
+    }
   };
 
   const filtered = productions.filter(p => 
@@ -309,7 +317,7 @@ export default function WhatsAppReportingPage() {
                   disabled={loading}
                   className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/10 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Hash className="h-3.5 w-3.5" />}
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                   Segarkan Data
                 </button>
               </div>

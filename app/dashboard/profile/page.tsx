@@ -202,7 +202,7 @@ export default function ProfileSettingsPage() {
                 </button>
              </div>
           </div>
-        </div>>
+        </div>
 
         {/* Configuration Form */}
         <div className="lg:col-span-2">
