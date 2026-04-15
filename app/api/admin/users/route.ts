@@ -24,22 +24,32 @@ const getAdminClient = () => {
 const checkAdmin = async () => {
   const supabase = createRouteHandlerClient({ cookies });
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
+  if (!user) return { allowed: false, error: "Authentication session not found. Please re-login." };
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single();
 
-  const role = (profile?.role || "").toLowerCase().trim();
+  if (profileError || !profile) {
+    return { allowed: false, error: `Profile not found for user ${user.id}.` };
+  }
+
+  const role = (profile.role || "").toLowerCase().trim();
   const adminRoles = ['admin', 'administrator', 'superadmin'];
-  return adminRoles.includes(role);
+  
+  if (!adminRoles.includes(role)) {
+    return { allowed: false, error: `Insufficient role: ${role}. Requires administrator access.` };
+  }
+
+  return { allowed: true };
 };
 
 export async function GET() {
-  if (!(await checkAdmin())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await checkAdmin();
+  if (!auth.allowed) {
+    return NextResponse.json({ error: "Unauthorized", detail: auth.error }, { status: 401 });
   }
 
   const adminClient = getAdminClient();
@@ -53,8 +63,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  if (!(await checkAdmin())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await checkAdmin();
+  if (!auth.allowed) {
+    return NextResponse.json({ error: "Unauthorized", detail: auth.error }, { status: 401 });
   }
 
   try {
@@ -94,8 +105,9 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  if (!(await checkAdmin())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await checkAdmin();
+  if (!auth.allowed) {
+    return NextResponse.json({ error: "Unauthorized", detail: auth.error }, { status: 401 });
   }
 
   try {
@@ -129,8 +141,9 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!(await checkAdmin())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await checkAdmin();
+  if (!auth.allowed) {
+    return NextResponse.json({ error: "Unauthorized", detail: auth.error }, { status: 401 });
   }
 
   try {
