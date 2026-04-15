@@ -94,7 +94,7 @@ export default function WhatsAppReportingPage() {
 
     const totalQty = todayProds.reduce((acc, p) => acc + Number(p.qty_after || p.qty_before || 0), 0);
     const commodities = Array.from(new Set(todayProds.map(p => p.komoditas?.name))).filter(Boolean);
-    const gapoktans = Array.from(new Set(todayProds.map(p => p.gapoktan?.name))).filter(Boolean);
+    const activeUnits = Array.from(new Set(todayProds.map(p => p.dryer_units?.name))).filter(Boolean);
     
     const commBreakdown = commodities.map(c => {
       const cProds = todayProds.filter(p => p.komoditas?.name === c);
@@ -104,12 +104,11 @@ export default function WhatsAppReportingPage() {
 
     const message = `REKAP PRODUKSI HARIAN (${today})\n` +
       `----------------------------------\n` +
-      `Gapoktan Terlibat:\n${gapoktans.map(g => `• ${g}`).join('\n')}\n\n` +
-      `Total Produksi: ${todayProds.length} Batch\n` +
+      `Total Produksi Hari Ini: ${todayProds.length} Batch\n` +
       `Total Volume: ${totalQty.toFixed(1)} Ton\n\n` +
-      `Rincian per Komoditas:\n${commBreakdown}\n` +
-      `----------------------------------\n` +
-      `Dikirim via Sistem Oligarch`;
+      `Rincian per Komoditas:\n${commBreakdown}\n\n` +
+      `Unit Aktif: ${activeUnits.join(', ')}.\n` +
+      `----------------------------------`;
 
     setManualMessage(message);
     setFeedback(null);
