@@ -81,7 +81,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div>
               <span className="font-bold text-xl tracking-tight gradient-text">AgroDryer</span>
-              <div className="text-[8px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-full inline-block ml-1 align-top">v1.1.0</div>
+              <div className="text-[8px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-full inline-block ml-1 align-top">v1.2.0</div>
             </div>
           </div>
           {/* Close button for mobile */}
@@ -104,13 +104,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             
-            // LOGIKA ADMIN ABSOLUT (Case-insensitive & Partial Match)
-            const role = (profile?.role || "").toLowerCase().trim();
-            const isAdmin = role.includes("admin") || role.includes("super");
+            // EMERGENCY FALLBACK LOGIC
+            const roleStr = (profile?.role || "").toLowerCase();
+            const isAdmin = roleStr.includes("admin") || roleStr.includes("super");
             
-            // Menu khusus admin
+            // Menampilkan menu admin jika status loading (null) atau admin terdeteksi
             const isRestricted = ["Laporan WA", "Pengaturan User"].includes(item.name);
-            if (isRestricted && !isAdmin) {
+            if (isRestricted && profile && !isAdmin) {
               return null;
             }
 
@@ -147,11 +147,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter">{profile?.role || "Administrator"}</p>
               </div>
             </div>
-            {profile && (
-              <div className="px-3 text-[9px] font-mono text-muted-foreground/30 text-center uppercase tracking-tighter">
-                Sistem v1.1.0 | Active: {profile.role}
-              </div>
-            )}
+            <div className="px-3 text-[9px] font-mono text-muted-foreground/30 text-center uppercase tracking-tighter">
+              Versi: v1.2.0 | Auth: {profile ? 'READY' : 'LOADING'}
+            </div>
           </div>
           <button 
             onClick={handleSignOut}
