@@ -102,8 +102,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             const isActive = pathname === item.href;
             
             // Link Laporan WA & Pengaturan User hanya untuk admin/administrator
+            const normalizedRole = (profile?.role || "").toLowerCase().trim().replace(/\s/g, "");
             const adminRoles = ['admin', 'administrator', 'superadmin'];
-            if ((item.name === "Laporan WA" || item.name === "Pengaturan User") && !adminRoles.includes(profile?.role || "")) {
+            if ((item.name === "Laporan WA" || item.name === "Pengaturan User") && !adminRoles.includes(normalizedRole)) {
               return null;
             }
 

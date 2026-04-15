@@ -51,9 +51,11 @@ export default function UserManagement() {
     try {
       const res = await fetch('/api/admin/users');
       const data = await res.json();
-      if (res.ok) setProfiles(data);
+      if (res.ok) {
+        setProfiles(Array.isArray(data) ? data : []);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error loading profiles:', err);
     } finally {
       setLoading(false);
     }

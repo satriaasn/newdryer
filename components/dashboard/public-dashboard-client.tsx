@@ -92,13 +92,16 @@ export default function PublicDashboardClient() {
       supabase.from('kabupaten').select('*'),
       fetch('/api/settings', { cache: 'no-store' }).then(r => r.json())
     ]).then(([prodData, gapoktanData, komoditasData, kabRes, settingsData]) => {
-      setProductions(prodData);
-      setGapoktanList(gapoktanData);
-      setKomoditasList(komoditasData);
-      setAllKabupaten(kabRes.data || []);
+      setProductions(Array.isArray(prodData) ? prodData : []);
+      setGapoktanList(Array.isArray(gapoktanData) ? gapoktanData : []);
+      setKomoditasList(Array.isArray(komoditasData) ? komoditasData : []);
+      setAllKabupaten(Array.isArray(kabRes.data) ? kabRes.data : []);
       if (settingsData && !settingsData.error) setAppSettings(settingsData);
       setLoading(false);
-    }).catch(err => console.error(err)).finally(() => setLoading(false));
+    }).catch(err => {
+      console.error('Fetch error:', err);
+      setLoading(false);
+    });
   };
 
   useEffect(() => {
@@ -229,8 +232,8 @@ export default function PublicDashboardClient() {
 
   const komoditasStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const stats = komoditasList.map(k => {
-      const prods = filteredProductions.filter(p => {
+    const stats = (komoditasList || []).map(k => {
+      const prods = (filteredProductions || []).filter(p => {
         if (p.komoditas_id !== k.id) return false;
         return true;
       });
