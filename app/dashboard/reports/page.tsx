@@ -58,7 +58,7 @@ export default function WhatsAppReportingPage() {
     setLoading(true);
     const [prodRes, settingsRes] = await Promise.all([
       supabase
-        .from('production')
+        .from('productions')
         .select(`
           *,
           gapoktan (id, name, address),
@@ -66,7 +66,7 @@ export default function WhatsAppReportingPage() {
           dryer_units (id, name)
         `)
         .order('production_date', { ascending: false })
-        .limit(100),
+        .limit(500),
       whatsappService.getSettings()
     ]);
     
