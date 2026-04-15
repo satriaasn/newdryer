@@ -93,7 +93,14 @@ export default function UserManagement() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan');
+      if (!res.ok) {
+        // Detailed diagnostic for 401
+        if (res.status === 401) {
+          const diag = data.diagnostics ? `\nDIAGNOSIS: ${JSON.stringify(data.diagnostics)}` : '';
+          throw new Error(`${data.message || 'Unauthorized'}${diag}`);
+        }
+        throw new Error(data.error || 'Terjadi kesalahan');
+      }
 
       setFeedback({ type: 'success', text: `User berhasil ${modalMode === 'add' ? 'dibuat' : 'diperbarui'}!` });
       setTimeout(() => {

@@ -105,8 +105,7 @@ export default function ProfileSettingsPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Profile Card */}
+                {/* Profile & Account Settings */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-card rounded-2xl border p-6 shadow-sm border-t-4 border-t-primary relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-16 translate-x-16 blur-3xl opacity-50" />
@@ -124,20 +123,86 @@ export default function ProfileSettingsPage() {
               </div>
             </div>
 
-            <div className="mt-8 space-y-3 pt-6 border-t border-dashed">
-               <div className="flex items-center justify-between text-xs font-medium">
-                  <span className="text-muted-foreground">ID Profil</span>
-                  <span className="font-mono text-foreground/70">{profile?.id?.substring(0, 8)}...</span>
+            <div className="mt-8 space-y-4 pt-6 border-t border-dashed">
+               <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">ID Profil</label>
+                  <div className="text-[10px] font-mono bg-muted p-2 rounded-lg truncate">{profile?.id}</div>
                </div>
                <div className="flex items-center justify-between text-xs font-medium">
-                  <span className="text-muted-foreground">Status</span>
+                  <span className="text-muted-foreground">Status Akun</span>
                   <span className="text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Aktif
+                    <CheckCircle2 className="h-3 w-3" /> Terverifikasi
                   </span>
                </div>
             </div>
           </div>
-        </div>
+
+          <div className="bg-card rounded-2xl border p-6 shadow-sm space-y-4">
+             <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2">
+                <User className="h-4 w-4" /> Edit Akun
+             </h3>
+             <div className="space-y-3">
+                <input 
+                  type="text" 
+                  placeholder="Nama Lengkap"
+                  value={profile?.full_name || ""}
+                  onChange={(e) => setProfile(prev => prev ? {...prev, full_name: e.target.value} : null)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
+                />
+                <button 
+                  onClick={async () => {
+                    if(!profile?.full_name) return;
+                    setSaving(true);
+                    try {
+                      const { error } = await userService.updateProfile(profile.id, { full_name: profile.full_name });
+                      if(error) throw error;
+                      alert("Nama berhasil diperbarui!");
+                    } catch(e:any) { alert(e.message); }
+                    finally { setSaving(false); }
+                  }}
+                  disabled={saving}
+                  className="w-full py-2 bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-widest rounded-lg hover:opacity-90 disabled:opacity-50"
+                >
+                  Update Nama
+                </button>
+             </div>
+          </div>
+
+          <div className="bg-card rounded-2xl border p-6 shadow-sm space-y-4">
+             <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Keamanan
+             </h3>
+             <div className="space-y-3">
+                <input 
+                  type="password" 
+                  id="new-password"
+                  placeholder="Password Baru"
+                  className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
+                />
+                <button 
+                  onClick={async () => {
+                    const pwd = (document.getElementById('new-password') as HTMLInputElement).value;
+                    if(!pwd || pwd.length < 6) return alert("Password minimal 6 karakter");
+                    setSaving(true);
+                    try {
+                      // Using auth helper directly for self-service
+                      const { createClientComponentClient } = await import("@supabase/auth-helpers-nextjs");
+                      const supabase = createClientComponentClient();
+                      const { error } = await supabase.auth.updateUser({ password: pwd });
+                      if(error) throw error;
+                      alert("Password berhasil diganti!");
+                      (document.getElementById('new-password') as HTMLInputElement).value = "";
+                    } catch(e:any) { alert(e.message); }
+                    finally { setSaving(false); }
+                  }}
+                  disabled={saving}
+                  className="w-full py-2 bg-slate-800 text-white font-bold text-[10px] uppercase tracking-widest rounded-lg hover:opacity-90 disabled:opacity-50"
+                >
+                  Ganti Password
+                </button>
+             </div>
+          </div>
+        </div>>
 
         {/* Configuration Form */}
         <div className="lg:col-span-2">

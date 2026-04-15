@@ -167,6 +167,14 @@ export default function WhatsAppReportingPage() {
     alert("Pesan disalin!");
   };
 
+  const refreshData = async () => {
+    setLoading(true);
+    await loadData();
+    generateDailyRecap();
+    setFeedback({ type: 'success', text: 'Data produksi telah diperbarui!' });
+    setTimeout(() => setFeedback(null), 2000);
+  };
+
   const filtered = productions.filter(p => 
     p.gapoktan?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.komoditas?.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -297,11 +305,12 @@ export default function WhatsAppReportingPage() {
                   </div>
                 </div>
                 <button 
-                  onClick={generateDailyRecap}
-                  className="p-2 hover:bg-muted rounded-xl transition-all text-emerald-600"
-                  title="Refresh Data"
+                  onClick={refreshData}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/10 disabled:opacity-50"
                 >
-                  <Hash className="h-5 w-5" />
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Hash className="h-3.5 w-3.5" />}
+                  Segarkan Data
                 </button>
               </div>
 
