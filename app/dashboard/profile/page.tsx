@@ -308,20 +308,6 @@ export default function ProfileSettingsPage() {
                 )}
               </div>
 
-              <div className="space-y-2 group">
-                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Template Pesan Laporan</label>
-                <textarea 
-                   value={waSettings.message_template}
-                   onChange={(e) => setWaSettings({...waSettings, message_template: e.target.value})}
-                   rows={3}
-                   className="w-full px-4 py-3 rounded-xl border bg-background focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium text-sm leading-relaxed"
-                   placeholder="Gunakan {{gapoktan}}, {{qty}}, {{komoditas}}, {{notes}}"
-                />
-                <p className="text-[10px] text-muted-foreground italic px-1">
-                  Tips: Gunakan variabel di atas untuk memasukkan data otomatis ke dalam pesan WA.
-                </p>
-              </div>
-
               <div className="flex flex-wrap gap-4 pt-2">
                 <button 
                   onClick={handleSaveSettings}

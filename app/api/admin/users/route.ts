@@ -32,8 +32,9 @@ const checkAdmin = async () => {
     .eq('id', user.id)
     .single();
 
+  const role = (profile?.role || "").toLowerCase().trim();
   const adminRoles = ['admin', 'administrator', 'superadmin'];
-  return adminRoles.includes(profile?.role || "");
+  return adminRoles.includes(role);
 };
 
 export async function GET() {

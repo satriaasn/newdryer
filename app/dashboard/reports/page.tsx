@@ -1,61 +1,76 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { whatsappService } from "@/services/whatsapp.service";
+import { whatsappService, type WhatsAppSettings } from "@/services/whatsapp.service";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { 
   MessageSquare, 
   Send, 
   Search, 
-  Filter, 
   Factory, 
   CheckCircle2, 
   AlertCircle,
   X,
   ClipboardList,
   Edit3,
-  Copy
+  Copy,
+  Settings2,
+  LayoutList,
+  Hash
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Production } from "@/lib/types";
 
 export default function WhatsAppReportingPage() {
   const supabase = createClientComponentClient();
+  const [activeTab, setActiveTab] = useState<'log' | 'manual'>('log');
   const [productions, setProductions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [waSettings, setWaSettings] = useState<WhatsAppSettings | null>(null);
+  
+  // Specific for Log Selection
   const [selectedProd, setSelectedProd] = useState<any | null>(null);
   const [previewMessage, setPreviewMessage] = useState("");
+  
+  // Specific for Manual Tab
+  const [manualMessage, setManualMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
-    loadProductions();
+    loadData();
   }, []);
 
-  const loadProductions = async () => {
+  const loadData = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('production')
-      .select(`
-        *,
-        gapoktan (id, name, address),
-        komoditas (id, name),
-        dryer_units (id, name)
-      `)
-      .order('production_date', { ascending: false })
-      .limit(50);
+    const [prodRes, settingsRes] = await Promise.all([
+      supabase
+        .from('production')
+        .select(`
+          *,
+          gapoktan (id, name, address),
+          komoditas (id, name),
+          dryer_units (id, name)
+        `)
+        .order('production_date', { ascending: false })
+        .limit(50),
+      whatsappService.getSettings()
+    ]);
     
-    if (data) setProductions(data);
+    if (prodRes.data) setProductions(prodRes.data);
+    if (settingsRes) {
+      setWaSettings(settingsRes);
+      setManualMessage(settingsRes.message_template || "");
+    }
     setLoading(false);
   };
 
-  const handleOpenPreview = async (p: any) => {
+  const handleOpenPreview = (p: any) => {
     setSelectedProd(p);
-    const settings = await whatsappService.getSettings();
+    if (!waSettings) return;
     
-    // Manual formatting from template
-    let msg = settings.message_template
+    let msg = waSettings.message_template
       .replace('{{gapoktan}}', p.gapoktan?.name || '-')
       .replace('{{qty}}', Number(p.qty_after || p.qty_before).toFixed(1))
       .replace('{{komoditas}}', p.komoditas?.name || '-')
@@ -65,31 +80,33 @@ export default function WhatsAppReportingPage() {
     setFeedback(null);
   };
 
-  const handleSendReport = async () => {
-    if (!selectedProd) return;
+  const handleSendAction = async (msg: string, isManualLaunch: boolean = false) => {
+    if (!waSettings?.api_key || !waSettings?.target_number) {
+      setFeedback({ type: 'error', text: 'Konfigurasi WA belum lengkap (API Key/Nomor Tujuan).' });
+      return;
+    }
+
     setIsSending(true);
     try {
-      const settings = await whatsappService.getSettings();
-      
       const formData = new FormData();
-      formData.append('target', settings.target_number || "");
-      formData.append('message', previewMessage);
+      formData.append('target', waSettings.target_number);
+      formData.append('message', msg);
       formData.append('countryCode', '62');
 
       const response = await fetch('https://api.fonnte.com/send', {
         method: 'POST',
         headers: {
-          'Authorization': (settings.api_key || "").trim(),
+          'Authorization': waSettings.api_key.trim(),
         },
         body: formData,
       });
 
       const resData = await response.json();
       if (resData.status === true) {
-        setFeedback({ type: 'success', text: 'Laporan berhasil dikirim ke WhatsApp!' });
-        setTimeout(() => setSelectedProd(null), 1500);
+        setFeedback({ type: 'success', text: 'Pesan berhasil dikirim ke WhatsApp!' });
+        if (!isManualLaunch) setTimeout(() => setSelectedProd(null), 1500);
       } else {
-        setFeedback({ type: 'error', text: 'Gagal mengirim: ' + (resData.reason || 'Cek API Key WA.') });
+        setFeedback({ type: 'error', text: 'Gagal mengirim: ' + (resData.reason || 'Cek koneksi API.') });
       }
     } catch (err: any) {
       setFeedback({ type: 'error', text: 'Error: ' + err.message });
@@ -98,9 +115,22 @@ export default function WhatsAppReportingPage() {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(previewMessage);
-    alert("Pesan disalin ke clipboard!");
+  const handleSaveTemplate = async () => {
+    if (!waSettings) return;
+    setSavingTemplate(true);
+    try {
+      await whatsappService.updateSettings({ message_template: waSettings.message_template });
+      setFeedback({ type: 'success', text: 'Template berhasil diperbarui!' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: 'Gagal menyimpan template: ' + err.message });
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Pesan disalin!");
   };
 
   const filtered = productions.filter(p => 
@@ -115,81 +145,199 @@ export default function WhatsAppReportingPage() {
           <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
              <MessageSquare className="h-8 w-8 text-emerald-500" /> Pelaporan WhatsApp
           </h1>
-          <p className="text-muted-foreground font-medium mt-1">Kirim laporan produksi individu secara manual ke WhatsApp Manager</p>
+          <p className="text-muted-foreground font-medium mt-1">Kelola format laporan dan pengiriman pesan manual ke Manager</p>
+        </div>
+        
+        <div className="flex bg-muted p-1 rounded-xl w-fit">
+          <button 
+            onClick={() => { setActiveTab('log'); setFeedback(null); }}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeTab === 'log' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutList className="h-4 w-4" /> Data Produksi
+          </button>
+          <button 
+            onClick={() => { setActiveTab('manual'); setFeedback(null); }}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeTab === 'manual' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Edit3 className="h-4 w-4" /> Format & Manual
+          </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-6">
-        <div className="bg-card rounded-2xl border p-6 shadow-sm border-t-4 border-t-emerald-500">
-           <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-              <div className="relative w-full md:w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Cari Gapoktan atau Komoditas..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-sm"
-                />
+      {activeTab === 'log' ? (
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-card rounded-2xl border p-6 shadow-sm border-t-4 border-t-emerald-500">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                <div className="relative w-full md:w-96">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari Gapoktan atau Komoditas..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  <ClipboardList className="h-4 w-4" /> 50 Log Terakhir
+                </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border bg-background/50">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/50">
+                        <th className="px-6 py-4">Tanggal / Unit</th>
+                        <th className="px-6 py-4">Kelompok Tani</th>
+                        <th className="px-6 py-4">Komoditas</th>
+                        <th className="px-6 py-4 text-right">Volume (Ton)</th>
+                        <th className="px-6 py-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {loading ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center animate-pulse text-muted-foreground">Memuat data...</td></tr>
+                    ) : filtered.length === 0 ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground italic">Tidak ada data ditemukan</td></tr>
+                    ) : filtered.map(p => (
+                      <tr key={p.id} className="text-sm hover:bg-muted/30 transition-all group">
+                          <td className="px-6 py-4">
+                            <div className="font-bold">{p.production_date || 'N/A'}</div>
+                            <div className="text-[10px] text-muted-foreground uppercase flex items-center gap-1">
+                                <Factory className="h-3 w-3" /> {p.dryer_units?.name || 'Unit N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-foreground">{p.gapoktan?.name || 'N/A'}</div>
+                            <div className="text-[10px] text-muted-foreground truncate max-w-[200px]">{p.gapoktan?.address}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-500 font-bold text-[10px] uppercase border border-emerald-500/20">
+                              {p.komoditas?.name || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="font-black text-foreground">{Number(p.qty_after || p.qty_before).toFixed(2)}</div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button 
+                              onClick={() => handleOpenPreview(p)}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-bold text-xs hover:bg-emerald-600 active:scale-95 transition-all shadow-md shadow-emerald-500/20"
+                            >
+                                <Send className="h-3.5 w-3.5" /> Kirim
+                            </button>
+                          </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-right-4 duration-300">
+           {/* Manual Send Form */}
+           <div className="bg-card rounded-2xl border p-6 md:p-8 shadow-sm space-y-6">
+              <div className="flex items-center gap-3 border-b pb-4">
+                 <div className="h-10 w-10 bg-primary/10 text-primary flex items-center justify-center rounded-xl">
+                    <Send className="h-5 w-5" />
+                 </div>
+                 <div>
+                    <h2 className="font-black text-lg">Kirim Pesan Manual</h2>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Tulis dan kirim pesan bebas</p>
+                 </div>
               </div>
-              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                 <ClipboardList className="h-4 w-4" /> 50 Log Terakhir
+
+              <div className="space-y-4">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Tujuan: {waSettings?.target_number || 'Belum diatur'}</label>
+                    <textarea 
+                       value={manualMessage}
+                       onChange={(e) => setManualMessage(e.target.value)}
+                       placeholder="Ketik laporan atau pesan di sini..."
+                       rows={8}
+                       className="w-full p-4 rounded-2xl border bg-background focus:ring-4 focus:ring-primary/10 outline-none transition-all text-sm font-medium leading-relaxed"
+                    />
+                 </div>
+
+                 <div className="flex gap-3">
+                    <button 
+                       onClick={() => handleSendAction(manualMessage, true)}
+                       disabled={isSending || !manualMessage}
+                       className="flex-1 py-4 bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                       {isSending ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <Send className="h-4 w-4" />}
+                       Kirim Sekarang
+                    </button>
+                 </div>
               </div>
            </div>
 
-           <div className="overflow-x-auto rounded-xl border bg-background/50">
-              <table className="w-full text-left">
-                <thead>
-                   <tr className="text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/50">
-                      <th className="px-6 py-4">Tanggal / Unit</th>
-                      <th className="px-6 py-4">Kelompok Tani</th>
-                      <th className="px-6 py-4">Komoditas</th>
-                      <th className="px-6 py-4 text-right">Volume (Ton)</th>
-                      <th className="px-6 py-4 text-right">Aksi Manual</th>
-                   </tr>
-                </thead>
-                <tbody className="divide-y">
-                   {loading ? (
-                     <tr><td colSpan={5} className="px-6 py-12 text-center animate-pulse text-muted-foreground">Memuat data...</td></tr>
-                   ) : filtered.length === 0 ? (
-                     <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground italic">Tidak ada data ditemukan</td></tr>
-                   ) : filtered.map(p => (
-                     <tr key={p.id} className="text-sm hover:bg-muted/30 transition-all group">
-                        <td className="px-6 py-4">
-                           <div className="font-bold">{p.production_date}</div>
-                           <div className="text-[10px] text-muted-foreground uppercase flex items-center gap-1">
-                              <Factory className="h-3 w-3" /> {p.dryer_units?.name || 'Unit N/A'}
-                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                           <div className="font-bold text-foreground">{p.gapoktan?.name}</div>
-                           <div className="text-[10px] text-muted-foreground truncate max-w-[200px]">{p.gapoktan?.address}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                           <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-500 font-bold text-[10px] uppercase border border-emerald-500/20">
-                             {p.komoditas?.name}
-                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                           <div className="font-black text-foreground">{Number(p.qty_after || p.qty_before).toFixed(2)}</div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                           <button 
-                             onClick={() => handleOpenPreview(p)}
-                             className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-bold text-xs hover:bg-emerald-600 active:scale-95 transition-all shadow-md shadow-emerald-500/20"
-                           >
-                              <Send className="h-3.5 w-3.5" /> Kirim WA
-                           </button>
-                        </td>
-                     </tr>
-                   ))}
-                </tbody>
-              </table>
+           {/* Template Editor */}
+           <div className="bg-card rounded-2xl border p-6 md:p-8 shadow-sm space-y-6">
+              <div className="flex items-center gap-3 border-b pb-4">
+                 <div className="h-10 w-10 bg-emerald-500/10 text-emerald-600 flex items-center justify-center rounded-xl">
+                    <Settings2 className="h-5 w-5" />
+                 </div>
+                 <div>
+                    <h2 className="font-black text-lg">Format Template</h2>
+                    <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Atur format laporan otomatis</p>
+                 </div>
+              </div>
+
+              <div className="space-y-4">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Template Laporan Produksi</label>
+                    <textarea 
+                       value={waSettings?.message_template || ""}
+                       onChange={(e) => setWaSettings(prev => prev ? {...prev, message_template: e.target.value} : null)}
+                       rows={4}
+                       className="w-full p-4 rounded-2xl border bg-background focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all text-sm font-medium leading-relaxed"
+                    />
+                    <div className="p-3 bg-muted/50 rounded-xl space-y-2">
+                       <p className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 italic">
+                          <Hash className="h-3 w-3" /> Variabel Tersedia:
+                       </p>
+                       <div className="flex flex-wrap gap-2">
+                          {['{{gapoktan}}', '{{qty}}', '{{komoditas}}', '{{notes}}'].map(v => (
+                            <code key={v} className="px-2 py-0.5 bg-background border rounded text-[10px] font-bold text-emerald-600">{v}</code>
+                          ))}
+                       </div>
+                    </div>
+                 </div>
+
+                 <button 
+                    onClick={handleSaveTemplate}
+                    disabled={savingTemplate}
+                    className="w-full py-4 bg-emerald-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                 >
+                    {savingTemplate ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle2 className="h-4 w-4" />}
+                    Simpan Format Baru
+                 </button>
+              </div>
            </div>
         </div>
-      </div>
+      )}
 
-      {/* PREVIEW MODAL */}
+      {/* FEEDBACK NOTIFICATION */}
+      {feedback && activeTab === 'manual' && (
+        <div className={cn(
+          "fixed bottom-8 right-8 p-4 rounded-xl flex items-center gap-3 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 z-50",
+          feedback.type === 'success' ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+        )}>
+          {feedback.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+          <span className="text-sm font-bold">{feedback.text}</span>
+          <button onClick={() => setFeedback(null)} className="ml-2 p-1 hover:bg-white/20 rounded-lg"><X className="h-4 w-4" /></button>
+        </div>
+      )}
+
+      {/* PREVIEW MODAL (Used by Log Tab) */}
       {selectedProd && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSelectedProd(null)} />
@@ -211,7 +359,7 @@ export default function WhatsAppReportingPage() {
 
               <div className="p-8 space-y-6">
                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-1">Konten Pesan (Bisa Diedit)</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-1">Konten Pesan</label>
                     <textarea 
                        value={previewMessage}
                        onChange={(e) => setPreviewMessage(e.target.value)}
@@ -232,19 +380,15 @@ export default function WhatsAppReportingPage() {
 
                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
                     <button 
-                       onClick={handleSendReport}
+                       onClick={() => handleSendAction(previewMessage)}
                        disabled={isSending}
                        className="w-full sm:flex-1 py-4 bg-emerald-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-emerald-600 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                       {isSending ? (
-                         <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                       ) : (
-                         <Send className="h-4 w-4" />
-                       )}
+                       {isSending ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="h-4 w-4" />}
                        {isSending ? 'Mengirim...' : 'Kirim Sekarang'}
                     </button>
                     <button 
-                      onClick={copyToClipboard}
+                      onClick={() => copyToClipboard(previewMessage)}
                       className="w-full sm:w-auto px-6 py-4 bg-muted hover:bg-muted/80 text-foreground font-black uppercase tracking-widest text-xs rounded-2xl transition-all flex items-center justify-center gap-2"
                     >
                        <Copy className="h-4 w-4" />
