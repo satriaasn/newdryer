@@ -42,8 +42,11 @@ export const whatsappService = {
     const supabase = createClientComponentClient();
     const { data, error } = await supabase
       .from('whatsapp_settings')
-      .update({ ...settings, updated_at: new Date().toISOString() })
-      .eq('id', 1)
+      .upsert({ 
+        id: 1, 
+        ...settings, 
+        updated_at: new Date().toISOString() 
+      })
       .select()
       .single();
     
@@ -84,12 +87,12 @@ export const whatsappService = {
         return false;
       }
 
-      // Format message from template
-      let message = settings.message_template
-        .replace('{{gapoktan}}', p.gapoktan?.name || '-')
-        .replace('{{qty}}', Number(p.qty_after || p.qty_before).toFixed(1))
-        .replace('{{komoditas}}', p.komoditas?.name || '-')
-        .replace('{{notes}}', p.notes || '-');
+      // Format message from template - using replaceAll for reliability
+      let message = (settings.message_template || "")
+        .replaceAll('{{gapoktan}}', p.gapoktan?.name || '-')
+        .replaceAll('{{qty}}', Number(p.qty_after || p.qty_before).toFixed(1))
+        .replaceAll('{{komoditas}}', p.komoditas?.name || '-')
+        .replaceAll('{{notes}}', p.notes || '-');
 
       const formData = new FormData();
       formData.append('target', settings.target_number);

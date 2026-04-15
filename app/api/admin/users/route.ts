@@ -24,33 +24,54 @@ const getAdminClient = () => {
 const checkAdmin = async () => {
   const cookieStore = cookies();
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { allowed: false, error: "Authentication session not found. Please re-login." };
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  if (userError || !user) {
+    return { 
+      allowed: false, 
+      error: "Authentication session not found.",
+      diagnostics: { userError: userError?.message, user: !!user }
+    };
+  }
 
-  const { data: profile, error: profileError } = await supabase
+  // Use Admin Client for Role Check to bypass RLS issues in API environment
+  const adminClient = getAdminClient();
+  const { data: profile, error: profileError } = await adminClient
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single();
 
   if (profileError || !profile) {
-    return { allowed: false, error: `Profile not found for user ${user.id}.` };
+    return { 
+      allowed: false, 
+      error: "Profile record not found.",
+      diagnostics: { profileError: profileError?.message, userId: user.id }
+    };
   }
 
-  const role = (profile.role || "").toLowerCase().trim();
+  const roleData = (profile.role || "").toLowerCase().trim();
   const adminRoles = ['admin', 'administrator', 'superadmin'];
   
-  if (!adminRoles.includes(role)) {
-    return { allowed: false, error: `Insufficient role: ${role}. Requires administrator access.` };
+  if (!adminRoles.includes(roleData)) {
+    return { 
+      allowed: false, 
+      error: "Insufficient role permission.",
+      diagnostics: { detectedRole: roleData, userId: user.id }
+    };
   }
 
-  return { allowed: true };
+  return { allowed: true, userId: user.id };
 };
 
 export async function GET() {
   const auth = await checkAdmin();
   if (!auth.allowed) {
-    return NextResponse.json({ error: "Unauthorized", detail: auth.error }, { status: 401 });
+    return NextResponse.json({ 
+      error: "Unauthorized", 
+      message: auth.error,
+      diagnostics: auth.diagnostics 
+    }, { status: 401 });
   }
 
   const adminClient = getAdminClient();
@@ -66,7 +87,11 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await checkAdmin();
   if (!auth.allowed) {
-    return NextResponse.json({ error: "Unauthorized", detail: auth.error }, { status: 401 });
+    return NextResponse.json({ 
+      error: "Unauthorized", 
+      message: auth.error,
+      diagnostics: auth.diagnostics 
+    }, { status: 401 });
   }
 
   try {
@@ -108,7 +133,11 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const auth = await checkAdmin();
   if (!auth.allowed) {
-    return NextResponse.json({ error: "Unauthorized", detail: auth.error }, { status: 401 });
+    return NextResponse.json({ 
+      error: "Unauthorized", 
+      message: auth.error,
+      diagnostics: auth.diagnostics 
+    }, { status: 401 });
   }
 
   try {
@@ -144,7 +173,11 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   const auth = await checkAdmin();
   if (!auth.allowed) {
-    return NextResponse.json({ error: "Unauthorized", detail: auth.error }, { status: 401 });
+    return NextResponse.json({ 
+      error: "Unauthorized", 
+      message: auth.error,
+      diagnostics: auth.diagnostics 
+    }, { status: 401 });
   }
 
   try {
