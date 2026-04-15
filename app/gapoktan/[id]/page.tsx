@@ -7,7 +7,7 @@ import type { Production, Gapoktan } from "@/lib/types";
 import { 
   ArrowLeft, MapPin, Users, Phone, Factory, Wheat, 
   Calendar, Package, TrendingUp, Info, ClipboardList,
-  Mail, Globe, ShieldCheck, Download
+  Mail, Globe, ShieldCheck, Download, Printer
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -129,9 +129,60 @@ export default function PublicGapoktanDetailPage() {
                </div>
                
                <div className="flex gap-3">
-                  <button className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/10 transition-all shadow-sm">
-                     <Download className="h-4 w-4" />
-                     <span className="text-sm font-bold">Unduh Profil</span>
+                  <button 
+                    onClick={() => {
+                      const g = gapoktan;
+                      const totalQty = productions.reduce((s, p) => s + Number(p.qty_before || 0), 0);
+                      const win = window.open('', '_blank');
+                      if (!win) return;
+                      win.document.write(`
+                        <html><head><title>Profil ${g.name}</title>
+                        <style>
+                          body { font-family: Arial, sans-serif; margin: 30px; color: #1a1a1a; max-width: 700px; }
+                          h1 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 16px; }
+                          .row { display: flex; margin: 6px 0; }
+                          .label { font-weight: 700; width: 160px; color: #555; font-size: 13px; }
+                          .value { font-size: 13px; }
+                          .section { margin-top: 20px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; }
+                          .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin: 2px 4px 2px 0; font-weight: 600; }
+                          .stats { display: flex; gap: 12px; margin: 16px 0; }
+                          .stat-box { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 12px; text-align: center; }
+                          .stat-val { font-size: 24px; font-weight: 900; }
+                          .stat-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+                          .footer { margin-top: 40px; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
+                          @media print { @page { margin: 15mm; } }
+                        </style></head><body>
+                        <h1>PROFIL GAPOKTAN: ${g.name}</h1>
+                        <div class="stats">
+                          <div class="stat-box"><div class="stat-val">${totalQty.toFixed(1)}</div><div class="stat-label">Total Produksi (Ton)</div></div>
+                          <div class="stat-box"><div class="stat-val">${g.dryer_units?.length || 0}</div><div class="stat-label">Unit Dryer</div></div>
+                          <div class="stat-box"><div class="stat-val">${g.komoditas?.length || 0}</div><div class="stat-label">Komoditas</div></div>
+                          <div class="stat-box"><div class="stat-val">${productions.length}</div><div class="stat-label">Log Transaksi</div></div>
+                        </div>
+                        <div class="row"><div class="label">Nama Gapoktan</div><div class="value">${g.name}</div></div>
+                        <div class="row"><div class="label">Ketua</div><div class="value">${g.ketua || '-'}</div></div>
+                        <div class="row"><div class="label">No. Telepon</div><div class="value">${g.phone || '-'}</div></div>
+                        <div class="row"><div class="label">Alamat</div><div class="value">${g.address || '-'}</div></div>
+                        <div class="row"><div class="label">Desa</div><div class="value">${g.desa?.name || '-'}</div></div>
+                        <div class="row"><div class="label">Kecamatan</div><div class="value">${g.desa?.kecamatan?.name || '-'}</div></div>
+                        <div class="row"><div class="label">Kabupaten</div><div class="value">${g.desa?.kecamatan?.kabupaten?.name || '-'}</div></div>
+                        ${g.latitude ? `<div class="row"><div class="label">Koordinat</div><div class="value">${g.latitude?.toFixed(6)}, ${g.longitude?.toFixed(6)}</div></div>` : ''}
+                        <div class="section">Komoditas</div>
+                        <div>${g.komoditas?.map(k => `<span class="badge">${k.name}</span>`).join('') || '<em style="color:#999">Belum ada</em>'}</div>
+                        ${g.dryer_units && g.dryer_units.length > 0 ? `
+                          <div class="section">Unit Dryer (${g.dryer_units.length} unit)</div>
+                          <div>${g.dryer_units.map(d => `<span class="badge">${d.name} (${d.capacity_ton}T) - ${d.status === 'active' ? 'AKTIF' : 'NONAKTIF'}</span>`).join('')}</div>
+                        ` : ''}
+                        <div class="footer">Dicetak pada ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+                        <script>window.onload=function(){window.print();}</script>
+                        </body></html>
+                      `);
+                      win.document.close();
+                    }}
+                    className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/10 transition-all shadow-sm"
+                  >
+                     <Printer className="h-4 w-4" />
+                     <span className="text-sm font-bold">Cetak Profil</span>
                   </button>
                </div>
             </div>

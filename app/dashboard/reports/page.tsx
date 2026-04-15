@@ -65,8 +65,12 @@ export default function WhatsAppReportingPage() {
     const prods = prodRes.data || [];
     setProductions(prods);
     if (settingsRes) {
-      setWaSettings(settingsRes);
-      setManualMessage(settingsRes.message_template || "");
+      const defaultTemplate = "📋 *LAPORAN PRODUKSI*\n\nGapoktan: {{gapoktan}}\nKomoditas: {{komoditas}}\nVolume: {{qty}} Ton\nCatatan: {{notes}}\n\n_Dikirim otomatis dari Dashboard Monitoring Dryer_";
+      setWaSettings({
+        ...settingsRes,
+        message_template: settingsRes.message_template || defaultTemplate
+      });
+      setManualMessage(settingsRes.message_template || defaultTemplate);
     }
     setLoading(false);
     return prods;

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { useEffect, useState, useMemo } from "react";
 import type { Production, Gapoktan, Komoditas, DryerUnit } from "@/lib/types";
-import { Plus, Loader2, Trash2, Edit, Download, Printer, ChevronUp, ChevronDown, Database, Filter, X } from "lucide-react";
+import { Plus, Loader2, Trash2, Edit, Download, Printer, ChevronUp, ChevronDown, Filter, X } from "lucide-react";
 import { ImportModal } from "@/components/dashboard/import-modal";
 
 type SortKey = 'production_date' | 'gapoktan' | 'komoditas' | 'dryer' | 'qty_before' | 'price_before' | 'qty_after' | 'price_after' | 'qty_diff_pct' | 'price_diff_pct';
@@ -108,24 +108,7 @@ export default function ProductionPage() {
     } catch (e: any) { alert(e.message); }
   };
 
-  const handleExportSQL = () => {
-    if (productions.length === 0) return alert("Tidak ada data untuk diekspor.");
-    let sql = "-- Backup Data Produksi\n-- Generated: " + new Date().toISOString() + "\n\n";
-    sql += "INSERT INTO production (id, gapoktan_id, komoditas_id, dryer_id, production_date, qty_before, price_before, qty_after, price_after, qty_diff_pct, price_diff_pct, notes, created_at) VALUES\n";
-    const rows = productions.map(p => {
-      const esc = (v: any) => v === null || v === undefined ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`;
-      return `(${esc(p.id)}, ${esc(p.gapoktan_id)}, ${esc(p.komoditas_id)}, ${esc(p.dryer_id)}, ${esc(p.production_date)}, ${Number(p.qty_before)||0}, ${Number(p.price_before)||0}, ${Number(p.qty_after)||0}, ${Number(p.price_after)||0}, ${Number(p.qty_diff_pct)||0}, ${Number(p.price_diff_pct)||0}, ${esc(p.notes)}, ${esc(p.created_at)})`;
-    });
-    sql += rows.join(",\n") + "\nON CONFLICT (id) DO UPDATE SET\n  gapoktan_id = EXCLUDED.gapoktan_id,\n  komoditas_id = EXCLUDED.komoditas_id,\n  dryer_id = EXCLUDED.dryer_id,\n  production_date = EXCLUDED.production_date,\n  qty_before = EXCLUDED.qty_before,\n  price_before = EXCLUDED.price_before,\n  qty_after = EXCLUDED.qty_after,\n  price_after = EXCLUDED.price_after,\n  qty_diff_pct = EXCLUDED.qty_diff_pct,\n  price_diff_pct = EXCLUDED.price_diff_pct,\n  notes = EXCLUDED.notes;\n";
 
-    const blob = new Blob([sql], { type: 'text/sql' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup_production_${new Date().toISOString().split('T')[0]}.sql`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   const handlePrint = () => {
     let data = [...productions];
@@ -209,12 +192,6 @@ export default function ProductionPage() {
             className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
           >
             <Download className="h-3.5 w-3.5 rotate-180" /> Import
-          </button>
-          <button 
-            onClick={handleExportSQL} 
-            className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
-          >
-            <Database className="h-3.5 w-3.5" /> Export SQL
           </button>
           <button 
             onClick={() => setShowPrintModal(true)} 
