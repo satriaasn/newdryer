@@ -3,10 +3,13 @@
 export const dynamic = 'force-dynamic';
 
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { Production, Gapoktan, Komoditas, DryerUnit } from "@/lib/types";
-import { Plus, Loader2, Trash2, Edit, Download } from "lucide-react";
+import { Plus, Loader2, Trash2, Edit, Download, Printer, ChevronUp, ChevronDown, Database, Filter, X } from "lucide-react";
 import { ImportModal } from "@/components/dashboard/import-modal";
+
+type SortKey = 'production_date' | 'gapoktan' | 'komoditas' | 'dryer' | 'qty_before' | 'price_before' | 'qty_after' | 'price_after' | 'qty_diff_pct' | 'price_diff_pct';
+type SortDir = 'asc' | 'desc';
 
 export default function ProductionPage() {
   const [productions, setProductions] = useState<Production[]>([]);
@@ -17,13 +20,62 @@ export default function ProductionPage() {
   const [editingProduction, setEditingProduction] = useState<Production | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredProductions = productions.filter(p => {
-    const s = searchQuery.toLowerCase();
-    return p.gapoktan?.name?.toLowerCase().includes(s) || 
-           p.komoditas?.name?.toLowerCase().includes(s) ||
-           p.dryer_units?.name?.toLowerCase().includes(s) ||
-           p.production_date?.toLowerCase().includes(s);
-  });
+  // Sort state
+  const [sortKey, setSortKey] = useState<SortKey>('production_date');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  // Print filter state
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printDateFrom, setPrintDateFrom] = useState('');
+  const [printDateTo, setPrintDateTo] = useState('');
+  const [printGapoktan, setPrintGapoktan] = useState('');
+  const [printKomoditas, setPrintKomoditas] = useState('');
+
+  const getSortValue = (p: Production, key: SortKey): string | number => {
+    switch(key) {
+      case 'production_date': return p.production_date || '';
+      case 'gapoktan': return p.gapoktan?.name || '';
+      case 'komoditas': return p.komoditas?.name || '';
+      case 'dryer': return p.dryer_units?.name || '';
+      case 'qty_before': return Number(p.qty_before) || 0;
+      case 'price_before': return Number(p.price_before) || 0;
+      case 'qty_after': return Number(p.qty_after) || 0;
+      case 'price_after': return Number(p.price_after) || 0;
+      case 'qty_diff_pct': return Number(p.qty_diff_pct) || 0;
+      case 'price_diff_pct': return Number(p.price_diff_pct) || 0;
+      default: return '';
+    }
+  };
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ChevronUp className="h-3 w-3 opacity-20" />;
+    return sortDir === 'asc' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />;
+  };
+
+  const sortedFiltered = useMemo(() => {
+    const filtered = productions.filter(p => {
+      const s = searchQuery.toLowerCase();
+      return p.gapoktan?.name?.toLowerCase().includes(s) || 
+             p.komoditas?.name?.toLowerCase().includes(s) ||
+             p.dryer_units?.name?.toLowerCase().includes(s) ||
+             p.production_date?.toLowerCase().includes(s);
+    });
+    return [...filtered].sort((a, b) => {
+      const va = getSortValue(a, sortKey);
+      const vb = getSortValue(b, sortKey);
+      const cmp = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [productions, searchQuery, sortKey, sortDir]);
 
   const reload = () => {
     Promise.all([
@@ -56,6 +108,94 @@ export default function ProductionPage() {
     } catch (e: any) { alert(e.message); }
   };
 
+  const handleExportSQL = () => {
+    if (productions.length === 0) return alert("Tidak ada data untuk diekspor.");
+    let sql = "-- Backup Data Produksi\n-- Generated: " + new Date().toISOString() + "\n\n";
+    sql += "INSERT INTO production (id, gapoktan_id, komoditas_id, dryer_id, production_date, qty_before, price_before, qty_after, price_after, qty_diff_pct, price_diff_pct, notes, created_at) VALUES\n";
+    const rows = productions.map(p => {
+      const esc = (v: any) => v === null || v === undefined ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`;
+      return `(${esc(p.id)}, ${esc(p.gapoktan_id)}, ${esc(p.komoditas_id)}, ${esc(p.dryer_id)}, ${esc(p.production_date)}, ${Number(p.qty_before)||0}, ${Number(p.price_before)||0}, ${Number(p.qty_after)||0}, ${Number(p.price_after)||0}, ${Number(p.qty_diff_pct)||0}, ${Number(p.price_diff_pct)||0}, ${esc(p.notes)}, ${esc(p.created_at)})`;
+    });
+    sql += rows.join(",\n") + "\nON CONFLICT (id) DO UPDATE SET\n  gapoktan_id = EXCLUDED.gapoktan_id,\n  komoditas_id = EXCLUDED.komoditas_id,\n  dryer_id = EXCLUDED.dryer_id,\n  production_date = EXCLUDED.production_date,\n  qty_before = EXCLUDED.qty_before,\n  price_before = EXCLUDED.price_before,\n  qty_after = EXCLUDED.qty_after,\n  price_after = EXCLUDED.price_after,\n  qty_diff_pct = EXCLUDED.qty_diff_pct,\n  price_diff_pct = EXCLUDED.price_diff_pct,\n  notes = EXCLUDED.notes;\n";
+
+    const blob = new Blob([sql], { type: 'text/sql' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_production_${new Date().toISOString().split('T')[0]}.sql`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    let data = [...productions];
+    if (printDateFrom) data = data.filter(p => (p.production_date || '') >= printDateFrom);
+    if (printDateTo) data = data.filter(p => (p.production_date || '') <= printDateTo);
+    if (printGapoktan) data = data.filter(p => p.gapoktan?.name?.toLowerCase().includes(printGapoktan.toLowerCase()));
+    if (printKomoditas) data = data.filter(p => p.komoditas?.name?.toLowerCase().includes(printKomoditas.toLowerCase()));
+    
+    if (data.length === 0) return alert("Tidak ada data yang sesuai filter.");
+
+    const totalQtyBefore = data.reduce((a, p) => a + Number(p.qty_before || 0), 0);
+    const totalQtyAfter = data.reduce((a, p) => a + Number(p.qty_after || 0), 0);
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <html><head><title>Laporan Produksi</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; color: #1a1a1a; }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+        th { background: #f5f5f5; font-weight: 700; text-transform: uppercase; font-size: 10px; }
+        .right { text-align: right; }
+        .total { font-weight: 700; background: #f0f9ff; }
+        @media print { @page { size: landscape; margin: 10mm; } }
+      </style></head><body>
+      <h1>LAPORAN DATA PRODUKSI PENGERINGAN</h1>
+      <div class="sub">
+        Periode: ${printDateFrom || 'Awal'} s/d ${printDateTo || 'Akhir'}
+        ${printGapoktan ? ' | Gapoktan: ' + printGapoktan : ''}
+        ${printKomoditas ? ' | Komoditas: ' + printKomoditas : ''}
+        <br/>Dicetak: ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })}
+      </div>
+      <table>
+        <thead><tr>
+          <th>No</th><th>Tanggal</th><th>Gapoktan</th><th>Komoditas</th><th>Dryer</th>
+          <th class="right">Qty Sebelum</th><th class="right">Harga Sblm</th>
+          <th class="right">Qty Sesudah</th><th class="right">Harga Ssdh</th>
+          <th class="right">Δ Qty</th><th class="right">Δ Harga</th><th>Catatan</th>
+        </tr></thead>
+        <tbody>
+          ${data.map((p, i) => `<tr>
+            <td>${i+1}</td><td>${p.production_date||'-'}</td><td>${p.gapoktan?.name||'-'}</td>
+            <td>${p.komoditas?.name||'-'}</td><td>${p.dryer_units?.name||'-'}</td>
+            <td class="right">${Number(p.qty_before).toLocaleString()} T</td>
+            <td class="right">Rp ${Number(p.price_before).toLocaleString()}</td>
+            <td class="right">${Number(p.qty_after).toLocaleString()} T</td>
+            <td class="right">Rp ${Number(p.price_after).toLocaleString()}</td>
+            <td class="right">${p.qty_diff_pct}%</td>
+            <td class="right">+${p.price_diff_pct}%</td>
+            <td>${p.notes||'-'}</td>
+          </tr>`).join('')}
+          <tr class="total">
+            <td colspan="5">TOTAL (${data.length} Batch)</td>
+            <td class="right">${totalQtyBefore.toLocaleString()} T</td><td></td>
+            <td class="right">${totalQtyAfter.toLocaleString()} T</td><td colspan="4"></td>
+          </tr>
+        </tbody>
+      </table>
+      <script>window.onload=function(){window.print();}</script>
+      </body></html>
+    `);
+    win.document.close();
+    setShowPrintModal(false);
+  };
+
+  const thClass = "px-4 py-3 cursor-pointer hover:bg-muted/80 select-none transition-colors";
+
   return (
     <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -63,19 +203,30 @@ export default function ProductionPage() {
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Produksi</h1>
           <p className="text-sm lg:text-base text-muted-foreground">Input dan riwayat data produksi pengeringan</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
           <button 
             onClick={() => setShowImport(true)} 
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-2 text-sm font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+            className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
           >
-            <Download className="h-4 w-4 rotate-180" /> Import Data
+            <Download className="h-3.5 w-3.5 rotate-180" /> Import
+          </button>
+          <button 
+            onClick={handleExportSQL} 
+            className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+          >
+            <Database className="h-3.5 w-3.5" /> Export SQL
+          </button>
+          <button 
+            onClick={() => setShowPrintModal(true)} 
+            className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+          >
+            <Printer className="h-3.5 w-3.5" /> Cetak
           </button>
           <button
             onClick={() => { setEditingProduction(null); setShowForm(!showForm); }}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
           >
-            <Plus className="h-4 w-4" />
-            Input Produksi
+            <Plus className="h-4 w-4" /> Input Produksi
           </button>
         </div>
       </header>
@@ -105,32 +256,53 @@ export default function ProductionPage() {
           )}
 
           <div className="rounded-2xl border bg-card/60 overflow-hidden">
-            <div className="p-6 border-b">
+            <div className="p-6 border-b flex items-center justify-between">
               <h3 className="text-lg font-bold">Riwayat Produksi</h3>
+              <span className="text-xs text-muted-foreground font-medium">{sortedFiltered.length} data · Klik kolom untuk urutkan</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    <th className="px-4 py-3">Tanggal</th>
-                    <th className="px-4 py-3">Gapoktan</th>
-                    <th className="px-4 py-3">Komoditas</th>
-                    <th className="px-4 py-3">Dryer</th>
-                    <th className="px-4 py-3 text-right">Qty Sebelum</th>
-                    <th className="px-4 py-3 text-right">Harga Sebelum</th>
-                    <th className="px-4 py-3 text-right">Qty Sesudah</th>
-                    <th className="px-4 py-3 text-right">Harga Sesudah</th>
-                    <th className="px-4 py-3 text-right">Δ Qty</th>
-                    <th className="px-4 py-3 text-right">Δ Harga</th>
+                    <th className={thClass} onClick={() => handleSort('production_date')}>
+                      <span className="flex items-center gap-1">Tanggal <SortIcon col="production_date" /></span>
+                    </th>
+                    <th className={thClass} onClick={() => handleSort('gapoktan')}>
+                      <span className="flex items-center gap-1">Gapoktan <SortIcon col="gapoktan" /></span>
+                    </th>
+                    <th className={thClass} onClick={() => handleSort('komoditas')}>
+                      <span className="flex items-center gap-1">Komoditas <SortIcon col="komoditas" /></span>
+                    </th>
+                    <th className={thClass} onClick={() => handleSort('dryer')}>
+                      <span className="flex items-center gap-1">Dryer <SortIcon col="dryer" /></span>
+                    </th>
+                    <th className={`${thClass} text-right`} onClick={() => handleSort('qty_before')}>
+                      <span className="flex items-center gap-1 justify-end">Qty Sblm <SortIcon col="qty_before" /></span>
+                    </th>
+                    <th className={`${thClass} text-right`} onClick={() => handleSort('price_before')}>
+                      <span className="flex items-center gap-1 justify-end">Harga Sblm <SortIcon col="price_before" /></span>
+                    </th>
+                    <th className={`${thClass} text-right`} onClick={() => handleSort('qty_after')}>
+                      <span className="flex items-center gap-1 justify-end">Qty Ssdh <SortIcon col="qty_after" /></span>
+                    </th>
+                    <th className={`${thClass} text-right`} onClick={() => handleSort('price_after')}>
+                      <span className="flex items-center gap-1 justify-end">Harga Ssdh <SortIcon col="price_after" /></span>
+                    </th>
+                    <th className={`${thClass} text-right`} onClick={() => handleSort('qty_diff_pct')}>
+                      <span className="flex items-center gap-1 justify-end">Δ Qty <SortIcon col="qty_diff_pct" /></span>
+                    </th>
+                    <th className={`${thClass} text-right`} onClick={() => handleSort('price_diff_pct')}>
+                      <span className="flex items-center gap-1 justify-end">Δ Harga <SortIcon col="price_diff_pct" /></span>
+                    </th>
                     <th className="px-4 py-3 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {loading ? (
                     <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Memuat...</td></tr>
-                  ) : filteredProductions.length === 0 ? (
+                  ) : sortedFiltered.length === 0 ? (
                     <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Data tidak ditemukan</td></tr>
-                  ) : filteredProductions.map(p => (
+                  ) : sortedFiltered.map(p => (
                     <tr key={p.id} className="text-sm hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">{p.production_date}</td>
                       <td className="px-4 py-3 font-medium">{p.gapoktan?.name || '-'}</td>
@@ -170,6 +342,43 @@ export default function ProductionPage() {
               </table>
             </div>
           </div>
+
+      {/* Print Filter Modal */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowPrintModal(false)} />
+          <div className="bg-card w-full max-w-md rounded-2xl border shadow-2xl relative z-10 p-6 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg flex items-center gap-2"><Printer className="h-5 w-5" /> Cetak Laporan Produksi</h3>
+              <button onClick={() => setShowPrintModal(false)} className="p-1 hover:bg-muted rounded-lg"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground">Dari Tanggal</label>
+                <input type="date" value={printDateFrom} onChange={e => setPrintDateFrom(e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg border bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground">Sampai Tanggal</label>
+                <input type="date" value={printDateTo} onChange={e => setPrintDateTo(e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg border bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground">Gapoktan (Opsional)</label>
+                <input type="text" value={printGapoktan} onChange={e => setPrintGapoktan(e.target.value)} placeholder="Semua" className="w-full mt-1 px-3 py-2 rounded-lg border bg-background text-sm" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground">Komoditas (Opsional)</label>
+                <input type="text" value={printKomoditas} onChange={e => setPrintKomoditas(e.target.value)} placeholder="Semua" className="w-full mt-1 px-3 py-2 rounded-lg border bg-background text-sm" />
+              </div>
+            </div>
+            <button 
+              onClick={handlePrint}
+              className="w-full py-3 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2"
+            >
+              <Printer className="h-4 w-4" /> Cetak Sekarang
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

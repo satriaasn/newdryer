@@ -4,9 +4,47 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from "react";
 import type { Gapoktan, Komoditas, Kabupaten, Kecamatan, Desa } from "@/lib/types";
-import { Users, MapPin, Phone, Wheat, Plus, Loader2, Trash2, Edit, Download } from "lucide-react";
+import { Users, MapPin, Phone, Wheat, Plus, Loader2, Trash2, Edit, Download, Printer } from "lucide-react";
 import { GapoktanForm } from "@/components/dashboard/gapoktan-form";
 import { ImportModal } from "@/components/dashboard/import-modal";
+
+const printGapoktanProfile = (g: Gapoktan) => {
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(`
+    <html><head><title>Profil ${g.name}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 30px; color: #1a1a1a; max-width: 700px; }
+      h1 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+      .row { display: flex; margin: 6px 0; }
+      .label { font-weight: 700; width: 160px; color: #555; font-size: 13px; }
+      .value { font-size: 13px; }
+      .section { margin-top: 16px; font-weight: 700; font-size: 14px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+      .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin: 2px 4px 2px 0; font-weight: 600; }
+      .footer { margin-top: 40px; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
+      @media print { @page { margin: 15mm; } }
+    </style></head><body>
+    <h1>PROFIL GAPOKTAN: ${g.name}</h1>
+    <div class="row"><div class="label">Nama Gapoktan</div><div class="value">${g.name}</div></div>
+    <div class="row"><div class="label">Ketua</div><div class="value">${g.ketua || '-'}</div></div>
+    <div class="row"><div class="label">No. Telepon</div><div class="value">${g.phone || '-'}</div></div>
+    <div class="row"><div class="label">Alamat</div><div class="value">${g.address || '-'}</div></div>
+    <div class="row"><div class="label">Desa</div><div class="value">${g.desa?.name || '-'}</div></div>
+    <div class="row"><div class="label">Kecamatan</div><div class="value">${g.desa?.kecamatan?.name || '-'}</div></div>
+    <div class="row"><div class="label">Kabupaten</div><div class="value">${g.desa?.kecamatan?.kabupaten?.name || '-'}</div></div>
+    ${g.latitude ? `<div class="row"><div class="label">Koordinat</div><div class="value">${g.latitude?.toFixed(6)}, ${g.longitude?.toFixed(6)}</div></div>` : ''}
+    <div class="section">Komoditas</div>
+    <div style="margin-top:6px">${g.komoditas && g.komoditas.length > 0 ? g.komoditas.map(k => `<span class="badge">${k.name}</span>`).join('') : '<span style="color:#999">Belum ada</span>'}</div>
+    ${g.dryer_units && g.dryer_units.length > 0 ? `
+      <div class="section">Unit Dryer (${g.dryer_units.length} unit)</div>
+      <div style="margin-top:6px">${g.dryer_units.map(d => `<span class="badge">${d.name} (${d.capacity_ton}T)</span>`).join('')}</div>
+    ` : ''}
+    <div class="footer">Dicetak pada ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+    <script>window.onload=function(){window.print();}</script>
+    </body></html>
+  `);
+  win.document.close();
+};
 
 export default function GapoktanAdmin() {
   const [gapoktan, setGapoktan] = useState<Gapoktan[]>([]);
@@ -101,6 +139,13 @@ export default function GapoktanAdmin() {
               ) : filteredGapoktan.map(g => (
                 <div key={g.id} className="relative group rounded-2xl border bg-card/60 p-6 hover:shadow-xl hover:border-primary/20 transition-all">
                   <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <button 
+                      onClick={() => printGapoktanProfile(g)}
+                      className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all"
+                      title="Cetak Profil"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </button>
                     <button 
                       onClick={() => setEditingGapoktan(g)}
                       className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
