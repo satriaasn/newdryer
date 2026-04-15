@@ -122,9 +122,9 @@ export default function AdminDashboard() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KPI title="Total Produksi (Ton)" value={`${Number(stats.totalQtyBefore || 0).toFixed(1)} T`} icon={Package} color="text-primary" />
-            <KPI title="Produksi Hari Ini" value={`${Number(stats.todayQtyAfter || 0).toFixed(1)} T`} icon={Calendar} color="text-blue-500" />
-            <KPI title="Avg Margin Harga" value={`+${stats.avgPriceDiffPct}%`} icon={TrendingUp} color="text-emerald-500" />
-            <KPI title="Total Unit Dryer" value={stats.totalDryers || 0} icon={Factory} color="text-indigo-500" />
+            <KPI title="Produksi Hari Ini" value={`${Number(stats.todayQtyAfter || 0).toFixed(1)} T`} icon={Calendar} color="text-emerald-500" />
+            <KPI title="Avg Margin Harga" value={`+${stats.avgPriceDiffPct}%`} icon={TrendingUp} color="text-green-500" />
+            <KPI title="Total Unit Dryer" value={stats.totalDryers || 0} icon={Factory} color="text-emerald-600" />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">

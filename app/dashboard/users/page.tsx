@@ -90,7 +90,7 @@ export default function UserManagement() {
                     <tr key={p.id} className="text-sm hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary/20 to-blue-400/20 flex items-center justify-center text-primary font-bold text-xs">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary/20 to-emerald-400/20 flex items-center justify-center text-primary font-bold text-xs">
                             {p.full_name?.charAt(0) || 'U'}
                           </div>
                           <span className="font-medium text-foreground">{p.full_name || "Tanpa Nama"}</span>

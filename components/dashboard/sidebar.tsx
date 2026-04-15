@@ -122,7 +122,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         <div className="p-4 border-t space-y-4">
           <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-muted/30">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white font-bold text-xs">
+            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-white font-bold text-xs">
               {profile?.full_name?.charAt(0) || 'A'}
             </div>
             <div className="flex-1 overflow-hidden">

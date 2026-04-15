@@ -111,7 +111,7 @@ export default function PublicGapoktanDetailPage() {
                <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] border border-emerald-500/20 shadow-sm">Verified Gapoktan</span>
-                    <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] border border-blue-500/20 shadow-sm">Hibah Dryer 2024</span>
+                    <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] border border-blue-500/20 shadow-sm">Hibah Dryer 2025</span>
                   </div>
                   <h1 className="text-4xl lg:text-5xl font-black tracking-tighter leading-none">{gapoktan.name}</h1>
                   <div className="flex flex-wrap items-center gap-4 text-slate-400">

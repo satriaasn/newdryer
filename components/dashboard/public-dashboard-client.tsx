@@ -345,7 +345,7 @@ export default function PublicDashboardClient() {
              <button onClick={() => handleThemeChange('dark')} className={cn("p-2 rounded-lg transition-all", theme === 'dark' ? "bg-slate-800 shadow text-white" : "text-muted-foreground hover:bg-slate-800/10")}>
                 <Moon className="h-4 w-4" />
              </button>
-             <button onClick={() => handleThemeChange('oligarch')} className={cn("p-2 rounded-lg transition-all flex items-center gap-1.5 px-3", theme === 'oligarch' ? "bg-[#87ceeb] shadow text-slate-900 border border-white/20" : "text-muted-foreground hover:bg-[#87ceeb]/20")}>
+             <button onClick={() => handleThemeChange('oligarch')} className={cn("p-2 rounded-lg transition-all flex items-center gap-1.5 px-3", theme === 'oligarch' ? "bg-[#10b981] shadow text-slate-900 border border-white/20" : "text-muted-foreground hover:bg-[#10b981]/20")}>
                 <Palette className="h-4 w-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Oligarch</span>
              </button>
@@ -436,10 +436,10 @@ export default function PublicDashboardClient() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <KPICard title="Total Produksi" value={Number(stats?.totalQtyBefore || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
-          <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-blue-500" />
-          <KPICard title="Total Gapoktan" value={stats?.totalGapoktan || 0} unit="Poktan" trend="Update terbaru" trendUp={true} borderLeft="border-l-rose-500" />
-          <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-indigo-500" />
-          <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-orange-500" />
+          <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-green-500" />
+          <KPICard title="Total Gapoktan" value={stats?.totalGapoktan || 0} unit="Poktan" trend="Update terbaru" trendUp={true} borderLeft="border-l-teal-500" />
+          <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-emerald-600" />
+          <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-lime-500" />
         </div>
 
         {/* SCORECARD KOMODITAS Section */}
@@ -456,7 +456,7 @@ export default function PublicDashboardClient() {
                 value={Number(k.allTime || 0).toFixed(1)} 
                 unit="Ton"
                 trend="All time accumulation" 
-                borderLeft="border-l-blue-500" 
+                borderLeft="border-l-emerald-500" 
               />
             ))}
           </div>
@@ -575,7 +575,7 @@ export default function PublicDashboardClient() {
 
              <div className="bg-card rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
                     <Wheat className="h-5 w-5" />
                   </div>
                   <div>
@@ -689,7 +689,7 @@ export default function PublicDashboardClient() {
                              <span className="text-[9px] ml-1 text-muted-foreground uppercase">Ton</span>
                           </td>
                           <td className="px-5 py-5 text-right">
-                             <span className="text-[11px] font-bold text-blue-500">{formatCurrency(p.price_after || 0)}</span>
+                             <span className="text-[11px] font-bold text-emerald-500">{formatCurrency(p.price_after || 0)}</span>
                           </td>
                           <td className="px-5 py-5">
                              <div className="flex items-center gap-2">
