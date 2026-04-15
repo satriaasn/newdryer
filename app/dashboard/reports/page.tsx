@@ -102,7 +102,11 @@ export default function WhatsAppReportingPage() {
   const generateDailyRecap = (freshData?: any[], selectedDate?: string) => {
     const data = freshData || productions;
     const targetDate = selectedDate || recapDate;
-    const dateProds = data.filter(p => (p.production_date || "") === targetDate);
+    // Use startsWith to handle dates like "2026-04-15T00:00:00+00:00" or "2026-04-15"
+    const dateProds = data.filter(p => {
+      const pd = (p.production_date || "").substring(0, 10);
+      return pd === targetDate;
+    });
 
     // Format date to Indonesian: "15 Apr 2026"
     const dateObj = new Date(targetDate + 'T00:00:00');
@@ -360,7 +364,7 @@ export default function WhatsAppReportingPage() {
                 <div className="text-right hidden sm:block">
                   <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data Ditemukan</div>
                   <div className="text-lg font-black text-emerald-600">
-                    {productions.filter(p => (p.production_date || "") === recapDate).length} Batch
+                    {productions.filter(p => (p.production_date || "").substring(0, 10) === recapDate).length} Batch
                   </div>
                 </div>
               </div>
