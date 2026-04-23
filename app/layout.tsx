@@ -40,13 +40,6 @@ export default function RootLayout({
         "min-h-screen bg-background antialiased selection:bg-primary/10 selection:text-primary"
       )}>
         {children}
-        <script dangerouslySetInnerHTML={{ __html: `
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js');
-            });
-          }
-        ` }} />
       </body>
     </html>
   )

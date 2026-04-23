@@ -7,6 +7,10 @@ import { Factory, Users, Package, TrendingUp, Plus, Search, Calendar, Filter, X 
 
 const AdminTrendChart = dynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminTrendChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 const AdminBarChart = dynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminBarChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const AdminGapoktanChart = dynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminGapoktanChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -72,6 +76,18 @@ export default function AdminDashboard() {
     return Object.entries(map).map(([name, ton]) => ({ name, ton }));
   }, [productions]);
 
+  const perGapoktan = useMemo(() => {
+    const map: Record<string, number> = {};
+    productions.forEach(p => {
+      const name = p.gapoktan?.name || 'Lainnya';
+      map[name] = (map[name] || 0) + Number(p.qty_before);
+    });
+    return Object.entries(map)
+      .map(([name, ton]) => ({ name, ton }))
+      .sort((a, b) => b.ton - a.ton)
+      .slice(0, 5);
+  }, [productions]);
+
   const clearFilters = () => { setFilterGapoktan(''); setFilterKomoditas(''); setFilterDate(''); setFilterSearch(''); };
   const hasFilters = !!(filterGapoktan || filterKomoditas || filterDate || filterSearch);
 
@@ -127,18 +143,25 @@ export default function AdminDashboard() {
             <KPI title="Total Unit Dryer" value={stats.totalDryers || 0} icon={Factory} color="text-emerald-600" />
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Tren Produksi (15 Hari)</h3>
-              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-6">
+              <h3 className="text-lg font-bold flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Tren Produksi</h3>
+              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-4">
                 <AdminTrendChart data={trendData} />
               </div>
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2"><Package className="h-5 w-5 text-emerald-500" /> Perbandingan Komoditas</h3>
-              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-6">
+              <h3 className="text-lg font-bold flex items-center gap-2"><Package className="h-5 w-5 text-emerald-500" /> Per Komoditas</h3>
+              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-4">
                 <AdminBarChart data={perKomoditas} />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold flex items-center gap-2"><Users className="h-5 w-5 text-blue-500" /> Top Gapoktan</h3>
+              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-4">
+                <AdminGapoktanChart data={perGapoktan} />
               </div>
             </div>
           </div>

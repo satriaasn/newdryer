@@ -101,7 +101,7 @@ export default function ExportDataPage() {
   const exportOptions: ExportCardProps[] = [
     { title: "Data Gapoktan", description: "Ekspor seluruh data Gabungan Kelompok Tani.", icon: Users, tableName: "gapoktan" },
     { title: "Data Mesin Dryer", description: "Ekspor seluruh mesin (unit dryer) yang terdaftar.", icon: Factory, tableName: "dryer_units" },
-    { title: "Data Produksi", description: "Ekspor seluruh riwayat data produksi panen harian.", icon: ClipboardList, tableName: "production" },
+    { title: "Data Produksi", description: "Ekspor seluruh riwayat data produksi panen harian.", icon: ClipboardList, tableName: "productions" },
     { title: "Data Komoditas", description: "Ekspor referensi data komoditas padi/jagung.", icon: Wheat, tableName: "komoditas" },
   ];
 

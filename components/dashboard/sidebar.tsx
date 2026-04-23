@@ -108,8 +108,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             const roleStr = (profile?.role || "").toLowerCase();
             const isAdmin = roleStr.includes("admin") || roleStr.includes("super");
             
-            // Menampilkan menu admin jika status loading (null) atau admin terdeteksi
-            const isRestricted = ["Laporan WA", "Pengaturan User"].includes(item.name);
+            // Guest mode logic
+            const isGuest = !profile;
+            const isRestricted = ["Laporan WA", "Pengaturan User", "Profil & Pengaturan", "Export Data"].includes(item.name);
+            
+            if (isGuest && isRestricted) return null;
             if (isRestricted && profile && !isAdmin) {
               return null;
             }
@@ -138,26 +141,38 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         <div className="p-4 border-t space-y-4">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-muted/30">
-              <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-white font-bold text-xs">
-                {profile?.full_name?.charAt(0) || 'A'}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate">{profile?.full_name || "Admin"}</p>
-                <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter">{profile?.role || "Administrator"}</p>
-              </div>
-            </div>
-            <div className="px-3 text-[9px] font-mono text-muted-foreground/30 text-center uppercase tracking-tighter">
-              Versi: v1.2.0 | Auth: {profile ? 'READY' : 'LOADING'}
-            </div>
+            {profile ? (
+              <>
+                <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-muted/30">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-white font-bold text-xs">
+                    {profile?.full_name?.charAt(0) || 'A'}
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-sm font-medium truncate">{profile?.full_name || "Admin"}</p>
+                    <p className="text-xs text-muted-foreground truncate uppercase tracking-tighter">{profile?.role || "Administrator"}</p>
+                  </div>
+                </div>
+                <div className="px-3 text-[9px] font-mono text-muted-foreground/30 text-center uppercase tracking-tighter">
+                  Versi: v1.2.0 | Auth: READY
+                </div>
+                <button 
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-500/10 transition-all group"
+                >
+                  <LogOut className="h-5 w-5 transition-transform group-hover:scale-110" />
+                  Keluar
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={() => router.push('/login')}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:scale-105 transition-all shadow-lg shadow-primary/20"
+              >
+                <ShieldCheck className="h-5 w-5" />
+                Masuk (Admin)
+              </button>
+            )}
           </div>
-          <button 
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-500/10 transition-all group"
-          >
-            <LogOut className="h-5 w-5 transition-transform group-hover:scale-110" />
-            Keluar
-          </button>
         </div>
       </div>
     </>

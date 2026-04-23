@@ -7,6 +7,8 @@ import { useEffect, useState, useMemo } from "react";
 import type { Production, Gapoktan, Komoditas, DryerUnit } from "@/lib/types";
 import { Plus, Loader2, Trash2, Edit, Download, Printer, ChevronUp, ChevronDown, Filter, X } from "lucide-react";
 import { ImportModal } from "@/components/dashboard/import-modal";
+import { exportToCSV } from "@/lib/export-utils";
+import { userService, type Profile } from "@/services/user.service";
 
 type SortKey = 'production_date' | 'gapoktan' | 'komoditas' | 'dryer' | 'qty_before' | 'price_before' | 'qty_after' | 'price_after' | 'qty_diff_pct' | 'price_diff_pct';
 type SortDir = 'asc' | 'desc';
@@ -19,6 +21,7 @@ export default function ProductionPage() {
   const [showImport, setShowImport] = useState(false);
   const [editingProduction, setEditingProduction] = useState<Production | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   // Sort state
   const [sortKey, setSortKey] = useState<SortKey>('production_date');
@@ -81,9 +84,11 @@ export default function ProductionPage() {
     Promise.all([
       fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
-    ]).then(([p, g]) => {
+      userService.getCurrentProfile(),
+    ]).then(([p, g, prof]) => {
       setProductions(Array.isArray(p) ? p : []);
       setGapoktan(Array.isArray(g) ? g : []);
+      setProfile(prof);
     }).finally(() => setLoading(false));
   };
 
@@ -108,15 +113,44 @@ export default function ProductionPage() {
     } catch (e: any) { alert(e.message); }
   };
 
-
-
-  const handlePrint = () => {
+  const getFilteredData = () => {
     let data = [...productions];
     if (printDateFrom) data = data.filter(p => (p.production_date || '') >= printDateFrom);
     if (printDateTo) data = data.filter(p => (p.production_date || '') <= printDateTo);
     if (printGapoktan) data = data.filter(p => p.gapoktan?.name?.toLowerCase().includes(printGapoktan.toLowerCase()));
     if (printKomoditas) data = data.filter(p => p.komoditas?.name?.toLowerCase().includes(printKomoditas.toLowerCase()));
+    return data;
+  }
+
+  const handleDownloadExcel = () => {
+    const data = getFilteredData();
+    if (data.length === 0) return alert("Tidak ada data yang sesuai filter.");
     
+    // Prepare data for Excel-ready CSV
+    const exportData = data.map((p, i) => ({
+      No: i + 1,
+      Tanggal: p.production_date,
+      Gapoktan: p.gapoktan?.name,
+      Komoditas: p.komoditas?.name,
+      Dryer: p.dryer_units?.name,
+      'Qty Sebelum (Ton)': p.qty_before,
+      'Harga Sebelum': p.price_before,
+      'Qty Sesudah (Ton)': p.qty_after,
+      'Harga Sesudah': p.price_after,
+      'Selisih Qty (%)': p.qty_diff_pct,
+      'Selisih Harga (%)': p.price_diff_pct,
+      Catatan: p.notes
+    }));
+
+    exportToCSV({
+      data: exportData,
+      filename: `Laporan_Produksi_${new Date().toISOString().split('T')[0]}`
+    });
+    setShowPrintModal(false);
+  };
+
+  const handlePrint = () => {
+    const data = getFilteredData();
     if (data.length === 0) return alert("Tidak ada data yang sesuai filter.");
 
     const totalQtyBefore = data.reduce((a, p) => a + Number(p.qty_before || 0), 0);
@@ -178,6 +212,7 @@ export default function ProductionPage() {
   };
 
   const thClass = "px-4 py-3 cursor-pointer hover:bg-muted/80 select-none transition-colors";
+  const isAdmin = !!profile;
 
   return (
     <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
@@ -187,24 +222,28 @@ export default function ProductionPage() {
           <p className="text-sm lg:text-base text-muted-foreground">Input dan riwayat data produksi pengeringan</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          <button 
-            onClick={() => setShowImport(true)} 
-            className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
-          >
-            <Download className="h-3.5 w-3.5 rotate-180" /> Import
-          </button>
+          {isAdmin && (
+            <button 
+              onClick={() => setShowImport(true)} 
+              className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+            >
+              <Download className="h-3.5 w-3.5 rotate-180" /> Import
+            </button>
+          )}
           <button 
             onClick={() => setShowPrintModal(true)} 
             className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
           >
-            <Printer className="h-3.5 w-3.5" /> Cetak
+            <Printer className="h-3.5 w-3.5" /> Cetak / Export
           </button>
-          <button
-            onClick={() => { setEditingProduction(null); setShowForm(!showForm); }}
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-          >
-            <Plus className="h-4 w-4" /> Input Produksi
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => { setEditingProduction(null); setShowForm(!showForm); }}
+              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+            >
+              <Plus className="h-4 w-4" /> Input Produksi
+            </button>
+          )}
         </div>
       </header>
 
@@ -271,14 +310,14 @@ export default function ProductionPage() {
                     <th className={`${thClass} text-right`} onClick={() => handleSort('price_diff_pct')}>
                       <span className="flex items-center gap-1 justify-end">Δ Harga <SortIcon col="price_diff_pct" /></span>
                     </th>
-                    <th className="px-4 py-3 text-right">Aksi</th>
+                    {isAdmin && <th className="px-4 py-3 text-right">Aksi</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {loading ? (
-                    <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Memuat...</td></tr>
+                    <tr><td colSpan={isAdmin ? 11 : 10} className="px-4 py-8 text-center text-muted-foreground">Memuat...</td></tr>
                   ) : sortedFiltered.length === 0 ? (
-                    <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Data tidak ditemukan</td></tr>
+                    <tr><td colSpan={isAdmin ? 11 : 10} className="px-4 py-8 text-center text-muted-foreground">Data tidak ditemukan</td></tr>
                   ) : sortedFiltered.map(p => (
                     <tr key={p.id} className="text-sm hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">{p.production_date}</td>
@@ -299,20 +338,22 @@ export default function ProductionPage() {
                           +{p.price_diff_pct}%
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right flex justify-end gap-2 text-right">
-                        <button 
-                          onClick={() => setEditingProduction(p)}
-                          className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(p.id)}
-                          className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3 text-right flex justify-end gap-2 text-right">
+                          <button 
+                            onClick={() => setEditingProduction(p)}
+                            className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(p.id)}
+                            className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -320,13 +361,13 @@ export default function ProductionPage() {
             </div>
           </div>
 
-      {/* Print Filter Modal */}
+      {/* Print / Export Filter Modal */}
       {showPrintModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowPrintModal(false)} />
           <div className="bg-card w-full max-w-md rounded-2xl border shadow-2xl relative z-10 p-6 space-y-5 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg flex items-center gap-2"><Printer className="h-5 w-5" /> Cetak Laporan Produksi</h3>
+              <h3 className="font-bold text-lg flex items-center gap-2"><Printer className="h-5 w-5" /> Cetak / Export Laporan</h3>
               <button onClick={() => setShowPrintModal(false)} className="p-1 hover:bg-muted rounded-lg"><X className="h-5 w-5" /></button>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -338,21 +379,26 @@ export default function ProductionPage() {
                 <label className="text-[10px] font-bold uppercase text-muted-foreground">Sampai Tanggal</label>
                 <input type="date" value={printDateTo} onChange={e => setPrintDateTo(e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg border bg-background text-sm" />
               </div>
-              <div>
+              <div className="col-span-2">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground">Gapoktan (Opsional)</label>
                 <input type="text" value={printGapoktan} onChange={e => setPrintGapoktan(e.target.value)} placeholder="Semua" className="w-full mt-1 px-3 py-2 rounded-lg border bg-background text-sm" />
               </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase text-muted-foreground">Komoditas (Opsional)</label>
-                <input type="text" value={printKomoditas} onChange={e => setPrintKomoditas(e.target.value)} placeholder="Semua" className="w-full mt-1 px-3 py-2 rounded-lg border bg-background text-sm" />
-              </div>
             </div>
-            <button 
-              onClick={handlePrint}
-              className="w-full py-3 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2"
-            >
-              <Printer className="h-4 w-4" /> Cetak Sekarang
-            </button>
+            
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button 
+                onClick={handlePrint}
+                className="py-3 bg-card border text-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-muted transition-all flex items-center justify-center gap-2"
+              >
+                <Printer className="h-4 w-4 text-primary" /> Preview PDF
+              </button>
+              <button 
+                onClick={handleDownloadExcel}
+                className="py-3 bg-emerald-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+              >
+                <Download className="h-4 w-4" /> Download Excel
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -60,3 +60,21 @@ export function AdminBarChart({ data }: AdminBarChartProps) {
     </ResponsiveContainer>
   );
 }
+
+interface AdminGapoktanChartProps {
+  data: { name: string; ton: number }[];
+}
+
+export function AdminGapoktanChart({ data }: AdminGapoktanChartProps) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} layout="vertical" margin={{ left: 30, right: 30 }}>
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
+        <XAxis type="number" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
+        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} width={80} />
+        <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px', fontSize: '12px', color: '#fff' }} />
+        <Bar dataKey="ton" fill="#10b981" radius={[0, 4, 4, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
