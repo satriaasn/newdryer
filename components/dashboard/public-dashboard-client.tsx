@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 const DynamicMap = nextDynamic(() => import("@/components/dashboard/dashboard-map"), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><MapPin className="h-8 w-8 text-primary animate-bounce" /></div> });
 const TrendChart = nextDynamic(() => import("@/components/dashboard/trend-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 const VolumeBarChart = nextDynamic(() => import("@/components/dashboard/volume-chart"), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const GapoktanChart = nextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminGapoktanChart), { ssr: false, loading: () => <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
@@ -287,6 +288,18 @@ export default function PublicDashboardClient() {
 
     return sortedKeys.map(k => ({ date: k, ton: Number(map[k].toFixed(1)) }));
   }, [productions]);
+
+  const perGapoktan = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredProductions.forEach(p => {
+      const name = p.gapoktan?.name || 'Lainnya';
+      map[name] = (map[name] || 0) + Number(p.qty_before);
+    });
+    return Object.entries(map)
+      .map(([name, ton]) => ({ name, ton }))
+      .sort((a, b) => b.ton - a.ton)
+      .slice(0, 5);
+  }, [filteredProductions]);
 
   const exportToCSV = () => {
     const headers = ['No Unit', 'Tanggal', 'Gapoktan', 'Alamat', 'Komoditas', 'Tonase Sebelum', 'Harga Sebelum', 'Tonase Sesudah', 'Harga Sesudah', 'Status'];
@@ -571,7 +584,7 @@ export default function PublicDashboardClient() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
              <div className="bg-card rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600">
@@ -599,6 +612,21 @@ export default function PublicDashboardClient() {
                 </div>
                 <div className="h-[300px]">
                    <VolumeBarChart data={komoditasStats.map((k: any) => ({ name: k.name, ton: k.allTime }))} theme={theme} />
+                </div>
+             </div>
+
+             <div className="bg-card rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                    <Factory className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground">Produksi per Gapoktan</h2>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Top 5 Kelompok Tani</p>
+                  </div>
+                </div>
+                <div className="h-[300px]">
+                   <GapoktanChart data={perGapoktan} />
                 </div>
              </div>
           </div>

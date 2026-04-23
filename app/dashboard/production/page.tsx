@@ -222,28 +222,24 @@ export default function ProductionPage() {
           <p className="text-sm lg:text-base text-muted-foreground">Input dan riwayat data produksi pengeringan</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          {isAdmin && (
-            <button 
-              onClick={() => setShowImport(true)} 
-              className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
-            >
-              <Download className="h-3.5 w-3.5 rotate-180" /> Import
-            </button>
-          )}
+          <button 
+            onClick={() => setShowImport(true)} 
+            className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+          >
+            <Download className="h-3.5 w-3.5 rotate-180" /> Import
+          </button>
           <button 
             onClick={() => setShowPrintModal(true)} 
             className="flex items-center gap-2 rounded-xl bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
           >
             <Printer className="h-3.5 w-3.5" /> Cetak / Export
           </button>
-          {isAdmin && (
-            <button
-              onClick={() => { setEditingProduction(null); setShowForm(!showForm); }}
-              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-            >
-              <Plus className="h-4 w-4" /> Input Produksi
-            </button>
-          )}
+          <button
+            onClick={() => { setEditingProduction(null); setShowForm(!showForm); }}
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <Plus className="h-4 w-4" /> Input Produksi
+          </button>
         </div>
       </header>
 
@@ -286,6 +282,7 @@ export default function ProductionPage() {
                     <th className={thClass} onClick={() => handleSort('gapoktan')}>
                       <span className="flex items-center gap-1">Gapoktan <SortIcon col="gapoktan" /></span>
                     </th>
+                    <th className="px-4 py-3 font-semibold">Wilayah/Kab</th>
                     <th className={thClass} onClick={() => handleSort('komoditas')}>
                       <span className="flex items-center gap-1">Komoditas <SortIcon col="komoditas" /></span>
                     </th>
@@ -322,6 +319,9 @@ export default function ProductionPage() {
                     <tr key={p.id} className="text-sm hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">{p.production_date}</td>
                       <td className="px-4 py-3 font-medium">{p.gapoktan?.name || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground italic">
+                        {p.gapoktan?.desa?.kecamatan?.kabupaten?.name?.replace('KABUPATEN ', '') || '-'}
+                      </td>
                       <td className="px-4 py-3">{p.komoditas?.name || '-'}</td>
                       <td className="px-4 py-3">{p.dryer_units?.name || '-'}</td>
                       <td className="px-4 py-3 text-right font-mono">{Number(p.qty_before).toLocaleString()} Ton</td>
@@ -338,22 +338,20 @@ export default function ProductionPage() {
                           +{p.price_diff_pct}%
                         </span>
                       </td>
-                      {isAdmin && (
-                        <td className="px-4 py-3 text-right flex justify-end gap-2 text-right">
-                          <button 
-                            onClick={() => setEditingProduction(p)}
-                            className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(p.id)}
-                            className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </td>
-                      )}
+                      <td className="px-4 py-3 text-right flex justify-end gap-2 text-right">
+                        <button 
+                          onClick={() => setEditingProduction(p)}
+                          className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(p.id)}
+                          className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
