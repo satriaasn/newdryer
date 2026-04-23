@@ -16,9 +16,18 @@ export async function middleware(req: NextRequest) {
   const isGapoktanDetail = pathname.startsWith('/gapoktan/')
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signin')
   const isApiAuth = pathname.startsWith('/api/auth')
-  const isStaticAsset = pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js)$/)
+  const isPublicApi = pathname.startsWith('/api/production') || 
+                      pathname.startsWith('/api/gapoktan') || 
+                      pathname.startsWith('/api/komoditas') || 
+                      pathname.startsWith('/api/settings') || 
+                      pathname.startsWith('/api/address')
+  
+  // Broader static asset check
+  const isStaticAsset = pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js|json|webp|woff2?|ttf)$/) ||
+                        pathname === '/favicon.ico' ||
+                        pathname === '/manifest.json'
 
-  if (!session && !isLandingPage && !isGapoktanDetail && !isAuthPage && !isApiAuth && !isStaticAsset) {
+  if (!session && !isLandingPage && !isGapoktanDetail && !isAuthPage && !isApiAuth && !isStaticAsset && !isPublicApi) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/login'
     redirectUrl.searchParams.set('redirectedFrom', pathname)
@@ -42,6 +51,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:png|jpg|jpeg|gif|svg|ico|css|js|json|webp|woff2?|ttf)$|gapoktan/).*)',
   ],
 }

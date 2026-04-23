@@ -90,13 +90,13 @@ export default function PublicDashboardClient() {
       fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
-      supabase.from('kabupaten').select('*'),
+      fetch('/api/address?type=kabupaten', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/settings', { cache: 'no-store' }).then(r => r.json())
     ]).then(([prodData, gapoktanData, komoditasData, kabRes, settingsData]) => {
       setProductions(Array.isArray(prodData) ? prodData : []);
       setGapoktanList(Array.isArray(gapoktanData) ? gapoktanData : []);
       setKomoditasList(Array.isArray(komoditasData) ? komoditasData : []);
-      setAllKabupaten(Array.isArray(kabRes.data) ? kabRes.data : []);
+      setAllKabupaten(Array.isArray(kabRes) ? kabRes : []);
       if (settingsData && !settingsData.error) setAppSettings(settingsData);
       setLoading(false);
     }).catch(err => {
