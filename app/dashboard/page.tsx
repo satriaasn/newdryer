@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import dynamic from "next/dynamic";
+import NextDynamic from "next/dynamic";
 import type { DashboardStats, Production } from "@/lib/types";
 import { Factory, Users, Package, TrendingUp, Plus, Search, Calendar, Filter, X } from "lucide-react";
 
-const AdminTrendChart = dynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminTrendChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
-const AdminBarChart = dynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminBarChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
-const AdminGapoktanChart = dynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminGapoktanChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const AdminTrendChart = NextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminTrendChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const AdminBarChart = NextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminBarChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const AdminGapoktanChart = NextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminGapoktanChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
