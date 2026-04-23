@@ -9,8 +9,6 @@ const AdminTrendChart = NextDynamic(() => import("@/components/dashboard/admin-c
 const AdminBarChart = NextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminBarChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 const AdminGapoktanChart = NextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminGapoktanChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
