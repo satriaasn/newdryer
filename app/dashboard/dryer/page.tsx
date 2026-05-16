@@ -47,6 +47,12 @@ export default function DryerAdmin() {
   const statusColor: Record<string, string> = { active: 'bg-emerald-500/10 text-emerald-500', inactive: 'bg-gray-500/10 text-gray-500', maintenance: 'bg-amber-500/10 text-amber-500' };
   const statusLabel: Record<string, string> = { active: 'Aktif', inactive: 'Nonaktif', maintenance: 'Perawatan' };
 
+  const productivityColor: Record<string, string> = { 
+    'Belum Beroperasi': 'bg-gray-500/10 text-gray-500', 
+    'Beroperasi Optimal': 'bg-blue-500/10 text-blue-500', 
+    'Hanya Saat Panen Raya': 'bg-amber-500/10 text-amber-500' 
+  };
+
   return (
     <div className="p-4 lg:p-8 space-y-6 pb-24 lg:pb-8">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -102,6 +108,7 @@ export default function DryerAdmin() {
                   <th className="px-6 py-4">Gapoktan</th>
                   <th className="px-6 py-4">Lokasi</th>
                   <th className="px-6 py-4 text-right">Kapasitas</th>
+                  <th className="px-6 py-4 text-center">Produktivitas</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Aksi</th>
                 </tr>
@@ -117,6 +124,11 @@ export default function DryerAdmin() {
                     <td className="px-6 py-4 font-medium">{d.gapoktan?.name || '-'}</td>
                     <td className="px-6 py-4 text-xs text-muted-foreground">{d.gapoktan?.desa?.name}, {d.gapoktan?.desa?.kecamatan?.name}</td>
                     <td className="px-6 py-4 text-right font-mono">{d.capacity_ton ? `${Number(d.capacity_ton).toLocaleString()} Ton` : '-'}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border whitespace-nowrap ${productivityColor[d.productivity] || 'bg-gray-500/10 text-gray-500'}`}>
+                        {d.productivity || 'Belum Beroperasi'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4"><span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusColor[d.status]}`}>{statusLabel[d.status]}</span></td>
                     <td className="px-6 py-4 text-right flex justify-end gap-2 text-right">
                       <button 
@@ -146,7 +158,8 @@ function DryerForm({ initialData, gapoktanList, onSaved, onCancel }: { initialDa
     name: initialData?.name || '', 
     gapoktan_id: initialData?.gapoktan_id || '', 
     capacity_ton: initialData?.capacity_ton?.toString() || '',
-    status: initialData?.status || 'active'
+    status: initialData?.status || 'active',
+    productivity: initialData?.productivity || 'Belum Beroperasi'
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -194,6 +207,14 @@ function DryerForm({ initialData, gapoktanList, onSaved, onCancel }: { initialDa
             <option value="active">Aktif</option>
             <option value="inactive">Nonaktif</option>
             <option value="maintenance">Perawatan</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Produktivitas</label>
+          <select value={form.productivity} onChange={e => setForm({...form, productivity: e.target.value as any})} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
+            <option value="Belum Beroperasi">Belum Beroperasi</option>
+            <option value="Beroperasi Optimal">Beroperasi Optimal</option>
+            <option value="Hanya Saat Panen Raya">Hanya Saat Panen Raya</option>
           </select>
         </div>
       </div>
