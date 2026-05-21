@@ -231,6 +231,17 @@ export default function PublicDashboardClient() {
     return filteredGapoktan.filter(g => g.latitude && g.longitude);
   }, [filteredGapoktan]);
 
+  const mapMarkers = useMemo(() => {
+    return gapoktanList.filter(g => g.latitude && g.longitude).map(g => ({ 
+      id: g.id, 
+      latitude: g.latitude!, 
+      longitude: g.longitude!,
+      name: g.name,
+      address: `${g.desa?.name || ''}, ${g.desa?.kecamatan?.name || ''}`,
+      komoditas: g.komoditas?.map(k => k.name).join(', ')
+    }));
+  }, [gapoktanList]);
+
   const komoditasStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     const stats = (komoditasList || []).map(k => {
@@ -524,23 +535,32 @@ export default function PublicDashboardClient() {
                <div className="lg:col-span-3 h-[500px] rounded-2xl border overflow-hidden shadow-inner relative">
                   <DynamicMap 
                     theme={theme}
-                    markers={gapoktanList.filter(g => g.latitude && g.longitude).map(g => ({ 
-                      id: g.id, 
-                      latitude: g.latitude!, 
-                      longitude: g.longitude!,
-                      name: g.name,
-                      address: `${g.desa?.name || ''}, ${g.desa?.kecamatan?.name || ''}`,
-                      komoditas: g.komoditas?.map(k => k.name).join(', ')
-                    }))} 
+                    markers={mapMarkers} 
                     onMarkerClick={(id: string) => {
                       const found = gapoktanList.find(g => g.id === id);
-                      if (found) setSelectedGapoktan(found);
+                      if (found) {
+                        setSelectedGapoktan(found);
+                        setFilterGapoktan(found.id);
+                      }
                     }} 
                   />
                </div>
                
                <div className="lg:col-span-1 space-y-3 overflow-hidden flex flex-col h-[500px]">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{filteredGapoktan.length} Lokasi Terdaftar</p>
+                  <div className="flex items-center justify-between px-1 shrink-0">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{filteredGapoktan.length} Lokasi Terdaftar</p>
+                    {filterGapoktan && (
+                      <button 
+                        onClick={() => {
+                          setFilterGapoktan('');
+                          setSelectedGapoktan(null);
+                        }}
+                        className="text-[10px] text-rose-500 font-bold hover:underline transition-all"
+                      >
+                        Reset Filter
+                      </button>
+                    )}
+                  </div>
                   <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hide flex-grow pb-4">
                     {filteredGapoktan.map((g: any) => (
                       <div

@@ -59,15 +59,23 @@ export default function DashboardMap({ markers, onMarkerClick }: DashboardMapPro
           eventHandlers={{ click: () => onMarkerClick(m.id) }}
         >
           <Popup className="custom-popup">
-            <div className="p-1">
-              <h3 className="font-bold text-[#0F172A] text-sm">{m.name}</h3>
-              <p className="text-[10px] text-muted-foreground mt-1 italic leading-tight">{m.address}</p>
+            <div className="p-1 min-w-[160px]">
+              <h3 className="font-bold text-[#0F172A] text-sm leading-tight">{m.name}</h3>
+              <p className="text-[10px] text-slate-500 mt-1 italic leading-tight">{m.address}</p>
               {m.komoditas && (
-                <div className="mt-2 pt-2 border-t border-gray-100">
-                  <span className="text-[9px] font-bold text-emerald-600 uppercase">Komoditas:</span>
-                  <p className="text-[10px] font-medium text-[#0F172A]">{m.komoditas}</p>
+                <div className="mt-2 pt-1 border-t border-slate-100">
+                  <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Komoditas:</span>
+                  <p className="text-[10px] font-medium text-[#0F172A] leading-tight">{m.komoditas}</p>
                 </div>
               )}
+              <div className="mt-3 pt-2 border-t border-slate-100">
+                <a
+                  href={`/gapoktan/${m.id}`}
+                  className="inline-flex items-center justify-center w-full px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] uppercase tracking-wider hover:text-white transition-all shadow-sm hover:scale-[1.02] active:scale-95 duration-200 text-center no-underline"
+                >
+                  Lihat Detail →
+                </a>
+              </div>
             </div>
           </Popup>
         </Marker>
