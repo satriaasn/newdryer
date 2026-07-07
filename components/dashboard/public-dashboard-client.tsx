@@ -452,7 +452,16 @@ export default function PublicDashboardClient() {
                 <div className="flex items-center gap-2 px-3 py-2.5 border rounded-xl bg-background focus-within:ring-2 ring-primary/20 transition-all">
                   <select 
                     value={filterGapoktan} 
-                    onChange={(e: any) => setFilterGapoktan(e.target.value)}
+                    onChange={(e: any) => {
+                      const id = e.target.value;
+                      setFilterGapoktan(id);
+                      const found = gapoktanList.find(g => g.id === id);
+                      if (found) {
+                        setSelectedGapoktan(found);
+                      } else {
+                        setSelectedGapoktan(null);
+                      }
+                    }}
                     className="w-full outline-none text-sm bg-transparent appearance-none cursor-pointer"
                   >
                     <option value="">Semua Gapoktan</option>
@@ -536,11 +545,18 @@ export default function PublicDashboardClient() {
                   <DynamicMap 
                     theme={theme}
                     markers={mapMarkers} 
+                    selectedMarkerId={selectedGapoktan?.id || filterGapoktan}
                     onMarkerClick={(id: string) => {
                       const found = gapoktanList.find(g => g.id === id);
                       if (found) {
                         setSelectedGapoktan(found);
                         setFilterGapoktan(found.id);
+                        setTimeout(() => {
+                          const confirmRedirect = window.confirm(`Apakah Anda ingin melihat halaman detail untuk Gapoktan "${found.name}"?`);
+                          if (confirmRedirect) {
+                            router.push(`/gapoktan/${found.id}`);
+                          }
+                        }, 500);
                       }
                     }} 
                   />

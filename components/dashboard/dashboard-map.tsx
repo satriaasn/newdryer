@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect, useState, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -17,6 +17,8 @@ interface MapMarker {
 interface DashboardMapProps {
   markers: MapMarker[];
   onMarkerClick: (id: string) => void;
+  selectedMarkerId?: string | null;
+  theme?: string;
 }
 
 const customIcon = typeof window !== "undefined"
@@ -31,8 +33,43 @@ const customIcon = typeof window !== "undefined"
     })
   : undefined;
 
-export default function DashboardMap({ markers, onMarkerClick }: DashboardMapProps) {
+interface MapControllerProps {
+  selectedMarkerId?: string | null;
+  markers: MapMarker[];
+  markerRefs: React.MutableRefObject<Record<string, L.Marker | null>>;
+}
+
+function MapController({ selectedMarkerId, markers, markerRefs }: MapControllerProps) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (selectedMarkerId) {
+      const selectedMarker = markers.find((m) => m.id === selectedMarkerId);
+      if (selectedMarker) {
+        // Fly/pan to selected marker's coordinates
+        map.flyTo([selectedMarker.latitude, selectedMarker.longitude], 13, {
+          animate: true,
+          duration: 1.5,
+        });
+
+        // Open marker popup after map finishes animating or with a slight delay
+        const timer = setTimeout(() => {
+          const markerInstance = markerRefs.current[selectedMarkerId];
+          if (markerInstance) {
+            markerInstance.openPopup();
+          }
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [selectedMarkerId, markers, map, markerRefs]);
+
+  return null;
+}
+
+export default function DashboardMap({ markers, onMarkerClick, selectedMarkerId, theme }: DashboardMapProps) {
   const [ready, setReady] = useState(false);
+  const markerRefs = useRef<Record<string, L.Marker | null>>({});
 
   useEffect(() => {
     setReady(true);
@@ -51,9 +88,21 @@ export default function DashboardMap({ markers, onMarkerClick }: DashboardMapPro
         attribution="&copy; OSM"
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
+      <MapController
+        selectedMarkerId={selectedMarkerId}
+        markers={markers}
+        markerRefs={markerRefs}
+      />
       {markers.map((m) => (
         <Marker
           key={m.id}
+          ref={(ref) => {
+            if (ref) {
+              markerRefs.current[m.id] = ref;
+            } else {
+              delete markerRefs.current[m.id];
+            }
+          }}
           position={[m.latitude, m.longitude]}
           icon={customIcon}
           eventHandlers={{ click: () => onMarkerClick(m.id) }}
