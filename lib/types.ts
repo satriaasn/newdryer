@@ -58,9 +58,20 @@ export interface DryerUnit {
   gapoktan?: Gapoktan;
 }
 
+export interface CommodityTarget {
+  id: string;
+  komoditas_id: string;
+  period: string; // YYYY-MM
+  target_ton: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Komoditas {
   id: string;
   name: string;
+  target_monthly?: number;
+  commodity_targets?: CommodityTarget[];
 }
 
 export interface GapoktanKomoditas {

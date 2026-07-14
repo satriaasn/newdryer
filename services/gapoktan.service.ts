@@ -91,7 +91,7 @@ export const gapoktanService = {
   async getAllKomoditas(): Promise<Komoditas[]> {
     const { data, error } = await supabase
       .from('komoditas')
-      .select('*')
+      .select('*, commodity_targets(*)')
       .order('name');
     if (error) throw new Error(error.message);
     return data as Komoditas[];
@@ -100,7 +100,7 @@ export const gapoktanService = {
   async getKomoditasByGapoktan(gapoktanId: string): Promise<Komoditas[]> {
     const { data, error } = await supabase
       .from('gapoktan_komoditas')
-      .select('komoditas(*)')
+      .select('komoditas(*, commodity_targets(*))')
       .eq('gapoktan_id', gapoktanId);
     if (error) throw new Error(error.message);
     return (data || []).map((gk: any) => gk.komoditas) as Komoditas[];
@@ -111,20 +111,35 @@ export const gapoktanService = {
     if (error) throw new Error(error.message);
   },
 
-  async createKomoditas(name: string): Promise<Komoditas> {
-    const { data, error } = await supabase.from('komoditas').insert({ name }).select().single();
+  async createKomoditas(name: string, target_monthly?: number): Promise<Komoditas> {
+    const { data, error } = await supabase.from('komoditas').insert({ name, target_monthly }).select().single();
     if (error) throw new Error(error.message);
     return data as Komoditas;
   },
 
-  async updateKomoditas(id: string, name: string): Promise<Komoditas> {
-    const { data, error } = await supabase.from('komoditas').update({ name }).eq('id', id).select().single();
+  async updateKomoditas(id: string, name: string, target_monthly?: number): Promise<Komoditas> {
+    const { data, error } = await supabase.from('komoditas').update({ name, target_monthly }).eq('id', id).select().single();
     if (error) throw new Error(error.message);
     return data as Komoditas;
   },
 
   async deleteKomoditas(id: string): Promise<void> {
     const { error } = await supabase.from('komoditas').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  async saveCommodityTarget(komoditas_id: string, period: string, target_ton: number): Promise<CommodityTarget> {
+    const { data, error } = await supabase
+      .from('commodity_targets')
+      .upsert({ komoditas_id, period, target_ton })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as CommodityTarget;
+  },
+
+  async deleteCommodityTarget(id: string): Promise<void> {
+    const { error } = await supabase.from('commodity_targets').delete().eq('id', id);
     if (error) throw new Error(error.message);
   },
 };

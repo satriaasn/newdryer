@@ -244,6 +244,13 @@ export default function PublicDashboardClient() {
 
   const komoditasStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
+    const currentMonthStr = new Date().toISOString().slice(0, 7);
+    
+    // Determine the active target period based on date filters
+    const activePeriod = filterStartDate 
+      ? filterStartDate.slice(0, 7) 
+      : (filterEndDate ? filterEndDate.slice(0, 7) : currentMonthStr);
+
     const stats = (komoditasList || []).map(k => {
       const prods = (filteredProductions || []).filter(p => {
         if (p.komoditas_id !== k.id) return false;
@@ -251,10 +258,26 @@ export default function PublicDashboardClient() {
       });
       const allTime = prods.reduce((sum, p) => sum + Number(p.qty_before || 0), 0);
       const todayTotal = prods.filter(p => p.production_date.startsWith(today)).reduce((sum, p) => sum + Number(p.qty_before || 0), 0);
-      return { ...k, allTime, todayTotal };
+      const thisMonthTotal = prods.filter(p => p.production_date.startsWith(currentMonthStr)).reduce((sum, p) => sum + Number(p.qty_before || 0), 0);
+      
+      const periodTargetObj = (k.commodity_targets || []).find((ct: any) => ct.period === activePeriod);
+      const activeTarget = periodTargetObj ? Number(periodTargetObj.target_ton) : Number(k.target_monthly || 0);
+
+      // If user has filtered by date, compare against allTime (which is filtered)
+      const currentQty = (filterStartDate || filterEndDate) ? allTime : thisMonthTotal;
+
+      return { 
+        ...k, 
+        allTime, 
+        todayTotal, 
+        thisMonthTotal, 
+        activeTarget, 
+        currentQty,
+        activePeriod
+      };
     }).sort((a, b) => (b.allTime || 0) - (a.allTime || 0));
     return stats;
-  }, [filteredProductions, komoditasList]);
+  }, [filteredProductions, komoditasList, filterStartDate, filterEndDate]);
 
   const kabupatenSummary = useMemo(() => {
     return allKabupaten.map(kab => {
@@ -496,16 +519,26 @@ export default function PublicDashboardClient() {
             <div className="h-px flex-grow mx-4 bg-muted/20" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {komoditasStats.map((k: any) => (
-              <KPICard 
-                key={`all-${k.id}`}
-                title={`TOTAL ${k.name.toUpperCase()}`} 
-                value={Number(k.allTime || 0).toFixed(1)} 
-                unit="Ton"
-                trend="All time accumulation" 
-                borderLeft="border-l-emerald-500" 
-              />
-            ))}
+            {komoditasStats.map((k: any) => {
+              const target = Number(k.activeTarget || 0);
+              const progress = target > 0 ? {
+                current: k.currentQty || 0,
+                target: target,
+                pct: target > 0 ? ((k.currentQty || 0) / target) * 100 : 0,
+                period: k.activePeriod
+              } : undefined;
+              return (
+                <KPICard 
+                  key={`all-${k.id}`}
+                  title={`TOTAL ${k.name.toUpperCase()}`} 
+                  value={Number(k.allTime || 0).toFixed(1)} 
+                  unit="Ton"
+                  trend="All time accumulation" 
+                  borderLeft="border-l-emerald-500" 
+                  progress={progress}
+                />
+              );
+            })}
           </div>
 
           <div className="flex items-center justify-between mt-6">
@@ -817,7 +850,13 @@ export default function PublicDashboardClient() {
   );
 }
 
-const KPICard = ({ title, value, unit, trend, trendUp, borderLeft }: any) => (
+const formatPeriod = (period: string) => {
+  if (!period) return "";
+  const [year, month] = period.split('-');
+  return new Date(Number(year), Number(month) - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+};
+
+const KPICard = ({ title, value, unit, trend, trendUp, borderLeft, progress }: any) => (
   <div className={cn("bg-card p-4 rounded-2xl border border-border shadow-sm border-l-4 transition-all hover:shadow-md hover:translate-y-[-2px]", borderLeft)}>
     <div className="flex flex-col">
       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
@@ -825,17 +864,38 @@ const KPICard = ({ title, value, unit, trend, trendUp, borderLeft }: any) => (
         <span className="text-2xl font-black text-foreground tracking-tight">{value}</span>
         <span className="text-xs font-bold text-muted-foreground">{unit}</span>
       </div>
-      <div className="mt-2 flex items-center gap-1.5">
-        <div className={cn(
-          "px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1",
-          trendUp === true ? "bg-emerald-500/10 text-emerald-500" : 
-          trendUp === false ? "bg-rose-500/10 text-rose-600" : "bg-muted text-muted-foreground"
-        )}>
-          {trendUp === true && <ArrowUpRight className="h-2.5 w-2.5" />}
-          {trendUp === false && <ArrowDownRight className="h-2.5 w-2.5" />}
-          {trend}
+      
+      {progress && progress.target > 0 ? (
+        <div className="mt-3 space-y-1">
+          <div className="flex justify-between text-[10px] font-semibold">
+            <span className="text-muted-foreground text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded text-[8px] uppercase tracking-wider">
+              {progress.period ? `Target ${formatPeriod(progress.period)}` : "Target Bulan Ini"}
+            </span>
+            <span className="text-emerald-500 font-bold">{progress.pct.toFixed(1)}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-500" 
+              style={{ width: `${Math.min(progress.pct, 100)}%` }}
+            />
+          </div>
+          <div className="text-[9px] text-muted-foreground font-medium">
+            Target: {Number(progress.current || 0).toFixed(1)} / {progress.target} Ton
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mt-2 flex items-center gap-1.5">
+          <div className={cn(
+            "px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1",
+            trendUp === true ? "bg-emerald-500/10 text-emerald-500" : 
+            trendUp === false ? "bg-rose-500/10 text-rose-600" : "bg-muted text-muted-foreground"
+          )}>
+            {trendUp === true && <ArrowUpRight className="h-2.5 w-2.5" />}
+            {trendUp === false && <ArrowDownRight className="h-2.5 w-2.5" />}
+            {trend}
+          </div>
+        </div>
+      )}
     </div>
   </div>
 );
