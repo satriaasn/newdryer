@@ -50,7 +50,8 @@ export default function DryerAdmin() {
   const productivityColor: Record<string, string> = { 
     'Belum Beroperasi': 'bg-gray-500/10 text-gray-500', 
     'Beroperasi Optimal': 'bg-blue-500/10 text-blue-500', 
-    'Hanya Saat Panen Raya': 'bg-amber-500/10 text-amber-500' 
+    'Hanya Saat Panen Raya': 'bg-amber-500/10 text-amber-500',
+    'Proses Installasi': 'bg-purple-500/10 text-purple-500'
   };
 
   return (
@@ -215,6 +216,7 @@ function DryerForm({ initialData, gapoktanList, onSaved, onCancel }: { initialDa
             <option value="Belum Beroperasi">Belum Beroperasi</option>
             <option value="Beroperasi Optimal">Beroperasi Optimal</option>
             <option value="Hanya Saat Panen Raya">Hanya Saat Panen Raya</option>
+            <option value="Proses Installasi">Proses Installasi</option>
           </select>
         </div>
       </div>

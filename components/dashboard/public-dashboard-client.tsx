@@ -40,6 +40,7 @@ export default function PublicDashboardClient() {
   // Filters
   const [filterKomoditas, setFilterKomoditas] = useState('');
   const [filterStatus, setFilterStatus] = useState('Semua');
+  const [filterProductivity, setFilterProductivity] = useState('');
   const [filterGapoktan, setFilterGapoktan] = useState('');
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
@@ -56,6 +57,8 @@ export default function PublicDashboardClient() {
 
   // Filter Toggle State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // Date Popover State
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
   // Sorting state
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -82,6 +85,7 @@ export default function PublicDashboardClient() {
     setFilterEndDate('');
     setFilterKomoditas('');
     setFilterStatus('Semua');
+    setFilterProductivity('');
     setSelectedGapoktan(null);
   };
 
@@ -167,9 +171,10 @@ export default function PublicDashboardClient() {
       if (filterKabupaten && g.desa?.kecamatan?.kabupaten_id !== filterKabupaten) return false;
       if (filterKecamatan && g.desa?.kecamatan_id !== filterKecamatan) return false;
       if (filterGapoktan && g.id !== filterGapoktan) return false;
+      if (filterProductivity && !g.dryer_units?.some(d => (d.productivity || 'Belum Beroperasi') === filterProductivity)) return false;
       return true;
     });
-  }, [gapoktanList, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan]);
+  }, [gapoktanList, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterProductivity]);
 
   const filteredProductions = useMemo(() => {
     let result = productions.filter(p => {
@@ -179,6 +184,7 @@ export default function PublicDashboardClient() {
       if (filterGapoktan && p.gapoktan_id !== filterGapoktan) return false;
       if (filterStartDate && p.production_date < filterStartDate) return false;
       if (filterEndDate && p.production_date > filterEndDate) return false;
+      if (filterProductivity && !p.gapoktan?.dryer_units?.some(d => (d.productivity || 'Belum Beroperasi') === filterProductivity)) return false;
       return true;
     });
 
@@ -199,14 +205,19 @@ export default function PublicDashboardClient() {
     }
 
     return result;
-  }, [productions, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterStartDate, filterEndDate, sortKey, sortDir]);
+  }, [productions, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterStartDate, filterEndDate, filterProductivity, sortKey, sortDir]);
 
   const stats = useMemo<DashboardStats>(() => {
     const today = new Date().toISOString().split('T')[0];
     const totalQtyBefore = filteredProductions.reduce((sum: any, p: any) => sum + Number(p.qty_before || 0), 0);
     const todayQtyBefore = filteredProductions.filter((p: any) => p.production_date.startsWith(today)).reduce((sum: any, p: any) => sum + Number(p.qty_before || 0), 0);
     const totalGapoktan = filteredGapoktan.length;
-    const totalDryers = filteredGapoktan.reduce((sum: any, g: any) => sum + (g.dryer_units?.length || 0), 0);
+    const totalDryers = filteredGapoktan.reduce((sum: any, g: any) => {
+      if (filterProductivity) {
+        return sum + (g.dryer_units?.filter((d: any) => (d.productivity || 'Belum Beroperasi') === filterProductivity).length || 0);
+      }
+      return sum + (g.dryer_units?.length || 0);
+    }, 0);
     const coverageKabSet = new Set();
     filteredGapoktan.forEach((g: any) => {
       const kabId = g.desa?.kecamatan?.kabupaten_id;
@@ -225,10 +236,63 @@ export default function PublicDashboardClient() {
       todayQtyAfter: todayQtyBefore,
       coverageKabupaten: coverageKabSet.size
     };
-  }, [filteredProductions, filteredGapoktan]);
+  }, [filteredProductions, filteredGapoktan, filterProductivity]);
 
-  const gapoktanWithCoords = useMemo(() => {
-    return filteredGapoktan.filter(g => g.latitude && g.longitude);
+  const productivityStats = useMemo(() => {
+    const counts: Record<string, number> = {
+      'Beroperasi Optimal': 0,
+      'Hanya Saat Panen Raya': 0,
+      'Belum Beroperasi': 0,
+      'Proses Installasi': 0
+    };
+
+    filteredGapoktan.forEach(g => {
+      g.dryer_units?.forEach(d => {
+        const status = d.productivity || 'Belum Beroperasi';
+        if (counts[status] !== undefined) {
+          counts[status] += 1;
+        } else {
+          counts[status] = 1;
+        }
+      });
+    });
+
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    return [
+      {
+        key: 'Beroperasi Optimal',
+        title: 'Beroperasi Optimal',
+        count: counts['Beroperasi Optimal'],
+        pct: total > 0 ? ((counts['Beroperasi Optimal'] / total) * 100).toFixed(1) : '0',
+        borderColor: 'border-l-blue-500',
+        textColor: 'text-blue-500'
+      },
+      {
+        key: 'Hanya Saat Panen Raya',
+        title: 'Hanya Saat Panen Raya',
+        count: counts['Hanya Saat Panen Raya'],
+        pct: total > 0 ? ((counts['Hanya Saat Panen Raya'] / total) * 100).toFixed(1) : '0',
+        borderColor: 'border-l-amber-500',
+        textColor: 'text-amber-500'
+      },
+      {
+        key: 'Belum Beroperasi',
+        title: 'Belum Beroperasi',
+        count: counts['Belum Beroperasi'],
+        pct: total > 0 ? ((counts['Belum Beroperasi'] / total) * 100).toFixed(1) : '0',
+        borderColor: 'border-l-gray-500',
+        textColor: 'text-gray-500'
+      },
+      {
+        key: 'Proses Installasi',
+        title: 'Proses Installasi',
+        count: counts['Proses Installasi'],
+        pct: total > 0 ? ((counts['Proses Installasi'] / total) * 100).toFixed(1) : '0',
+        borderColor: 'border-l-purple-500',
+        textColor: 'text-purple-500'
+      }
+    ];
   }, [filteredGapoktan]);
 
   const mapMarkers = useMemo(() => {
@@ -432,75 +496,143 @@ export default function PublicDashboardClient() {
               {isFilterOpen ? <><ChevronUp className="h-4 w-4" /> Tutup</> : <><ChevronDown className="h-4 w-4" /> Buka</>}
             </button>
           </div>
-          
-          <div className={cn("w-full transition-all duration-300 overflow-hidden", isFilterOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0")}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-4 w-full pt-2">
-            <div className="md:col-span-2 lg:col-span-2 relative">
-              <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kabupaten</label>
-              <select value={filterKabupaten} onChange={(e: any) => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); }} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
-                <option value="">Semua Kabupaten</option>
-                {availableKabupaten.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
-              </select>
-            </div>
-                        <div className="md:col-span-2 lg:col-span-2 relative">
-              <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kecamatan</label>
-              <select value={filterKecamatan} onChange={(e: any) => setFilterKecamatan(e.target.value)} disabled={!filterKabupaten} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:opacity-50">
-                <option value="">Semua Kecamatan</option>
-                {availableKecamatan.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
-              </select>
-            </div>
+                    <div className={cn("w-full transition-all duration-300", isFilterOpen ? "max-h-[1000px] opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden")}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full pt-2">
+              <div className="relative">
+                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kabupaten</label>
+                <select value={filterKabupaten} onChange={(e: any) => { setFilterKabupaten(e.target.value); setFilterKecamatan(''); }} className="w-full pl-4 pr-8 py-2.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Semua Kabupaten</option>
+                  {availableKabupaten.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                </select>
+              </div>
 
-            <div className="md:col-span-2 lg:col-span-2 relative">
-              <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Komoditas</label>
-              <select value={filterKomoditas} onChange={(e: any) => setFilterKomoditas(e.target.value)} className="w-full pl-4 pr-10 py-2.5 rounded-xl border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium">
-                <option value="">Semua Komoditas</option>
-                {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
-              </select>
-            </div>
+              <div className="relative">
+                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Kecamatan</label>
+                <select value={filterKecamatan} onChange={(e: any) => setFilterKecamatan(e.target.value)} disabled={!filterKabupaten} className="w-full pl-4 pr-8 py-2.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50">
+                  <option value="">Semua Kecamatan</option>
+                  {availableKecamatan.map((k: any) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                </select>
+              </div>
 
+              <div className="relative">
+                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Komoditas</label>
+                <select value={filterKomoditas} onChange={(e: any) => setFilterKomoditas(e.target.value)} className="w-full pl-4 pr-8 py-2.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Semua Komoditas</option>
+                  {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                </select>
+              </div>
 
-            <div className="md:col-span-3 lg:col-span-3 relative">
-               <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Rentang Tanggal</label>
-               <div className="flex items-center gap-1 border rounded-xl px-2 py-2.5 bg-background">
-                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <input type="date" value={filterStartDate} onChange={(e: any) => setFilterStartDate(e.target.value)} className="w-full text-xs outline-none bg-transparent" />
-                  <span className="text-muted-foreground text-[10px]">s/d</span>
-                  <input type="date" value={filterEndDate} onChange={(e: any) => setFilterEndDate(e.target.value)} className="w-full text-xs outline-none bg-transparent" />
-               </div>
-            </div>
+              <div className="relative">
+                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Produktivitas</label>
+                <select value={filterProductivity} onChange={(e: any) => setFilterProductivity(e.target.value)} className="w-full pl-4 pr-8 py-2.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Semua Produktivitas</option>
+                  <option value="Belum Beroperasi">Belum Beroperasi</option>
+                  <option value="Beroperasi Optimal">Beroperasi Optimal</option>
+                  <option value="Hanya Saat Panen Raya">Hanya Saat Panen Raya</option>
+                  <option value="Proses Installasi">Proses Installasi</option>
+                </select>
+              </div>
 
-            <div className="md:col-span-3 lg:col-span-3 flex items-end gap-2">
-              <div className="relative flex-grow">
-                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Pilih Gapoktan</label>
-                <div className="flex items-center gap-2 px-3 py-2.5 border rounded-xl bg-background focus-within:ring-2 ring-primary/20 transition-all">
+              <div className="relative md:col-span-2 lg:col-span-1">
+                <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Rentang Tanggal</label>
+                <button
+                  type="button"
+                  onClick={() => setIsDatePopoverOpen(!isDatePopoverOpen)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border bg-background text-xs font-medium text-left outline-none focus:ring-2 focus:ring-primary/20 hover:border-primary/40 transition-colors"
+                >
+                  <span className="truncate">
+                    {filterStartDate || filterEndDate ? (
+                      `${filterStartDate || '...'} s/d ${filterEndDate || '...'}`
+                    ) : (
+                      <span className="text-muted-foreground">Pilih Rentang...</span>
+                    )}
+                  </span>
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
+                </button>
+
+                {isDatePopoverOpen && (
+                  <div className="absolute left-0 right-0 mt-2 p-4 bg-card border rounded-2xl shadow-xl z-50 space-y-3 min-w-[240px]">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <span className="text-xs font-bold text-foreground">Rentang Tanggal</span>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsDatePopoverOpen(false)}
+                        className="text-[10px] text-muted-foreground font-bold hover:text-foreground"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase">Dari Tanggal</label>
+                        <input 
+                          type="date" 
+                          value={filterStartDate} 
+                          onChange={(e: any) => setFilterStartDate(e.target.value)} 
+                          className="w-full mt-1 px-3 py-1.5 rounded-lg border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase">Sampai Tanggal</label>
+                        <input 
+                          type="date" 
+                          value={filterEndDate} 
+                          onChange={(e: any) => setFilterEndDate(e.target.value)} 
+                          className="w-full mt-1 px-3 py-1.5 rounded-lg border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterStartDate('');
+                          setFilterEndDate('');
+                        }}
+                        className="text-[10px] text-rose-500 font-bold hover:underline"
+                      >
+                        Reset Tanggal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsDatePopoverOpen(false)}
+                        className="px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-lg shadow hover:opacity-90 transition-opacity"
+                      >
+                        Terapkan
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 md:col-span-3 lg:col-span-1">
+                <div className="relative flex-grow">
+                  <label className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground z-10">Gapoktan</label>
                   <select 
                     value={filterGapoktan} 
                     onChange={(e: any) => {
                       const id = e.target.value;
                       setFilterGapoktan(id);
                       const found = gapoktanList.find(g => g.id === id);
-                      if (found) {
-                        setSelectedGapoktan(found);
-                      } else {
-                        setSelectedGapoktan(null);
-                      }
+                      setSelectedGapoktan(found || null);
                     }}
-                    className="w-full outline-none text-sm bg-transparent appearance-none cursor-pointer"
+                    className="w-full pl-3 pr-6 py-2.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
                   >
                     <option value="">Semua Gapoktan</option>
                     {gapoktanList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                   </select>
                 </div>
+                <button 
+                  onClick={resetFilters}
+                  className="p-2.5 bg-background border border-border text-muted-foreground rounded-xl hover:bg-muted hover:text-primary transition-all shadow-sm shrink-0 group"
+                  title="Reset Filters"
+                >
+                  <RefreshCw className="h-4 w-4 group-active:rotate-180 transition-transform duration-500" />
+                </button>
               </div>
-              <button 
-                onClick={resetFilters}
-                className="p-2.5 bg-background border border-border text-muted-foreground rounded-xl hover:bg-muted hover:text-primary transition-all shadow-sm shrink-0 group"
-                title="Reset Filters"
-              >
-                <RefreshCw className="h-5 w-5 group-active:rotate-180 transition-transform duration-500" />
-              </button>
             </div>
-          </div>
           </div>
         </div>
 
@@ -510,6 +642,34 @@ export default function PublicDashboardClient() {
           <KPICard title="Total Gapoktan" value={stats?.totalGapoktan || 0} unit="Poktan" trend="Update terbaru" trendUp={true} borderLeft="border-l-teal-500" />
           <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-emerald-600" />
           <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-lime-500" />
+        </div>
+
+        {/* SCORECARD PRODUKTIVITAS DRYER Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Status Produktivitas Dryer</h2>
+            <div className="h-px flex-grow mx-4 bg-muted/20" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {productivityStats.map((item) => (
+              <div 
+                key={item.key}
+                onClick={() => setFilterProductivity(filterProductivity === item.key ? '' : item.key)}
+                className={cn(
+                  "cursor-pointer transition-all duration-200",
+                  filterProductivity === item.key ? "ring-2 ring-primary rounded-2xl" : ""
+                )}
+              >
+                <KPICard 
+                  title={item.title.toUpperCase()} 
+                  value={item.count} 
+                  unit="Unit"
+                  trend={`${item.pct}% dari total unit`} 
+                  borderLeft={item.borderColor} 
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* SCORECARD KOMODITAS Section */}

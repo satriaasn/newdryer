@@ -52,7 +52,7 @@ export interface DryerUnit {
   gapoktan_id: string;
   capacity_ton: number | null;
   status: 'active' | 'inactive' | 'maintenance';
-  productivity: 'Belum Beroperasi' | 'Beroperasi Optimal' | 'Hanya Saat Panen Raya';
+  productivity: 'Belum Beroperasi' | 'Beroperasi Optimal' | 'Hanya Saat Panen Raya' | 'Proses Installasi';
   created_at: string;
   updated_at: string;
   gapoktan?: Gapoktan;

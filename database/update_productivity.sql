@@ -3,7 +3,8 @@ DO $$ BEGIN
     CREATE TYPE productivity_status AS ENUM (
         'Belum Beroperasi', 
         'Beroperasi Optimal', 
-        'Hanya Saat Panen Raya'
+        'Hanya Saat Panen Raya',
+        'Proses Installasi'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
