@@ -13,7 +13,7 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen bg-[#eef2f8] text-foreground">
       {/* Mobile Top Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-30 h-16 bg-card/80 backdrop-blur-xl border-b px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -30,10 +30,11 @@ export default function DashboardLayout({
         </button>
       </div>
 
+      {/* Original Sidebar Menu Restored */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 overflow-y-auto bg-muted/20 pb-20 lg:pb-0 pt-16 lg:pt-0">
+        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0 pt-16 lg:pt-0">
           {children}
         </main>
       </div>

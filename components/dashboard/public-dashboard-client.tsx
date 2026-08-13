@@ -296,15 +296,26 @@ export default function PublicDashboardClient() {
   }, [filteredGapoktan]);
 
   const mapMarkers = useMemo(() => {
+    const gapoktanProdMap: Record<string, number> = {};
+    filteredProductions.forEach(p => {
+      if (p.gapoktan_id) {
+        gapoktanProdMap[p.gapoktan_id] = (gapoktanProdMap[p.gapoktan_id] || 0) + Number(p.qty_before || 0);
+      }
+    });
+
     return gapoktanList.filter(g => g.latitude && g.longitude).map(g => ({ 
       id: g.id, 
-      latitude: g.latitude!, 
-      longitude: g.longitude!,
+      latitude: Number(g.latitude!), 
+      longitude: Number(g.longitude!),
       name: g.name,
-      address: `${g.desa?.name || ''}, ${g.desa?.kecamatan?.name || ''}`,
-      komoditas: g.komoditas?.map(k => k.name).join(', ')
+      address: `${g.desa?.name || ''}, ${g.desa?.kecamatan?.name || ''}, ${g.desa?.kecamatan?.kabupaten?.name || ''}`.replace(/^, /, '').replace(/, $/, ''),
+      komoditas: g.komoditas?.map(k => k.name).join(', '),
+      komoditasList: g.komoditas?.map(k => k.name) || [],
+      count: g.dryer_units?.length || 1,
+      tonnage: Math.round((gapoktanProdMap[g.id] || 0) * 100) / 100,
+      ketua: g.ketua || undefined
     }));
-  }, [gapoktanList]);
+  }, [gapoktanList, filteredProductions]);
 
   const komoditasStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -637,8 +648,8 @@ export default function PublicDashboardClient() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <KPICard title="Total Produksi" value={Number(stats?.totalQtyBefore || 0).toFixed(1)} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
-          <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(1)} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-green-500" />
+          <KPICard title="Total Produksi" value={Number(stats?.totalQtyBefore || 0).toFixed(2).replace('.', ',')} unit="Ton" trend="+12.5% vs bln lalu" trendUp={true} borderLeft="border-l-emerald-500" />
+          <KPICard title="Produksi Hari Ini" value={Number(stats?.todayQtyAfter || 0).toFixed(2).replace('.', ',')} unit="Ton" trend="+4.2% vs kemarin" trendUp={true} borderLeft="border-l-green-500" />
           <KPICard title="Total Gapoktan" value={stats?.totalGapoktan || 0} unit="Poktan" trend="Update terbaru" trendUp={true} borderLeft="border-l-teal-500" />
           <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-emerald-600" />
           <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-lime-500" />

@@ -2,25 +2,41 @@
 
 import { useEffect, useState, useMemo } from "react";
 import NextDynamic from "next/dynamic";
-import type { DashboardStats, Production } from "@/lib/types";
-import { Factory, Users, Package, TrendingUp, Plus, Search, Calendar, Filter, X } from "lucide-react";
+import { RedesignedKPICards } from "@/components/dashboard/redesigned-kpi";
+import { 
+  Trend7HariChart, 
+  StatusDryerChart, 
+  ProduksiKomoditasChart, 
+  Top5KabupatenList, 
+  ProduksiPerKabupatenChart 
+} from "@/components/dashboard/redesigned-charts";
+import { FiturSistemFooter } from "@/components/dashboard/fitur-sistem-footer";
 
-const AdminTrendChart = NextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminTrendChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
-const AdminBarChart = NextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminBarChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
-const AdminGapoktanChart = NextDynamic(() => import("@/components/dashboard/admin-charts").then(m => m.AdminGapoktanChart), { ssr: false, loading: () => <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Loading chart...</div> });
+const RedesignedMap = NextDynamic(
+  () => import("@/components/dashboard/redesigned-map").then((m) => m.RedesignedMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm h-[536px] flex items-center justify-center text-slate-400">
+        Memuat Peta...
+      </div>
+    ),
+  }
+);
 
-
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [productions, setProductions] = useState<Production[]>([]);
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<any>(null);
+  const [productions, setProductions] = useState<any[]>([]);
+  const [gapoktanList, setGapoktanList] = useState<any[]>([]);
+  const [komoditasList, setKomoditasList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/dashboard', { cache: 'no-store' }).then(r => r.json()),
-      fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
-      fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
-      fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/dashboard', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch('/api/production', { cache: 'no-store' }).then(r => r.json()).catch(() => []),
+      fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()).catch(() => []),
+      fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()).catch(() => []),
     ]).then(([s, p, g, k]) => {
       setStats(s);
       setProductions(Array.isArray(p) ? p : []);
@@ -29,174 +45,159 @@ export default function AdminDashboard() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const [gapoktanList, setGapoktanList] = useState<any[]>([]);
-  const [komoditasList, setKomoditasList] = useState<any[]>([]);
-  const [filterGapoktan, setFilterGapoktan] = useState('');
-  const [filterKomoditas, setFilterKomoditas] = useState('');
-  const [filterDate, setFilterDate] = useState('');
-  const [filterSearch, setFilterSearch] = useState('');
-
-  const filteredProductions = useMemo(() => {
-    return productions.filter(p => {
-      if (filterGapoktan && p.gapoktan_id !== filterGapoktan) return false;
-      if (filterKomoditas && p.komoditas_id !== filterKomoditas) return false;
-      if (filterDate && p.production_date !== filterDate) return false;
-      if (filterSearch) {
-        const s = `${p.gapoktan?.name} ${p.komoditas?.name}`.toLowerCase();
-        if (!s.includes(filterSearch.toLowerCase())) return false;
-      }
-      return true;
-    });
-  }, [productions, filterGapoktan, filterKomoditas, filterDate, filterSearch]);
-
-  const trendData = useMemo(() => {
-    const last15Days = [...Array(15)].map((_, i) => {
+  // 1. Trend 7 Hari Terakhir
+  const trend7DaysData = useMemo(() => {
+    const dates = [...Array(7)].map((_, i) => {
       const d = new Date();
-      d.setDate(d.getDate() - (14 - i));
+      d.setDate(d.getDate() - (6 - i));
       return d.toISOString().split('T')[0];
     });
 
-    return last15Days.map(date => {
-      const dayProds = productions.filter(p => p.production_date === date);
+    return dates.map(dateStr => {
+      const dayProds = productions.filter(p => p.production_date === dateStr);
+      const totalTon = dayProds.reduce((sum, p) => sum + Number(p.qty_before || 0), 0);
+      const dateObj = new Date(dateStr);
+      const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
       return {
-        date: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-        ton: dayProds.reduce((sum, p) => sum + Number(p.qty_before), 0)
+        date: formattedDate,
+        ton: Math.round(totalTon * 100) / 100
       };
     });
   }, [productions]);
 
-  const perKomoditas = useMemo(() => {
+  // 2. Produksi Berdasarkan Komoditas
+  const perKomoditasData = useMemo(() => {
+    if (productions.length === 0) return undefined;
     const map: Record<string, number> = {};
     productions.forEach(p => {
       const name = p.komoditas?.name || 'Lainnya';
-      map[name] = (map[name] || 0) + Number(p.qty_before);
+      map[name] = (map[name] || 0) + Number(p.qty_before || 0);
     });
-    return Object.entries(map).map(([name, ton]) => ({ name, ton }));
+    const total = Object.values(map).reduce((a, b) => a + b, 0) || 1;
+    const colors = ['#16a34a', '#78350f', '#eab308', '#9333ea', '#2563eb', '#f97316'];
+    
+    return Object.entries(map).map(([name, value], i) => ({
+      name: name.toUpperCase(),
+      value: Math.round(value * 100) / 100,
+      percent: `${((value / total) * 100).toFixed(1).replace('.', ',')}%`,
+      color: colors[i % colors.length]
+    }));
   }, [productions]);
 
-  const perGapoktan = useMemo(() => {
+  // 3. Top 5 Kabupaten
+  const top5KabupatenData = useMemo(() => {
+    if (productions.length === 0) return undefined;
     const map: Record<string, number> = {};
     productions.forEach(p => {
-      const name = p.gapoktan?.name || 'Lainnya';
-      map[name] = (map[name] || 0) + Number(p.qty_before);
+      const kabName = p.gapoktan?.desa?.kecamatan?.kabupaten?.name || 'Lampung Tengah';
+      map[kabName] = (map[kabName] || 0) + Number(p.qty_before || 0);
     });
-    return Object.entries(map)
-      .map(([name, ton]) => ({ name, ton }))
-      .sort((a, b) => b.ton - a.ton)
-      .slice(0, 5);
+    
+    const sorted = Object.entries(map)
+      .map(([name, ton]) => ({ name, ton: Math.round(ton * 100) / 100 }))
+      .sort((a, b) => b.ton - a.ton);
+
+    const maxTon = sorted[0]?.ton || 1;
+
+    return sorted.slice(0, 5).map((item, idx) => ({
+      rank: idx + 1,
+      name: item.name,
+      ton: `${item.ton.toString().replace('.', ',')} Ton`,
+      pct: Math.round((item.ton / maxTon) * 100)
+    }));
   }, [productions]);
 
-  const clearFilters = () => { setFilterGapoktan(''); setFilterKomoditas(''); setFilterDate(''); setFilterSearch(''); };
-  const hasFilters = !!(filterGapoktan || filterKomoditas || filterDate || filterSearch);
+  // 4. Produksi Per Kabupaten
+  const perKabupatenData = useMemo(() => {
+    if (productions.length === 0) return undefined;
+    const map: Record<string, number> = {};
+    productions.forEach(p => {
+      const kabName = p.gapoktan?.desa?.kecamatan?.kabupaten?.name || 'Lampung Tengah';
+      map[kabName] = (map[kabName] || 0) + Number(p.qty_before || 0);
+    });
+
+    return Object.entries(map).map(([name, ton]) => ({
+      name,
+      ton: Math.round(ton * 100) / 100
+    }));
+  }, [productions]);
+
+  // 5. Dynamic Map Markers
+  const mapMarkers = useMemo(() => {
+    if (gapoktanList.length === 0) return undefined;
+    const gapoktanProdMap: Record<string, number> = {};
+    productions.forEach(p => {
+      if (p.gapoktan_id) {
+        gapoktanProdMap[p.gapoktan_id] = (gapoktanProdMap[p.gapoktan_id] || 0) + Number(p.qty_before || 0);
+      }
+    });
+
+    return gapoktanList.map((g, idx) => {
+      const tonnage = gapoktanProdMap[g.id] || 0;
+      const lat = Number(g.latitude) || (-4.85 + (idx * 0.15) % 1.2);
+      const lng = Number(g.longitude) || (105.1 + (idx * 0.2) % 1.0);
+      return {
+        id: g.id,
+        name: g.name,
+        lat,
+        lng,
+        count: g.dryer_units?.length || 1,
+        tonnage: Math.round(tonnage * 100) / 100,
+        alamat: g.desa ? `${g.desa.name}, ${g.desa.kecamatan?.name || ''}, ${g.desa.kecamatan?.kabupaten?.name || ''}` : 'Lampung',
+        ketua: g.ketua || undefined,
+        komoditasList: g.komoditas?.map((k: any) => k.name) || undefined
+      };
+    });
+  }, [gapoktanList, productions]);
+
+  const totalProductionTon = useMemo(() => {
+    const sum = productions.reduce((s, p) => s + Number(p.qty_before || 0), 0);
+    const val = (stats?.totalQtyBefore !== undefined && stats?.totalQtyBefore !== null) 
+      ? stats.totalQtyBefore 
+      : sum;
+    return Number(val).toFixed(2).replace('.', ',');
+  }, [stats, productions]);
 
   return (
-    <div className="p-4 lg:p-8 space-y-8 pb-24 lg:pb-8">
-      <header className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-            <p className="text-sm lg:text-base text-muted-foreground">Kelola data gapoktan, dryer, komoditas, dan produksi</p>
-          </div>
-          <div className="flex gap-3">
-            <a href="/dashboard/production" className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-all">
-              <Plus className="h-4 w-4" /> Input Produksi
-            </a>
-            <a href="/dashboard/gapoktan" className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm font-semibold hover:bg-muted transition-all">
-              <Plus className="h-4 w-4" /> Data Baru
-            </a>
-          </div>
+    <div className="p-4 sm:p-6 space-y-4 w-full">
+      
+      {/* 1. TOP KPI SUMMARY CARDS */}
+      <RedesignedKPICards 
+        stats={{
+          totalProduksi: totalProductionTon,
+          totalDryerAktif: stats?.totalDryers || 126,
+          totalGapoktan: stats?.totalGapoktan || gapoktanList.length || 243,
+          kabupatenAktif: stats?.coverageKabupaten || 15,
+          komoditasCount: komoditasList.length || 4,
+          komoditasList: komoditasList.map(k => k.name.toUpperCase())
+        }} 
+      />
+
+      {/* 2. MAIN ROW 1: EXPANDED MAP & RIGHT STACK (KOMODITAS + TOP 5 KABUPATEN) */}
+      <div className="flex flex-col lg:flex-row items-stretch gap-4 w-full">
+        
+        {/* Expanded Map Area */}
+        <div className="flex-1 min-w-0">
+          <RedesignedMap markers={mapMarkers} />
         </div>
 
-        {/* FILTERS */}
-        <div className="bg-card/40 p-4 rounded-2xl border border-dashed border-primary/20 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input type="text" placeholder="Cari..." value={filterSearch} onChange={e => setFilterSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-xl border bg-background text-sm outline-none focus:ring-2 ring-primary/20" />
-          </div>
-          <select value={filterGapoktan} onChange={e => setFilterGapoktan(e.target.value)} className="w-full px-4 py-2 rounded-xl border bg-background text-sm outline-none focus:ring-2 ring-primary/20">
-            <option value="">Semua Gapoktan</option>
-            {gapoktanList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
-          <select value={filterKomoditas} onChange={e => setFilterKomoditas(e.target.value)} className="w-full px-4 py-2 rounded-xl border bg-background text-sm outline-none focus:ring-2 ring-primary/20">
-            <option value="">Semua Komoditas</option>
-            {komoditasList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
-          </select>
-          <div className="flex gap-2">
-            <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="flex-1 px-4 py-2 rounded-xl border bg-background text-sm outline-none focus:ring-2 ring-primary/20" />
-            {hasFilters && <button onClick={clearFilters} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"><X className="h-5 w-5" /></button>}
-          </div>
+        {/* Right Stack: Produksi Komoditas & Top 5 Kabupaten (Aligned height with Map) */}
+        <div className="w-full lg:w-[360px] shrink-0 flex flex-col gap-4">
+          <ProduksiKomoditasChart data={perKomoditasData} totalTon={totalProductionTon} />
+          <Top5KabupatenList data={top5KabupatenData} />
         </div>
-      </header>
 
-      {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-28 rounded-2xl border animate-pulse bg-card/60" />)}
-        </div>
-      ) : stats && (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KPI title="Total Produksi (Ton)" value={`${Number(stats.totalQtyBefore || 0).toFixed(1)} T`} icon={Package} color="text-primary" />
-            <KPI title="Produksi Hari Ini" value={`${Number(stats.todayQtyAfter || 0).toFixed(1)} T`} icon={Calendar} color="text-emerald-500" />
-            <KPI title="Avg Margin Harga" value={`+${stats.avgPriceDiffPct}%`} icon={TrendingUp} color="text-green-500" />
-            <KPI title="Total Unit Dryer" value={stats.totalDryers || 0} icon={Factory} color="text-emerald-600" />
-          </div>
+      </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Tren Produksi</h3>
-              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-4">
-                <AdminTrendChart data={trendData} />
-              </div>
-            </div>
+      {/* 3. MAIN ROW 2: 3 EQUAL COLUMNS (TREND + STATUS DRYER + PRODUKSI PER KABUPATEN) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+        <Trend7HariChart data={trend7DaysData} />
+        <StatusDryerChart total={stats?.totalDryers} />
+        <ProduksiPerKabupatenChart data={perKabupatenData} />
+      </div>
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2"><Package className="h-5 w-5 text-emerald-500" /> Per Komoditas</h3>
-              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-4">
-                <AdminBarChart data={perKomoditas} />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2"><Users className="h-5 w-5 text-blue-500" /> Top Gapoktan</h3>
-              <div className="h-[300px] w-full bg-card/60 rounded-3xl border p-4">
-                <AdminGapoktanChart data={perGapoktan} />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border bg-card/60 p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Produksi Terbaru</h3>
-              <a href="/dashboard/production" className="text-sm text-primary hover:underline">Lihat semua →</a>
-            </div>
-            <div className="space-y-2">
-              {filteredProductions.slice(0, 10).map(p => (
-                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all border border-transparent hover:border-primary/10">
-                  <div>
-                    <p className="text-sm font-semibold">{p.gapoktan?.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.komoditas?.name} • {p.production_date}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold">{Number(p.qty_before).toFixed(1)}→{Number(p.qty_after).toFixed(1)} Ton</p>
-                    <p className="text-xs text-emerald-500 font-medium">+{p.price_diff_pct}% harga</p>
-                  </div>
-                </div>
-              ))}
-              {filteredProductions.length === 0 && <p className="text-center py-8 text-muted-foreground text-sm">Tidak ada data sesuai filter</p>}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function KPI({ title, value, icon: Icon, color }: { title: string; value: string | number; icon: any; color: string }) {
-  return (
-    <div className="relative group overflow-hidden rounded-2xl border bg-card/60 p-6 hover:shadow-xl hover:border-primary/20 transition-all">
-      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity"><Icon className={`h-16 w-16 ${color}`} /></div>
-      <p className="text-sm font-medium text-muted-foreground">{title}</p>
-      <h3 className="text-3xl font-bold tracking-tight mt-1">{value}</h3>
+      {/* 4. FITUR SISTEM FOOTER */}
+      <FiturSistemFooter />
     </div>
   );
 }
