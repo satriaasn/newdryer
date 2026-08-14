@@ -41,7 +41,8 @@ export default function DryerAdmin() {
     const s = searchQuery.toLowerCase();
     return d.name.toLowerCase().includes(s) || 
            d.gapoktan?.name?.toLowerCase().includes(s) ||
-           d.gapoktan?.desa?.name?.toLowerCase().includes(s);
+           d.gapoktan?.desa?.name?.toLowerCase().includes(s) ||
+           (d.keterangan && d.keterangan.toLowerCase().includes(s));
   });
 
   const statusColor: Record<string, string> = { active: 'bg-emerald-500/10 text-emerald-500', inactive: 'bg-gray-500/10 text-gray-500', maintenance: 'bg-amber-500/10 text-amber-500' };
@@ -82,7 +83,7 @@ export default function DryerAdmin() {
           type="text" 
           value={searchQuery} 
           onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Cari dryer atau gapoktan..." 
+          placeholder="Cari dryer, gapoktan, atau keterangan..." 
           className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-card/60 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
         />
         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -111,14 +112,15 @@ export default function DryerAdmin() {
                   <th className="px-6 py-4 text-right">Kapasitas</th>
                   <th className="px-6 py-4 text-center">Produktivitas</th>
                   <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Keterangan</th>
                   <th className="px-6 py-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {loading ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">Memuat...</td></tr>
+                  <tr><td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">Memuat...</td></tr>
                 ) : filteredDryers.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">Data tidak ditemukan</td></tr>
+                  <tr><td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">Data tidak ditemukan</td></tr>
                 ) : filteredDryers.map(d => (
                   <tr key={d.id} className="text-sm hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center"><Factory className="h-4 w-4 text-primary" /></div><span className="font-semibold">{d.name}</span></div></td>
@@ -131,6 +133,7 @@ export default function DryerAdmin() {
                       </span>
                     </td>
                     <td className="px-6 py-4"><span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusColor[d.status]}`}>{statusLabel[d.status]}</span></td>
+                    <td className="px-6 py-4 text-xs text-muted-foreground">{d.keterangan || '-'}</td>
                     <td className="px-6 py-4 text-right flex justify-end gap-2 text-right">
                       <button 
                         onClick={() => setEditingDryer(d)}
@@ -160,7 +163,8 @@ function DryerForm({ initialData, gapoktanList, onSaved, onCancel }: { initialDa
     gapoktan_id: initialData?.gapoktan_id || '', 
     capacity_ton: initialData?.capacity_ton?.toString() || '',
     status: initialData?.status || 'active',
-    productivity: initialData?.productivity || 'Belum Beroperasi'
+    productivity: initialData?.productivity || 'Belum Beroperasi',
+    keterangan: initialData?.keterangan || ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -218,6 +222,10 @@ function DryerForm({ initialData, gapoktanList, onSaved, onCancel }: { initialDa
             <option value="Hanya Saat Panen Raya">Hanya Saat Panen Raya</option>
             <option value="Proses Installasi">Proses Installasi</option>
           </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Keterangan / Catatan Status</label>
+          <input type="text" value={form.keterangan} onChange={e => setForm({...form, keterangan: e.target.value})} placeholder="Contoh: Rusak, maintenance, dll" className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
         </div>
       </div>
       <div className="flex gap-3 justify-end">

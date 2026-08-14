@@ -27,8 +27,8 @@ interface DashboardMapProps {
 }
 
 const createDryerIcon = (count: number = 1, tonnage: number = 0) => {
-  let bgColor = "#10b981"; // < 200 Ton (green)
-  if (tonnage > 1000) bgColor = "#ef4444"; // > 1000 Ton (red)
+  let bgColor = "#ef4444"; // < 200 Ton (red)
+  if (tonnage > 1000) bgColor = "#10b981"; // > 1000 Ton (green)
   else if (tonnage >= 500) bgColor = "#f97316"; // 500-1000 Ton (orange)
   else if (tonnage >= 200) bgColor = "#eab308"; // 200-500 Ton (yellow)
 
@@ -143,7 +143,7 @@ export default function DashboardMap({ markers, onMarkerClick, selectedMarkerId,
         </p>
         <div className="space-y-1 text-[10px] font-semibold text-slate-600">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#ef4444] shrink-0" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#10b981] shrink-0" />
             <span>&gt; 1.000 Ton</span>
           </div>
           <div className="flex items-center gap-2">
@@ -155,7 +155,7 @@ export default function DashboardMap({ markers, onMarkerClick, selectedMarkerId,
             <span>200 - 500 Ton</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#10b981] shrink-0" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#ef4444] shrink-0" />
             <span>&lt; 200 Ton</span>
           </div>
         </div>
