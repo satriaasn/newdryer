@@ -286,12 +286,21 @@ export default function ProductionPage() {
       <ImportModal title="Import Data Produksi" isOpen={showImport} onClose={() => setShowImport(false)} onSuccess={reload} />
 
       {(showForm || editingProduction) && (
-        <ProductionForm 
-          gapoktan={gapoktan} 
-          initialData={editingProduction}
-          onSaved={handleSaved} 
-          onCancel={() => { setShowForm(false); setEditingProduction(null); }} 
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm" 
+            onClick={() => { setShowForm(false); setEditingProduction(null); }} 
+          />
+          <div className="relative z-10 w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl border bg-card shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+            <ProductionForm 
+              key={editingProduction ? editingProduction.id : 'new'}
+              gapoktan={gapoktan} 
+              initialData={editingProduction}
+              onSaved={handleSaved} 
+              onCancel={() => { setShowForm(false); setEditingProduction(null); }} 
+            />
+          </div>
+        </div>
       )}
 
       <div className="rounded-2xl border bg-card/60 overflow-hidden">
@@ -405,32 +414,31 @@ export default function ProductionPage() {
                     </td>
 
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-1.5">
+                      <div className="flex justify-end gap-1.5 items-center">
                         <button 
+                          type="button"
                           onClick={() => setDetailModalProduction(p)}
-                          className="h-8 w-8 rounded-lg bg-muted text-foreground flex items-center justify-center hover:bg-muted/80 transition-all"
+                          className="h-8 w-8 rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center shadow-sm"
                           title="Lihat Rincian Biaya & Nilai Tambah"
                         >
-                          <Coins className="h-4 w-4 text-amber-500" />
+                          <Coins className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
-                          <>
-                            <button 
-                              onClick={() => setEditingProduction(p)}
-                              className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
-                              title="Edit Data"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(p.id)}
-                              className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-all"
-                              title="Hapus Data"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
+                        <button 
+                          type="button"
+                          onClick={() => setEditingProduction(p)}
+                          className="h-8 w-8 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shadow-sm"
+                          title="Edit Data Produksi"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleDelete(p.id)}
+                          className="h-8 w-8 rounded-lg bg-rose-500/10 text-rose-600 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center shadow-sm"
+                          title="Hapus Data"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -746,12 +754,36 @@ function ProductionForm({ gapoktan, initialData, onSaved, onCancel }: { gapoktan
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border bg-card/60 p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between border-b pb-3">
         <div>
-          <h3 className="text-lg font-bold">{initialData ? 'Edit Data Produksi' : 'Form Input Produksi'}</h3>
-          <p className="text-xs text-muted-foreground">Input tonase bahan baku basah & kering, sistem akan otomatis menghitung komponen nilai tambah</p>
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            {initialData ? (
+              <>
+                <Edit className="h-5 w-5 text-primary" />
+                <span>Edit Data Produksi</span>
+              </>
+            ) : (
+              <>
+                <Plus className="h-5 w-5 text-primary" />
+                <span>Form Input Produksi</span>
+              </>
+            )}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {initialData 
+              ? 'Perbarui tonase atau tarif biaya, sistem akan otomatis menghitung ulang komponen nilai tambah' 
+              : 'Input tonase bahan baku basah & kering, sistem akan otomatis menghitung komponen nilai tambah'}
+          </p>
         </div>
+        <button 
+          type="button" 
+          onClick={onCancel}
+          className="p-1 hover:bg-muted rounded-lg text-muted-foreground transition-colors"
+          title="Tutup Form"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Bagian 1: Data Umum Produksi */}
