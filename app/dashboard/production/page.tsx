@@ -10,6 +10,7 @@ import { ImportModal } from "@/components/dashboard/import-modal";
 import { exportToCSV } from "@/lib/export-utils";
 import { userService, type Profile } from "@/services/user.service";
 import { calculateProductionCostAndValueAdded, getDefaultCostRates } from "@/lib/cost-calculator";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw, Search, Calendar, SlidersHorizontal } from "lucide-react";
 
 type SortKey = 'production_date' | 'gapoktan' | 'komoditas' | 'dryer' | 'qty_before' | 'price_before' | 'qty_after' | 'price_after' | 'qty_diff_pct' | 'price_diff_pct' | 'commodity_value_added_per_kg' | 'business_value_added' | 'net_value_added';
 type SortDir = 'asc' | 'desc';
@@ -17,6 +18,7 @@ type SortDir = 'asc' | 'desc';
 export default function ProductionPage() {
   const [productions, setProductions] = useState<Production[]>([]);
   const [gapoktan, setGapoktan] = useState<Gapoktan[]>([]);
+  const [komoditasList, setKomoditasList] = useState<Komoditas[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -24,6 +26,17 @@ export default function ProductionPage() {
   const [detailModalProduction, setDetailModalProduction] = useState<Production | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [profile, setProfile] = useState<Profile | null>(null);
+
+  // Filter state
+  const [filterKomoditas, setFilterKomoditas] = useState('');
+  const [filterGapoktan, setFilterGapoktan] = useState('');
+  const [filterKabupaten, setFilterKabupaten] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   // Sort state
   const [sortKey, setSortKey] = useState<SortKey>('production_date');
@@ -35,6 +48,34 @@ export default function ProductionPage() {
   const [printDateTo, setPrintDateTo] = useState('');
   const [printGapoktan, setPrintGapoktan] = useState('');
   const [printKomoditas, setPrintKomoditas] = useState('');
+
+  // Daftar unik kabupaten dari gapoktan
+  const kabupatenList = useMemo(() => {
+    const set = new Set<string>();
+    gapoktan.forEach(g => {
+      const kab = g.desa?.kecamatan?.kabupaten?.name?.replace('KABUPATEN ', '');
+      if (kab) set.add(kab);
+    });
+    return Array.from(set).sort();
+  }, [gapoktan]);
+
+  const hasActiveFilters = Boolean(
+    searchQuery || filterKomoditas || filterGapoktan || filterKabupaten || filterDateFrom || filterDateTo
+  );
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setFilterKomoditas('');
+    setFilterGapoktan('');
+    setFilterKabupaten('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setCurrentPage(1);
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterKomoditas, filterGapoktan, filterKabupaten, filterDateFrom, filterDateTo, itemsPerPage]);
 
   const getSortValue = (p: Production, key: SortKey): string | number => {
     switch(key) {
@@ -71,28 +112,48 @@ export default function ProductionPage() {
 
   const sortedFiltered = useMemo(() => {
     const filtered = productions.filter(p => {
-      const s = searchQuery.toLowerCase();
-      return p.gapoktan?.name?.toLowerCase().includes(s) || 
-             p.komoditas?.name?.toLowerCase().includes(s) ||
-             p.dryer_units?.name?.toLowerCase().includes(s) ||
-             p.production_date?.toLowerCase().includes(s);
+      const s = searchQuery.toLowerCase().trim();
+      const matchSearch = !s || 
+        p.gapoktan?.name?.toLowerCase().includes(s) || 
+        p.komoditas?.name?.toLowerCase().includes(s) ||
+        p.dryer_units?.name?.toLowerCase().includes(s) ||
+        p.production_date?.toLowerCase().includes(s) ||
+        p.gapoktan?.desa?.kecamatan?.kabupaten?.name?.toLowerCase().includes(s);
+
+      const matchKomoditas = !filterKomoditas || p.komoditas_id === filterKomoditas || p.komoditas?.name?.toLowerCase() === filterKomoditas.toLowerCase();
+      const matchGapoktan = !filterGapoktan || p.gapoktan_id === filterGapoktan;
+      const matchKabupaten = !filterKabupaten || p.gapoktan?.desa?.kecamatan?.kabupaten?.name?.toLowerCase().includes(filterKabupaten.toLowerCase());
+      const matchDateFrom = !filterDateFrom || (p.production_date && p.production_date >= filterDateFrom);
+      const matchDateTo = !filterDateTo || (p.production_date && p.production_date <= filterDateTo);
+
+      return matchSearch && matchKomoditas && matchGapoktan && matchKabupaten && matchDateFrom && matchDateTo;
     });
+
     return [...filtered].sort((a, b) => {
       const va = getSortValue(a, sortKey);
       const vb = getSortValue(b, sortKey);
       const cmp = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb));
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [productions, searchQuery, sortKey, sortDir]);
+  }, [productions, searchQuery, filterKomoditas, filterGapoktan, filterKabupaten, filterDateFrom, filterDateTo, sortKey, sortDir]);
+
+  // Pagination slicing
+  const totalPages = Math.max(1, Math.ceil(sortedFiltered.length / itemsPerPage));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, sortedFiltered.length);
+  const paginatedData = sortedFiltered.slice(startIndex, endIndex);
 
   const reload = () => {
     Promise.all([
       fetch('/api/production', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/gapoktan', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/komoditas', { cache: 'no-store' }).then(r => r.json()),
       userService.getCurrentProfile(),
-    ]).then(([p, g, prof]) => {
+    ]).then(([p, g, k, prof]) => {
       setProductions(Array.isArray(p) ? p : []);
       setGapoktan(Array.isArray(g) ? g : []);
+      setKomoditasList(Array.isArray(k) ? k : []);
       setProfile(prof);
     }).finally(() => setLoading(false));
   };
@@ -270,16 +331,126 @@ export default function ProductionPage() {
         </div>
       </header>
 
-      <div className="relative">
-        <input 
-          type="text" 
-          value={searchQuery} 
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Cari data produksi..." 
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-card/60 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-        />
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+      {/* FILTER TOOLBAR DI ATAS TABEL */}
+      <div className="rounded-2xl border bg-card/60 p-4 space-y-3 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <input 
+              type="text" 
+              value={searchQuery} 
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Cari Gapoktan, Komoditas, Dryer, Tanggal..." 
+              className="w-full pl-10 pr-9 py-2 rounded-xl border bg-background outline-none focus:ring-2 focus:ring-primary/20 transition-all text-xs"
+            />
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            {searchQuery && (
+              <button 
+                type="button" 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 text-xs font-semibold transition-all"
+                title="Reset Semua Filter"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Reset Filter</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-background px-2.5 py-1.5 rounded-xl border">
+              <span className="font-semibold text-[11px] uppercase tracking-wider">Baris:</span>
+              <select
+                value={itemsPerPage}
+                onChange={e => setItemsPerPage(Number(e.target.value))}
+                className="bg-transparent font-bold text-foreground outline-none cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Baris Filter Dropdown & Tanggal */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2.5 pt-1 border-t">
+          {/* Filter Komoditas */}
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Komoditas</label>
+            <select
+              value={filterKomoditas}
+              onChange={e => setFilterKomoditas(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            >
+              <option value="">Semua Komoditas</option>
+              {komoditasList.map(k => (
+                <option key={k.id} value={k.id}>{k.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Gapoktan */}
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Gapoktan</label>
+            <select
+              value={filterGapoktan}
+              onChange={e => setFilterGapoktan(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer truncate"
+            >
+              <option value="">Semua Gapoktan</option>
+              {gapoktan.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Kabupaten */}
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Kabupaten/Kota</label>
+            <select
+              value={filterKabupaten}
+              onChange={e => setFilterKabupaten(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            >
+              <option value="">Semua Kabupaten</option>
+              {kabupatenList.map(kab => (
+                <option key={kab} value={kab}>{kab}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Tanggal Dari */}
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Dari Tanggal</label>
+            <input 
+              type="date" 
+              value={filterDateFrom}
+              onChange={e => setFilterDateFrom(e.target.value)}
+              className="w-full px-2.5 py-1.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            />
+          </div>
+
+          {/* Filter Tanggal Sampai */}
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Sampai Tanggal</label>
+            <input 
+              type="date" 
+              value={filterDateTo}
+              onChange={e => setFilterDateTo(e.target.value)}
+              className="w-full px-2.5 py-1.5 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            />
+          </div>
         </div>
       </div>
 
@@ -303,13 +474,17 @@ export default function ProductionPage() {
         </div>
       )}
 
-      <div className="rounded-2xl border bg-card/60 overflow-hidden">
-        <div className="p-6 border-b flex items-center justify-between">
+      <div className="rounded-2xl border bg-card/60 overflow-hidden shadow-sm">
+        <div className="p-4 sm:p-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-lg font-bold">Riwayat Produksi & Nilai Tambah</h3>
             <p className="text-xs text-muted-foreground">Kalkulasi nilai tambah per kg dan keuntungan bersih unit usaha</p>
           </div>
-          <span className="text-xs text-muted-foreground font-medium">{sortedFiltered.length} data · Klik kolom untuk urutkan</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-medium">
+              Total <strong>{sortedFiltered.length}</strong> data · Halaman <strong>{safeCurrentPage}</strong> dari <strong>{totalPages}</strong>
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -359,9 +534,9 @@ export default function ProductionPage() {
             <tbody className="divide-y">
               {loading ? (
                 <tr><td colSpan={13} className="px-4 py-8 text-center text-muted-foreground">Memuat...</td></tr>
-              ) : sortedFiltered.length === 0 ? (
-                <tr><td colSpan={13} className="px-4 py-8 text-center text-muted-foreground">Data tidak ditemukan</td></tr>
-              ) : sortedFiltered.map(p => {
+              ) : paginatedData.length === 0 ? (
+                <tr><td colSpan={13} className="px-4 py-8 text-center text-muted-foreground">Data tidak ditemukan sesuai filter</td></tr>
+              ) : paginatedData.map(p => {
                 const isCommPositive = (Number(p.commodity_value_added_per_kg) || 0) >= 0;
                 const isBizPositive = (Number(p.business_value_added) || 0) >= 0;
                 const isNetPositive = (Number(p.net_value_added) || 0) >= 0;
@@ -446,6 +621,97 @@ export default function ProductionPage() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* PAGINATION NAVIGATION FOOTER */}
+        <div className="p-4 border-t bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="text-muted-foreground">
+            Menampilkan <span className="font-semibold text-foreground">{sortedFiltered.length === 0 ? 0 : startIndex + 1}</span> - <span className="font-semibold text-foreground">{endIndex}</span> dari <span className="font-semibold text-foreground">{sortedFiltered.length}</span> data produksi
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* Tombol Pertama */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage(1)}
+              disabled={safeCurrentPage === 1}
+              className="p-1.5 rounded-lg border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              title="Halaman Pertama"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+
+            {/* Tombol Sebelumnya */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={safeCurrentPage === 1}
+              className="p-1.5 rounded-lg border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              title="Halaman Sebelumnya"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            {/* Nomor Halaman */}
+            <div className="flex items-center gap-1 px-1">
+              {(() => {
+                const pages: (number | string)[] = [];
+                if (totalPages <= 7) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                } else {
+                  if (safeCurrentPage <= 4) {
+                    pages.push(1, 2, 3, 4, 5, '...', totalPages);
+                  } else if (safeCurrentPage >= totalPages - 3) {
+                    pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+                  } else {
+                    pages.push(1, '...', safeCurrentPage - 1, safeCurrentPage, safeCurrentPage + 1, '...', totalPages);
+                  }
+                }
+                return pages.map((pg, idx) => {
+                  if (pg === '...') {
+                    return <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground">...</span>;
+                  }
+                  const isCurrent = pg === safeCurrentPage;
+                  return (
+                    <button
+                      key={`page-${pg}`}
+                      type="button"
+                      onClick={() => setCurrentPage(Number(pg))}
+                      className={`h-7 min-w-7 px-2 rounded-lg font-bold text-xs transition-all ${
+                        isCurrent 
+                          ? 'bg-primary text-primary-foreground shadow-sm' 
+                          : 'bg-background border hover:bg-muted text-foreground'
+                      }`}
+                    >
+                      {pg}
+                    </button>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Tombol Selanjutnya */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={safeCurrentPage === totalPages || totalPages === 0}
+              className="p-1.5 rounded-lg border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              title="Halaman Selanjutnya"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+
+            {/* Tombol Terakhir */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={safeCurrentPage === totalPages || totalPages === 0}
+              className="p-1.5 rounded-lg border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              title="Halaman Terakhir"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 

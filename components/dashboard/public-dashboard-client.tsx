@@ -16,7 +16,8 @@ import {
   Users, Package, Factory, TrendingUp, MapPin, 
   Search, Calendar, Filter, Download, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
   Wheat, ClipboardList, Sun, Moon, Palette, Check, ChevronDown, ChevronUp,
-  Coins, DollarSign, Receipt, Info, X, HelpCircle, Calculator, Eye
+  Coins, DollarSign, Receipt, Info, X, HelpCircle, Calculator, Eye,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw
 } from "lucide-react";
 import { calculateProductionCostAndValueAdded, getDefaultCostRates } from "@/lib/cost-calculator";
 
@@ -51,9 +52,15 @@ export default function PublicDashboardClient() {
   const [filterKabupaten, setFilterKabupaten] = useState('');
   const [filterKecamatan, setFilterKecamatan] = useState('');
 
-  // Pagination
+  // Table-specific search and Pagination
+  const [searchTable, setSearchTable] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Reset pagination on any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterStartDate, filterEndDate, filterProductivity, searchTable, itemsPerPage]);
 
   const [selectedGapoktan, setSelectedGapoktan] = useState<Gapoktan | null>(null);
 
@@ -231,6 +238,16 @@ export default function PublicDashboardClient() {
       if (filterStartDate && p.production_date < filterStartDate) return false;
       if (filterEndDate && p.production_date > filterEndDate) return false;
       if (filterProductivity && !p.gapoktan?.dryer_units?.some(d => (d.productivity || 'Belum Beroperasi') === filterProductivity)) return false;
+      if (searchTable) {
+        const st = searchTable.toLowerCase().trim();
+        const match = p.gapoktan?.name?.toLowerCase().includes(st) ||
+          p.komoditas?.name?.toLowerCase().includes(st) ||
+          p.gapoktan?.desa?.name?.toLowerCase().includes(st) ||
+          p.gapoktan?.desa?.kecamatan?.name?.toLowerCase().includes(st) ||
+          p.gapoktan?.desa?.kecamatan?.kabupaten?.name?.toLowerCase().includes(st) ||
+          p.production_date?.includes(st);
+        if (!match) return false;
+      }
       return true;
     });
 
@@ -251,7 +268,7 @@ export default function PublicDashboardClient() {
     }
 
     return result;
-  }, [productions, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterStartDate, filterEndDate, filterProductivity, sortKey, sortDir]);
+  }, [productions, filterKomoditas, filterKabupaten, filterKecamatan, filterGapoktan, filterStartDate, filterEndDate, filterProductivity, searchTable, sortKey, sortDir]);
 
   const stats = useMemo<DashboardStats>(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -534,7 +551,11 @@ export default function PublicDashboardClient() {
     document.body.removeChild(link);
   };
 
-  const paginatedProductions = filteredProductions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredProductions.length / itemsPerPage));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, filteredProductions.length);
+  const paginatedProductions = filteredProductions.slice(startIndex, endIndex);
 
   if (loading) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -1016,28 +1037,105 @@ export default function PublicDashboardClient() {
         </div>
 
         <div className="bg-card rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-           <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                  <ClipboardList className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-foreground">Data Riwayat Produksi</h2>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">Total log pengeringan unit monitoring</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-medium text-[10px] uppercase font-bold tracking-widest leading-none">Rows:</span>
-                <select 
-                  value={itemsPerPage} 
-                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  className="text-xs font-bold border rounded-lg px-2 py-1 outline-none bg-background focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
+           <div className="space-y-4 mb-6">
+             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+               <div className="flex items-center gap-3">
+                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                   <ClipboardList className="h-5 w-5" />
+                 </div>
+                 <div>
+                   <h2 className="text-lg font-bold text-foreground">Data Riwayat Produksi & Nilai Tambah</h2>
+                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider italic">
+                     Total log pengeringan, selisih harga, dan transparansi nilai tambah unit monitoring
+                   </p>
+                 </div>
+               </div>
+               <div className="flex items-center gap-2 self-end sm:self-auto">
+                 <span className="text-xs text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">Tampilkan:</span>
+                 <select 
+                   value={itemsPerPage} 
+                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                   className="text-xs font-bold border rounded-xl px-2.5 py-1.5 outline-none bg-background focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                 >
+                   <option value={10}>10 Baris</option>
+                   <option value={25}>25 Baris</option>
+                   <option value={50}>50 Baris</option>
+                   <option value={100}>100 Baris</option>
+                 </select>
+               </div>
+             </div>
+
+             {/* FILTER TOOLBAR LOKAL DI ATAS TABEL */}
+             <div className="p-3.5 rounded-2xl border bg-muted/20 space-y-3">
+               <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                 <div className="relative flex-1">
+                   <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                   <input
+                     type="text"
+                     value={searchTable}
+                     onChange={(e) => setSearchTable(e.target.value)}
+                     placeholder="Cari Kelompok Tani, Komoditas, Desa, Kecamatan, Kabupaten..."
+                     className="w-full pl-9 pr-8 py-2 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                   />
+                   {searchTable && (
+                     <button
+                       type="button"
+                       onClick={() => setSearchTable('')}
+                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                     >
+                       <X className="h-3.5 w-3.5" />
+                     </button>
+                   )}
+                 </div>
+
+                 <div className="flex items-center gap-2 flex-wrap">
+                   {/* Filter Komoditas */}
+                   <select
+                     value={filterKomoditas}
+                     onChange={(e) => setFilterKomoditas(e.target.value)}
+                     className="px-3 py-2 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                   >
+                     <option value="">Semua Komoditas</option>
+                     {komoditasList.map(k => (
+                       <option key={k.id} value={k.id}>{k.name}</option>
+                     ))}
+                   </select>
+
+                   {/* Filter Kabupaten */}
+                   <select
+                     value={filterKabupaten}
+                     onChange={(e) => {
+                       setFilterKabupaten(e.target.value);
+                       setFilterKecamatan('');
+                     }}
+                     className="px-3 py-2 rounded-xl border bg-background text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                   >
+                     <option value="">Semua Kabupaten</option>
+                     {availableKabupaten.map((kab: any) => (
+                       <option key={kab.id} value={kab.id}>{kab.name}</option>
+                     ))}
+                   </select>
+
+                   {(searchTable || filterKomoditas || filterKabupaten) && (
+                     <button
+                       type="button"
+                       onClick={() => {
+                         setSearchTable('');
+                         setFilterKomoditas('');
+                         setFilterKabupaten('');
+                         setFilterKecamatan('');
+                         setCurrentPage(1);
+                       }}
+                       className="flex items-center gap-1 px-3 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 text-xs font-bold transition-all"
+                       title="Reset Filter Tabel"
+                     >
+                       <RotateCcw className="h-3.5 w-3.5" />
+                       <span>Reset</span>
+                     </button>
+                   )}
+                 </div>
+               </div>
+             </div>
            </div>
 
            <div className="overflow-x-auto rounded-xl border scrollbar-hide">
@@ -1084,7 +1182,7 @@ export default function PublicDashboardClient() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredProductions.slice(0, itemsPerPage).map((p: any) => {
+                  {paginatedProductions.map((p: any) => {
                      const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
                      const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
                      const statusName = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
@@ -1173,6 +1271,97 @@ export default function PublicDashboardClient() {
                   )}
                 </tbody>
               </table>
+           </div>
+
+           {/* PAGINATION NAVIGATION FOOTER */}
+           <div className="p-4 border-t bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs mt-4 rounded-xl border">
+             <div className="text-muted-foreground">
+               Menampilkan <span className="font-bold text-foreground">{filteredProductions.length === 0 ? 0 : startIndex + 1}</span> - <span className="font-bold text-foreground">{endIndex}</span> dari <span className="font-bold text-foreground">{filteredProductions.length}</span> data riwayat produksi
+             </div>
+
+             <div className="flex items-center gap-1.5">
+               {/* Tombol Pertama */}
+               <button
+                 type="button"
+                 onClick={() => setCurrentPage(1)}
+                 disabled={safeCurrentPage === 1}
+                 className="p-1.5 rounded-lg border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                 title="Halaman Pertama"
+               >
+                 <ChevronsLeft className="h-4 w-4" />
+               </button>
+
+               {/* Tombol Sebelumnya */}
+               <button
+                 type="button"
+                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                 disabled={safeCurrentPage === 1}
+                 className="p-1.5 rounded-lg border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                 title="Halaman Sebelumnya"
+               >
+                 <ChevronLeft className="h-4 w-4" />
+               </button>
+
+               {/* Nomor Halaman */}
+               <div className="flex items-center gap-1 px-1">
+                 {(() => {
+                   const pages: (number | string)[] = [];
+                   if (totalPages <= 7) {
+                     for (let i = 1; i <= totalPages; i++) pages.push(i);
+                   } else {
+                     if (safeCurrentPage <= 4) {
+                       pages.push(1, 2, 3, 4, 5, '...', totalPages);
+                     } else if (safeCurrentPage >= totalPages - 3) {
+                       pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+                     } else {
+                       pages.push(1, '...', safeCurrentPage - 1, safeCurrentPage, safeCurrentPage + 1, '...', totalPages);
+                     }
+                   }
+                   return pages.map((pg, idx) => {
+                     if (pg === '...') {
+                       return <span key={`ellipsis-pub-${idx}`} className="px-1 text-muted-foreground font-bold">...</span>;
+                     }
+                     const isCurrent = pg === safeCurrentPage;
+                     return (
+                       <button
+                         key={`page-pub-${pg}`}
+                         type="button"
+                         onClick={() => setCurrentPage(Number(pg))}
+                         className={`h-7 min-w-7 px-2 rounded-lg font-bold text-xs transition-all ${
+                           isCurrent 
+                             ? 'bg-primary text-primary-foreground shadow-sm' 
+                             : 'bg-background border hover:bg-muted text-foreground'
+                         }`}
+                       >
+                         {pg}
+                       </button>
+                     );
+                   });
+                 })()}
+               </div>
+
+               {/* Tombol Selanjutnya */}
+               <button
+                 type="button"
+                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                 disabled={safeCurrentPage === totalPages || totalPages === 0}
+                 className="p-1.5 rounded-lg border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                 title="Halaman Selanjutnya"
+               >
+                 <ChevronRight className="h-4 w-4" />
+               </button>
+
+               {/* Tombol Terakhir */}
+               <button
+                 type="button"
+                 onClick={() => setCurrentPage(totalPages)}
+                 disabled={safeCurrentPage === totalPages || totalPages === 0}
+                 className="p-1.5 rounded-lg border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                 title="Halaman Terakhir"
+               >
+                 <ChevronsRight className="h-4 w-4" />
+               </button>
+             </div>
            </div>
         </div>
 
