@@ -154,8 +154,7 @@ export default function ProfileSettingsPage() {
                     if(!profile?.full_name) return;
                     setSaving(true);
                     try {
-                      const { error } = await userService.updateProfile(profile.id, { full_name: profile.full_name });
-                      if(error) throw error;
+                      await userService.updateProfile(profile.id, { full_name: profile.full_name });
                       alert("Nama berhasil diperbarui!");
                     } catch(e:any) { alert(e.message); }
                     finally { setSaving(false); }

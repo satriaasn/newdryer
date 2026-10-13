@@ -7,9 +7,10 @@ import type { Production, Gapoktan } from "@/lib/types";
 import { 
   ArrowLeft, MapPin, Users, Phone, Factory, Wheat, 
   Calendar, Package, TrendingUp, Info, ClipboardList,
-  Mail, Globe, ShieldCheck, Download, Printer
+  Mail, Globe, ShieldCheck, Download, Printer, Coins
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { calculateProductionCostAndValueAdded, getDefaultCostRates } from "@/lib/cost-calculator";
 
 export default function PublicGapoktanDetailPage() {
   const { id } = useParams();
@@ -58,6 +59,31 @@ export default function PublicGapoktanDetailPage() {
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+  };
+
+  const getProductionValueAdded = (p: any) => {
+    if (p && p.commodity_value_added_per_kg !== undefined && p.business_value_added !== undefined && Number(p.business_value_added) !== 0) {
+      return {
+        commodity_value_added_per_kg: Number(p.commodity_value_added_per_kg || 0),
+        business_value_added: Number(p.business_value_added || 0),
+      };
+    }
+
+    const rates = getDefaultCostRates(p.komoditas, p.komoditas?.name);
+    const res = calculateProductionCostAndValueAdded({
+      qty_before_ton: Number(p.qty_before || 0),
+      price_before_kg: Number(p.price_before || 0),
+      qty_after_ton: Number(p.qty_after || 0),
+      price_after_kg: Number(p.price_after || 0),
+      operational_rate: rates.cost_operational,
+      labor_rate: rates.cost_labor,
+      management_rate: rates.cost_management,
+    });
+
+    return {
+      commodity_value_added_per_kg: res.commodity_value_added_per_kg,
+      business_value_added: res.business_value_added,
+    };
   };
 
   if (loading) return (
@@ -366,7 +392,7 @@ export default function PublicGapoktanDetailPage() {
                   </div>
 
                   <div className="overflow-x-auto scrollbar-hide px-4 pb-4 mt-4">
-                     <table className="w-full text-left min-w-[1000px]">
+                     <table className="w-full text-left min-w-[1150px]">
                         <thead>
                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] bg-slate-50/50 rounded-xl">
                               <th className="px-6 py-4">TGL / UNIT</th>
@@ -375,10 +401,14 @@ export default function PublicGapoktanDetailPage() {
                               <th className="px-6 py-4 text-right">HARGA SEBELUM</th>
                               <th className="px-6 py-4 text-right">TON SESUDAH</th>
                               <th className="px-6 py-4 text-right">HARGA SESUDAH</th>
+                              <th className="px-6 py-4 text-right text-emerald-700 bg-emerald-50/50">NILAI TAMBAH / KG</th>
+                              <th className="px-6 py-4 text-right text-emerald-700 bg-emerald-50/50">SISA UNIT USAHA</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                           {productions.map(p => (
+                           {productions.map(p => {
+                              const va = getProductionValueAdded(p);
+                              return (
                               <tr key={p.id} className="group hover:bg-neutral-50 transition-colors">
                                  <td className="px-6 py-5">
                                     <div className="font-bold text-slate-800 text-xs">{p.production_date}</div>
@@ -407,11 +437,25 @@ export default function PublicGapoktanDetailPage() {
                                     <div className="text-xs font-bold text-emerald-600">{formatCurrency(p.price_after || 0)}</div>
                                     <div className="text-[9px] font-black text-emerald-400 uppercase">+{p.price_diff_pct}% INCREASE</div>
                                  </td>
+
+                                 {/* NILAI TAMBAH / KG */}
+                                 <td className="px-6 py-5 text-right bg-emerald-50/30">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                       +{formatCurrency(va.commodity_value_added_per_kg)}/kg
+                                    </span>
+                                 </td>
+
+                                 {/* SISA UNIT USAHA */}
+                                 <td className="px-6 py-5 text-right bg-emerald-50/30">
+                                    <div className="text-xs font-black font-mono text-emerald-700">
+                                       {formatCurrency(va.business_value_added)}
+                                    </div>
+                                 </td>
                               </tr>
-                           ))}
+                           );})}
                            {productions.length === 0 && (
                               <tr>
-                                 <td colSpan={6} className="py-20 text-center">
+                                 <td colSpan={8} className="py-20 text-center">
                                     <div className="max-w-xs mx-auto space-y-2 opacity-30 grayscale italic">
                                        <Package className="h-10 w-10 mx-auto" />
                                        <p className="text-sm font-bold uppercase tracking-widest">Belum Ada Data Produksi</p>

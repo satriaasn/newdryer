@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import type { Gapoktan, GapoktanKomoditas, Komoditas } from "@/lib/types";
+import type { Gapoktan, GapoktanKomoditas, Komoditas, CommodityTarget } from "@/lib/types";
 
 export const gapoktanService = {
   async getAll(): Promise<Gapoktan[]> {
@@ -111,16 +111,57 @@ export const gapoktanService = {
     if (error) throw new Error(error.message);
   },
 
-  async createKomoditas(name: string, target_monthly?: number): Promise<Komoditas> {
-    const { data, error } = await supabase.from('komoditas').insert({ name, target_monthly }).select().single();
-    if (error) throw new Error(error.message);
-    return data as Komoditas;
+  async createKomoditas(params: {
+    name: string;
+    target_monthly?: number;
+    cost_operational?: number;
+    cost_labor?: number;
+    cost_management?: number;
+  }): Promise<Komoditas> {
+    try {
+      const { data, error } = await supabase.from('komoditas').insert(params).select().single();
+      if (error) throw error;
+      return data as Komoditas;
+    } catch (err: any) {
+      if (err.message?.includes('column') && err.message?.includes('cost_')) {
+        const { data, error } = await supabase
+          .from('komoditas')
+          .insert({ name: params.name, target_monthly: params.target_monthly })
+          .select()
+          .single();
+        if (error) throw new Error(error.message);
+        return data as Komoditas;
+      }
+      throw new Error(err.message);
+    }
   },
 
-  async updateKomoditas(id: string, name: string, target_monthly?: number): Promise<Komoditas> {
-    const { data, error } = await supabase.from('komoditas').update({ name, target_monthly }).eq('id', id).select().single();
-    if (error) throw new Error(error.message);
-    return data as Komoditas;
+  async updateKomoditas(params: {
+    id: string;
+    name: string;
+    target_monthly?: number;
+    cost_operational?: number;
+    cost_labor?: number;
+    cost_management?: number;
+  }): Promise<Komoditas> {
+    try {
+      const { id, ...rest } = params;
+      const { data, error } = await supabase.from('komoditas').update(rest).eq('id', id).select().single();
+      if (error) throw error;
+      return data as Komoditas;
+    } catch (err: any) {
+      if (err.message?.includes('column') && err.message?.includes('cost_')) {
+        const { data, error } = await supabase
+          .from('komoditas')
+          .update({ name: params.name, target_monthly: params.target_monthly })
+          .eq('id', params.id)
+          .select()
+          .single();
+        if (error) throw new Error(error.message);
+        return data as Komoditas;
+      }
+      throw new Error(err.message);
+    }
   },
 
   async deleteKomoditas(id: string): Promise<void> {

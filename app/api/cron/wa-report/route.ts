@@ -56,7 +56,7 @@ export async function GET(request: Request) {
                  `Total Produksi: *${totalQty.toFixed(1)} Ton*\n` +
                  `Jumlah Input: *${count} Data*\n\n` +
                  `Detail per Gapoktan:\n` +
-                 productions.slice(0, 10).map(p => `- ${p.gapoktan?.name}: ${Number(p.qty_before).toFixed(1)} T`).join('\n') +
+                 productions.slice(0, 10).map((p: any) => `- ${p.gapoktan?.name}: ${Number(p.qty_before).toFixed(1)} T`).join('\n') +
                  (productions.length > 10 ? '\n...dan lainnya' : '') +
                  `\n\n_Pesan otomatis dari Dashboard Monitoring Dryer_`;
 

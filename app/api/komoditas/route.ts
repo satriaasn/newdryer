@@ -21,8 +21,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { name, target_monthly } = await request.json();
-    const data = await gapoktanService.createKomoditas(name, target_monthly);
+    const body = await request.json();
+    const data = await gapoktanService.createKomoditas({
+      name: body.name,
+      target_monthly: body.target_monthly,
+      cost_operational: typeof body.cost_operational === 'number' ? body.cost_operational : undefined,
+      cost_labor: typeof body.cost_labor === 'number' ? body.cost_labor : undefined,
+      cost_management: typeof body.cost_management === 'number' ? body.cost_management : undefined,
+    });
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -31,9 +37,16 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const { id, name, target_monthly } = await request.json();
-    if (!id) throw new Error("ID required");
-    const data = await gapoktanService.updateKomoditas(id, name, target_monthly);
+    const body = await request.json();
+    if (!body.id) throw new Error("ID required");
+    const data = await gapoktanService.updateKomoditas({
+      id: body.id,
+      name: body.name,
+      target_monthly: body.target_monthly,
+      cost_operational: typeof body.cost_operational === 'number' ? body.cost_operational : undefined,
+      cost_labor: typeof body.cost_labor === 'number' ? body.cost_labor : undefined,
+      cost_management: typeof body.cost_management === 'number' ? body.cost_management : undefined,
+    });
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

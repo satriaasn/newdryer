@@ -73,6 +73,9 @@ export interface Komoditas {
   name: string;
   target_monthly?: number;
   commodity_targets?: CommodityTarget[];
+  cost_operational?: number;
+  cost_labor?: number;
+  cost_management?: number;
 }
 
 export interface GapoktanKomoditas {
@@ -100,6 +103,20 @@ export interface Production {
   dryer_units?: DryerUnit;
   gapoktan?: Gapoktan;
   komoditas?: Komoditas;
+  // Flexible cost & value-added fields
+  cost_operational_rate?: number;
+  cost_labor_rate?: number;
+  cost_management_rate?: number;
+  total_cost_operational?: number;
+  total_cost_labor?: number;
+  total_cost_management?: number;
+  total_cost?: number;
+  gross_value_diff?: number;
+  gross_value_diff_per_kg?: number;
+  commodity_value_added_per_kg?: number;
+  business_value_added?: number;
+  net_value_added?: number;
+  net_value_added_per_kg?: number;
 }
 
 export interface DashboardStats {

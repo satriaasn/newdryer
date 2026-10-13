@@ -20,12 +20,14 @@ import {
   Settings,
   Download,
   MessageSquare,
+  Activity,
 } from "lucide-react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { userService, type Profile } from "@/services/user.service";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Monitoring Dryer", href: "/dashboard/monitoring", icon: Activity },
   { name: "Laporan WA", href: "/dashboard/reports", icon: MessageSquare },
   { name: "Produksi", href: "/dashboard/production", icon: ClipboardList },
   { name: "Gapoktan", href: "/dashboard/gapoktan", icon: Users },

@@ -14,7 +14,8 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Activity } from "lucide-react";
 
 // --- 1. TREND PRODUKSI 7 HARI TERAKHIR ---
 const defaultTrendData = [
@@ -82,9 +83,19 @@ export function StatusDryerChart({ data, total }: { data?: { name: string; value
 
   return (
     <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col space-y-3 w-full h-[280px]">
-      <h3 className="text-xs font-black uppercase text-slate-800 tracking-tight">
-        STATUS DRYER
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-black uppercase text-slate-800 tracking-tight flex items-center gap-1.5">
+          <Activity className="w-3.5 h-3.5 text-emerald-600" />
+          STATUS DRYER
+        </h3>
+        <Link 
+          href="/dashboard/monitoring" 
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+        >
+          <span>Monitoring Grid</span>
+          <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
 
       <div className="flex-1 flex items-center justify-between gap-2 min-h-0">
         {/* Donut Chart with Center Text */}

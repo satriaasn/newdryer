@@ -15,8 +15,10 @@ const GapoktanChart = nextDynamic(() => import("@/components/dashboard/admin-cha
 import { 
   Users, Package, Factory, TrendingUp, MapPin, 
   Search, Calendar, Filter, Download, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, Clock, Settings, RefreshCw,
-  Wheat, ClipboardList, Sun, Moon, Palette, Check, ChevronDown, ChevronUp
+  Wheat, ClipboardList, Sun, Moon, Palette, Check, ChevronDown, ChevronUp,
+  Coins, DollarSign, Receipt, Info, X, HelpCircle, Calculator, Eye
 } from "lucide-react";
+import { calculateProductionCostAndValueAdded, getDefaultCostRates } from "@/lib/cost-calculator";
 
 export default function PublicDashboardClient() {
   const router = useRouter();
@@ -73,8 +75,52 @@ export default function PublicDashboardClient() {
     }
   };
 
+  // Modal Detail Nilai Tambah
+  const [selectedProductionModal, setSelectedProductionModal] = useState<Production | null>(null);
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+  };
+
+  const getProductionValueAdded = (p: any) => {
+    if (p && p.commodity_value_added_per_kg !== undefined && p.business_value_added !== undefined && Number(p.business_value_added) !== 0) {
+      return {
+        commodity_value_added_per_kg: Number(p.commodity_value_added_per_kg || 0),
+        business_value_added: Number(p.business_value_added || 0),
+        value_difference: Number(p.value_difference || 0),
+        total_operational_cost: Number(p.total_operational_cost || 0),
+        total_labor_cost: Number(p.total_labor_cost || 0),
+        total_management_fee: Number(p.total_management_fee || 0),
+        net_value_added: Number(p.net_value_added || 0),
+        operational_rate: Number(p.operational_cost_per_kg || 75),
+        labor_rate: Number(p.labor_cost_per_kg || 100),
+        management_rate: Number(p.management_fee_per_kg || 100),
+      };
+    }
+
+    const rates = getDefaultCostRates(p.komoditas, p.komoditas?.name);
+    const res = calculateProductionCostAndValueAdded({
+      qty_before_ton: Number(p.qty_before || 0),
+      price_before_kg: Number(p.price_before || 0),
+      qty_after_ton: Number(p.qty_after || 0),
+      price_after_kg: Number(p.price_after || 0),
+      operational_rate: rates.cost_operational,
+      labor_rate: rates.cost_labor,
+      management_rate: rates.cost_management,
+    });
+
+    return {
+      commodity_value_added_per_kg: res.commodity_value_added_per_kg,
+      business_value_added: res.business_value_added,
+      value_difference: res.gross_value_diff,
+      total_operational_cost: res.total_cost_operational,
+      total_labor_cost: res.total_cost_labor,
+      total_management_fee: res.total_cost_management,
+      net_value_added: res.net_value_added,
+      operational_rate: res.cost_operational_rate,
+      labor_rate: res.cost_labor_rate,
+      management_rate: res.cost_management_rate,
+    };
   };
 
   const resetFilters = () => {
@@ -237,6 +283,40 @@ export default function PublicDashboardClient() {
       coverageKabupaten: coverageKabSet.size
     };
   }, [filteredProductions, filteredGapoktan, filterProductivity]);
+
+  const valueAddedSummary = useMemo(() => {
+    let totalBusinessValueAdded = 0;
+    let totalValueDiff = 0;
+    let totalOpCost = 0;
+    let totalLaborCost = 0;
+    let totalManagementFee = 0;
+    let totalWeightBeforeKg = 0;
+
+    filteredProductions.forEach((p: any) => {
+      const kgBefore = Number(p.qty_before || 0) * 1000;
+      totalWeightBeforeKg += kgBefore;
+      const va = getProductionValueAdded(p);
+      totalBusinessValueAdded += va.business_value_added;
+      totalValueDiff += va.value_difference;
+      totalOpCost += va.total_operational_cost;
+      totalLaborCost += va.total_labor_cost;
+      totalManagementFee += va.total_management_fee;
+    });
+
+    const avgValueAddedPerKg = totalWeightBeforeKg > 0 
+      ? Math.round(totalBusinessValueAdded / totalWeightBeforeKg) 
+      : 0;
+
+    return {
+      totalBusinessValueAdded,
+      totalValueDiff,
+      totalOpCost,
+      totalLaborCost,
+      totalManagementFee,
+      avgValueAddedPerKg,
+      totalWeightBeforeKg
+    };
+  }, [filteredProductions]);
 
   const productivityStats = useMemo(() => {
     const counts: Record<string, number> = {
@@ -411,11 +491,19 @@ export default function PublicDashboardClient() {
   }, [filteredProductions]);
 
   const exportToCSV = () => {
-    const headers = ['No Unit', 'Tanggal', 'Gapoktan', 'Alamat', 'Komoditas', 'Tonase Sebelum', 'Harga Sebelum', 'Tonase Sesudah', 'Harga Sesudah', 'Status'];
+    const headers = [
+      'No Unit', 'Tanggal', 'Gapoktan', 'Alamat', 'Komoditas', 
+      'Tonase Sebelum (Ton)', 'Harga Sebelum (Rp/kg)', 
+      'Tonase Sesudah (Ton)', 'Harga Sesudah (Rp/kg)',
+      'Nilai Tambah / Kg (Rp)', 'Nilai Tambah Sisa Usaha (Rp)',
+      'Biaya Operasional (Rp)', 'Tenaga Kerja (Rp)', 'Kas Pengelola (Rp)',
+      'Status'
+    ];
     const rows = filteredProductions.map(p => {
       const isMaintenance = p.gapoktan?.dryer_units?.some((d: any) => d.status === 'maintenance');
       const isIdle = p.gapoktan?.dryer_units?.every((d: any) => d.status === 'inactive');
       const status = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
+      const va = getProductionValueAdded(p);
       return [
         `DRY-${p.gapoktan_id.substring(0,4).toUpperCase()}`,
         p.production_date,
@@ -426,6 +514,11 @@ export default function PublicDashboardClient() {
         Number(p.price_before || 0).toFixed(0),
         Number(p.qty_after || 0).toFixed(2),
         Number(p.price_after || 0).toFixed(0),
+        va.commodity_value_added_per_kg.toFixed(0),
+        va.business_value_added.toFixed(0),
+        va.total_operational_cost.toFixed(0),
+        va.total_labor_cost.toFixed(0),
+        va.total_management_fee.toFixed(0),
         status
       ];
     });
@@ -653,6 +746,56 @@ export default function PublicDashboardClient() {
           <KPICard title="Total Gapoktan" value={stats?.totalGapoktan || 0} unit="Poktan" trend="Update terbaru" trendUp={true} borderLeft="border-l-teal-500" />
           <KPICard title="Total Dryer" value={stats?.totalDryers || 0} unit="Unit" trend="100% Aktif monitoring" trendUp={true} borderLeft="border-l-emerald-600" />
           <KPICard title="Wilayah Terjangkau" value={stats?.coverageKabupaten || 0} unit="Kab/Kota" trend="Update terbaru hari ini" trendUp={undefined} borderLeft="border-l-lime-500" />
+        </div>
+
+        {/* SCORECARD NILAI TAMBAH PASCA PANEN Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Coins className="h-4 w-4 text-emerald-500" />
+              <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                Estimasi & Analisis Nilai Tambah Pasca Panen
+              </h2>
+            </div>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+              Net Operasional & Unit Usaha
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <KPICard 
+              title="NILAI TAMBAH SISA USAHA" 
+              value={formatCurrency(valueAddedSummary.totalBusinessValueAdded)} 
+              unit="" 
+              trend="Keuntungan Sisa Unit Usaha" 
+              trendUp={true} 
+              borderLeft="border-l-emerald-500" 
+            />
+            <KPICard 
+              title="RATA-RATA NILAI TAMBAH / KG" 
+              value={`+${formatCurrency(valueAddedSummary.avgValueAddedPerKg)}`} 
+              unit="/ kg" 
+              trend="Nilai Tambah Bersih per Kg" 
+              trendUp={true} 
+              borderLeft="border-l-teal-500" 
+            />
+            <KPICard 
+              title="SELISIH NILAI KERING-BASAH" 
+              value={formatCurrency(valueAddedSummary.totalValueDiff)} 
+              unit="" 
+              trend="Kenaikan Nilai Ekonomi (ΔV)" 
+              trendUp={true} 
+              borderLeft="border-l-blue-500" 
+            />
+            <KPICard 
+              title="BIAYA OPERASIONAL TERURAI" 
+              value={formatCurrency(valueAddedSummary.totalOpCost)} 
+              unit="" 
+              trend="Biaya Pengeringan Komoditas" 
+              trendUp={undefined} 
+              borderLeft="border-l-amber-500" 
+            />
+          </div>
         </div>
 
         {/* SCORECARD PRODUKTIVITAS DRYER Section */}
@@ -898,7 +1041,7 @@ export default function PublicDashboardClient() {
            </div>
 
            <div className="overflow-x-auto rounded-xl border scrollbar-hide">
-              <table className="w-full text-left min-w-[1200px]">
+              <table className="w-full text-left min-w-[1380px]">
                 <thead>
                   <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/30">
                     <th className="px-5 py-4 border-b cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('production_date')}>
@@ -925,7 +1068,19 @@ export default function PublicDashboardClient() {
                     <th className="px-5 py-4 border-b text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('price_after')}>
                       <div className="flex items-center justify-end gap-1">Harga Sesudah {sortKey === 'price_after' && (sortDir === 'asc' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />)}</div>
                     </th>
+                    <th className="px-5 py-4 border-b text-right bg-emerald-500/5 text-emerald-800 dark:text-emerald-300 font-extrabold">
+                      <div className="flex items-center justify-end gap-1">
+                        <Coins className="h-3 w-3 text-emerald-500" />
+                        <span>Nilai Tambah / Kg</span>
+                      </div>
+                    </th>
+                    <th className="px-5 py-4 border-b text-right bg-emerald-500/5 text-emerald-800 dark:text-emerald-300 font-extrabold">
+                      <div className="flex items-center justify-end gap-1">
+                        <span>Sisa Unit Usaha</span>
+                      </div>
+                    </th>
                     <th className="px-5 py-4 border-b">Status</th>
+                    <th className="px-5 py-4 border-b text-center">Rincian</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -935,9 +1090,10 @@ export default function PublicDashboardClient() {
                      const statusName = isMaintenance ? 'Maintenance' : (isIdle ? 'Idle' : 'Aktif');
                      const statusColor = isMaintenance ? 'text-rose-400' : (isIdle ? 'text-slate-400' : 'text-emerald-400');
                      const statusDot = isMaintenance ? 'bg-rose-500' : (isIdle ? 'bg-slate-500' : 'bg-emerald-500');
+                     const va = getProductionValueAdded(p);
 
                      return (
-                        <tr key={p.id} className="text-[11px] hover:bg-muted/30 transition-all cursor-pointer" onClick={() => router.push(`/gapoktan/${p.gapoktan_id}`)}>
+                        <tr key={p.id} className="text-[11px] hover:bg-muted/30 transition-all cursor-pointer" onClick={() => setSelectedProductionModal(p)}>
                           <td className="px-5 py-5">
                              <div className="font-mono text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">ID: {p.gapoktan_id.substring(0,6).toUpperCase()}</div>
                              <div className="font-bold text-foreground text-[12px]">{p.production_date}</div>
@@ -964,31 +1120,237 @@ export default function PublicDashboardClient() {
                              <span className="text-[9px] ml-1 text-muted-foreground uppercase">Ton</span>
                           </td>
                           <td className="px-5 py-5 text-right">
-                             <span className="text-[11px] font-bold text-emerald-500">{formatCurrency(p.price_before || 0)}</span>
+                             <span className="text-[11px] font-bold text-muted-foreground">{formatCurrency(p.price_before || 0)}</span>
                           </td>
                           <td className="px-5 py-5 text-right">
                              <span className="text-sm font-bold text-foreground">{Number(p.qty_after || 0).toFixed(2)}</span>
                              <span className="text-[9px] ml-1 text-muted-foreground uppercase">Ton</span>
                           </td>
                           <td className="px-5 py-5 text-right">
-                             <span className="text-[11px] font-bold text-emerald-500">{formatCurrency(p.price_after || 0)}</span>
+                             <span className="text-[11px] font-bold text-muted-foreground">{formatCurrency(p.price_after || 0)}</span>
                           </td>
+
+                          {/* NILAI TAMBAH / KG */}
+                          <td className="px-5 py-5 text-right bg-emerald-500/5">
+                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
+                               +{formatCurrency(va.commodity_value_added_per_kg)}/kg
+                             </span>
+                          </td>
+
+                          {/* SISA NILAI TAMBAH UNIT USAHA */}
+                          <td className="px-5 py-5 text-right bg-emerald-500/5">
+                             <span className="text-[12px] font-black font-mono text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                               {formatCurrency(va.business_value_added)}
+                             </span>
+                          </td>
+
                           <td className="px-5 py-5">
                              <div className="flex items-center gap-2">
                                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot} animate-pulse`} />
                                 <span className={`font-bold text-[10px] uppercase tracking-widest ${statusColor}`}>{statusName}</span>
                              </div>
                           </td>
+
+                          <td className="px-5 py-5 text-center">
+                             <button
+                               type="button"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setSelectedProductionModal(p);
+                               }}
+                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold transition-all"
+                               title="Lihat Rincian Hitungan Nilai Tambah"
+                             >
+                               <Coins className="h-3 w-3" />
+                               <span>Rincian</span>
+                             </button>
+                          </td>
                         </tr>
                      );
                   })}
                   {filteredProductions.length === 0 && (
-                    <tr><td colSpan={9} className="px-5 py-10 text-center text-sm text-muted-foreground italic">Tidak ada data sesuai filter</td></tr>
+                    <tr><td colSpan={12} className="px-5 py-10 text-center text-sm text-muted-foreground italic">Tidak ada data sesuai filter</td></tr>
                   )}
                 </tbody>
               </table>
            </div>
         </div>
+
+        {/* MODAL RINCIAN NILAI TAMBAH (INTERAKTIF & TRANSPARAN) */}
+        {selectedProductionModal && (() => {
+          const p = selectedProductionModal;
+          const va = getProductionValueAdded(p);
+          const qtyBeforeKg = Number(p.qty_before || 0) * 1000;
+          const qtyAfterKg = Number(p.qty_after || 0) * 1000;
+          const rawValue = qtyBeforeKg * Number(p.price_before || 0);
+          const driedValue = qtyAfterKg * Number(p.price_after || 0);
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div 
+                className="absolute inset-0 bg-background/80 backdrop-blur-sm" 
+                onClick={() => setSelectedProductionModal(null)} 
+              />
+              <div className="bg-card w-full max-w-2xl rounded-2xl border shadow-2xl relative z-10 p-6 space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                {/* Header Modal */}
+                <div className="flex items-center justify-between border-b pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      <Coins className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-lg text-foreground flex items-center gap-2">
+                        <span>Rincian Nilai Tambah Produksi</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                          {p.komoditas?.name || 'Gabah'}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-muted-foreground font-medium">
+                        {p.gapoktan?.name} • Tanggal {p.production_date}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedProductionModal(null)} 
+                    className="p-1 hover:bg-muted rounded-lg text-muted-foreground transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* 1. Komparasi Bahan Baku Basah vs Kering */}
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    1. Bahan Baku & Nilai Kotor (Sebelum vs Sesudah Pengeringan)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {/* Sebelum */}
+                    <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1.5">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase block">Kondisi Basah (Awal)</span>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tonase:</span>
+                        <span className="font-bold text-foreground">{Number(p.qty_before).toFixed(2)} Ton ({qtyBeforeKg.toLocaleString()} kg)</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Harga Beli:</span>
+                        <span className="font-bold text-foreground">{formatCurrency(p.price_before)} / kg</span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-border/40 font-semibold">
+                        <span className="text-muted-foreground">Total Nilai Basah:</span>
+                        <span className="text-foreground">{formatCurrency(rawValue)}</span>
+                      </div>
+                    </div>
+
+                    {/* Sesudah */}
+                    <div className="p-3.5 rounded-xl border bg-emerald-500/5 border-emerald-500/30 space-y-1.5">
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase block">Hasil Kering (Akhir)</span>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tonase:</span>
+                        <span className="font-bold text-foreground">{Number(p.qty_after).toFixed(2)} Ton ({qtyAfterKg.toLocaleString()} kg)</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Harga Jual:</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(p.price_after)} / kg</span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-border/40 font-semibold">
+                        <span className="text-muted-foreground">Total Nilai Kering:</span>
+                        <span className="text-foreground">{formatCurrency(driedValue)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selisih Nilai Kotor */}
+                  <div className="p-3 rounded-xl border bg-card flex items-center justify-between text-xs">
+                    <span className="font-semibold text-muted-foreground">Selisih Nilai Kotor Basah ke Kering (ΔV):</span>
+                    <span className="font-mono font-black text-sm text-foreground">
+                      {formatCurrency(va.value_difference)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Komponen Biaya Produksi */}
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    2. Komponen Biaya Produksi (Berdasarkan Tonase Basah)
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2.5 text-xs">
+                    <div className="p-3 rounded-xl border bg-amber-500/5 border-amber-500/20">
+                      <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase block">Biaya Operasional</span>
+                      <div className="font-mono font-bold mt-1 text-foreground">{formatCurrency(va.operational_rate)}/kg</div>
+                      <div className="text-[11px] font-bold text-amber-600 mt-0.5">{formatCurrency(va.total_operational_cost)}</div>
+                    </div>
+                    <div className="p-3 rounded-xl border bg-blue-500/5 border-blue-500/20">
+                      <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase block">Tenaga Kerja</span>
+                      <div className="font-mono font-bold mt-1 text-foreground">{formatCurrency(va.labor_rate)}/kg</div>
+                      <div className="text-[11px] font-bold text-blue-600 mt-0.5">{formatCurrency(va.total_labor_cost)}</div>
+                    </div>
+                    <div className="p-3 rounded-xl border bg-purple-500/5 border-purple-500/20">
+                      <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase block">Kas Pengelola</span>
+                      <div className="font-mono font-bold mt-1 text-foreground">{formatCurrency(va.management_rate)}/kg</div>
+                      <div className="text-[11px] font-bold text-purple-600 mt-0.5">{formatCurrency(va.total_management_fee)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Hasil Perhitungan Nilai Tambah */}
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    3. Hasil Nilai Tambah & Keuntungan Bersih
+                  </h4>
+                  <div className="p-4 rounded-xl border bg-emerald-500/10 border-emerald-500/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
+                          Nilai Tambah Komoditas / Kg:
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          (Selisih Nilai / Tonase Basah) - Biaya Operasional/kg
+                        </span>
+                      </div>
+                      <div className="font-mono font-black text-lg text-emerald-700 dark:text-emerald-400">
+                        +{formatCurrency(va.commodity_value_added_per_kg)} <span className="text-xs">/ kg</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
+                          Nilai Tambah Sisa Unit Usaha:
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          Nilai Tambah / Kg × Tonase Basah ({qtyBeforeKg.toLocaleString()} kg)
+                        </span>
+                      </div>
+                      <div className="font-mono font-black text-xl text-emerald-700 dark:text-emerald-400">
+                        {formatCurrency(va.business_value_added)}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        Keuntungan Bersih Akhir (Setelah Naker & Kas):
+                      </span>
+                      <span className="font-mono font-bold text-foreground">
+                        {formatCurrency(va.net_value_added)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedProductionModal(null)} 
+                    className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow hover:opacity-90"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       </main>
 

@@ -63,7 +63,7 @@ export function GapoktanForm({ initialData, onSaved, onCancel }: GapoktanFormPro
   const toggleKomoditas = (id: string) => {
     setForm(prev => {
       const ids = prev.komoditas_ids.includes(id) 
-        ? prev.komoditas_ids.filter(i => i !== id)
+        ? prev.komoditas_ids.filter((i: string) => i !== id)
         : [...prev.komoditas_ids, id];
       return { ...prev, komoditas_ids: ids };
     });
